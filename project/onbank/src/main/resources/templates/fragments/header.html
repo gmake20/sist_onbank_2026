@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="headerFragment">
+    <header class="header-wrap">
+        <div class="header-logo">
+            <!-- 텍스트 기반 고급 로고 세팅 -->
+            <a href="/">ON<span>BANK</span></a>
+        </div>
+        <nav class="header-nav">
+            <ul>
+                <li><a href="/personal">개인뱅킹</a></li>
+                <li><a href="/corporate">기업뱅킹</a></li>
+                <li><a href="/products">금융상품</a></li>
+                <li><a href="/asset">자산관리</a></li>
+                <li><a href="/customer">고객센터</a></li>
+            </ul>
+        </nav>
+        <div class="header-login">
+            <a href="/login" style="border: 1px solid #d4af37; padding: 8px 20px; border-radius: 20px; color: #d4af37;">로그인</a>
+        </div>
+    </header>
+</div>
+</html>
