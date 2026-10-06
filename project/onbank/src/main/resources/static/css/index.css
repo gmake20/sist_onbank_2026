@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+/* 전체 기본 설정 */
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    margin: 0; padding: 0;
+    background-color: #ffffff; /* 깔끔한 화이트 배경 */
+    color: #333;
+}
+ul, li { list-style: none; margin: 0; padding: 0; }
+a { text-decoration: none; color: inherit; }
+
+/* 공지사항 띠배너 */
+.top-notice {
+    background-color: #1a3c70;
+    color: #fff;
+    padding: 12px 50px;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+}
+.top-notice span.badge { color: #d4af37; font-weight: bold; margin-right: 10px; }
+.top-notice a { color: #b5daf8; font-size: 12px; margin-left: 10px; }
+
+/* 1. 헤더 (고급스러운 딥 블루) */
+.header-wrap {
+    background-color: #0b1d3a;
+    color: #ffffff;
+    height: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 50px;
+}
+.header-logo a { font-size: 28px; font-weight: 700; letter-spacing: 2px; }
+.header-logo span { color: #d4af37; }
+.header-nav ul { display: flex; gap: 40px; }
+.header-nav ul li a { font-size: 16px; font-weight: 500; transition: color 0.3s; }
+.header-nav ul li a:hover { color: #d4af37; }
+.header-login a { border: 1px solid #d4af37; padding: 8px 20px; border-radius: 20px; color: #d4af37; }
+
+/* 2. 메인 히어로 배너 (자동 슬라이더 & 배경색 개별 적용) */
+.hero-banner {
+    position: relative;
+    text-align: left; 
+}
+.slider-container {
+    position: relative;
+    width: 100%;
+}
+.slide {
+    display: none;
+    width: 100%;
+    cursor: pointer;
+    padding: 80px 0 160px 0; /* 퀵메뉴가 겹칠 하단 공간 확보 */
+    box-sizing: border-box;
+}
+/* 각 슬라이드별 배경색 설정 */
+.slide1 { background-color: #fff0f5; } /* 연한 핑크 */
+.slide2 { background-color: #f0f4ff; } /* 연한 블루 */
+.slide3 { background-color: #f4f0ff; } /* 연한 퍼플 */
+
+.slide-content {
+    max-width: 950px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+.slide-text h2 { font-size: 38px; margin-bottom: 15px; font-weight: 700; color: #111; }
+.slide-text p { font-size: 18px; color: #555; line-height: 1.5; margin-bottom: 30px; }
+.more-btn { font-size: 15px; font-weight: 700; color: #333; }
+.slide-img { font-size: 130px; animation: floatImg 3s ease-in-out infinite; }
+
+/* 우측 이미지 둥둥 떠다니는 애니메이션 효과 */
+@keyframes floatImg {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+    100% { transform: translateY(0px); }
+}
+
+/* 페이드 효과 및 화살표, 점(인디케이터) 설정 */
+.fade { animation: fadeEffect 1s; }
+@keyframes fadeEffect { from { opacity: 0.3 } to { opacity: 1 } }
+.prev, .next { cursor: pointer; position: absolute; top: 35%; padding: 16px; color: #0b1d3a; font-weight: bold; font-size: 28px; transition: 0.3s; user-select: none; }
+.prev { left: 10%; }
+.next { right: 10%; }
+.prev:hover, .next:hover { color: #d4af37; }
+.dots { position: absolute; bottom: 100px; width: 100%; text-align: center; }
+.dot { cursor: pointer; height: 12px; width: 12px; margin: 0 4px; background-color: #bbb; border-radius: 50%; display: inline-block; transition: 0.3s; }
+.dot.active, .dot:hover { background-color: #0b1d3a; }
+/* 3. 플로팅 퀵메뉴 (배너에 걸치게 배치) */
+.floating-menu {
+    position: absolute;
+    bottom: -35px; /* 배너 아래쪽으로 반쯤 튀어나오게 설정 */
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    border-radius: 40px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    display: flex;
+    overflow: hidden;
+    width: 800px;
+    z-index: 10; /* 애니메이션이나 다른 이미지보다 항상 맨 위에 오도록 보장 */
+}
+.floating-menu a {
+    flex: 1;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 500;
+    border-right: 1px solid #eee;
+    transition: background 0.3s, color 0.3s;
+}
+.floating-menu a:last-child { border-right: none; }
+.floating-menu a.active { background: #0b1d3a; color: #fff; font-weight: 700; }
+.floating-menu a:hover:not(.active) { background: #f8f9fa; color: #0b1d3a; }
+/* 4. 금융상품 & 카드 아이콘 섹션 */
+.icon-section {
+    max-width: 1000px;
+    margin: 100px auto 60px auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 50px; /* 두 영역 사이를 강제로 띄워줌 */
+}
+.icon-group { 
+    flex: 0 0 60%; /* 금융상품 영역의 너비를 60%로 고정 */
+}
+.icon-group.card-group { 
+    flex: 0 0 30%; /* 카드 영역의 너비를 30%로 고정 */
+    border-left: 1px solid #eee; 
+    padding-left: 50px; 
+}
+.icon-group h3 { font-size: 20px; margin-bottom: 30px; color: #333; }
+
+/* 4개씩 2줄로 배치 */
+.icon-list { 
+    display: flex; 
+    gap: 20px 0; 
+    flex-wrap: wrap; 
+}
+.icon-list li { 
+    text-align: center; 
+    width: 25%; /* 4개씩 강제 정렬 */
+    cursor: pointer; 
+}
+.icon-circle {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    font-size: 28px;
+    line-height: 60px;
+    margin: 0 auto 10px auto;
+    transition: transform 0.3s, background 0.3s;
+}
+.icon-list li:hover .icon-circle { transform: translateY(-5px); background: #0b1d3a; color: #d4af37; }
+.icon-list li span { font-size: 14px; color: #555; }
+/* 카드 영역 아이콘 간격 넓히기 (3개이므로 33.3% 할당) */
+.card-group .icon-list li {
+    width: 33.33%;
+}
+/* 5. 서비스 카드 섹션 */
+.service-section {
+    max-width: 1000px; margin: 0 auto 60px auto;
+}
+.service-section > h3 { font-size: 20px; margin-bottom: 20px; }
+.service-cards { display: flex; gap: 30px; }
+.card {
+    flex: 1;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    transition: box-shadow 0.3s;
+}
+.card:hover { box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+.card-img { font-size: 50px; margin-bottom: 20px; }
+.card h4 { font-size: 18px; margin-bottom: 10px; color: #0b1d3a; }
+.card p { font-size: 14px; color: #777; line-height: 1.5; }
+
+/* 6. 새소식 & 이벤트 게시판 */
+.board-section {
+    background-color: #f8f9fa;
+    padding: 60px 0;
+}
+.board-inner {
+    max-width: 1000px; margin: 0 auto;
+    display: flex; gap: 50px;
+}
+.board-box { flex: 1; }
+.board-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #0b1d3a; padding-bottom: 10px; }
+.board-header h3 { font-size: 20px; margin: 0; }
+.board-header a { font-size: 13px; color: #666; }
+.board-box ul li {
+    display: flex; justify-content: space-between;
+    padding: 12px 0; border-bottom: 1px solid #ddd;
+    font-size: 15px; color: #444;
+}
+.board-box ul li a:hover { text-decoration: underline; color: #0b1d3a; }
+.board-box ul li span { color: #888; font-size: 14px; }
+
+/* 7. 푸터 */
+.footer-wrap {
+    background-color: #f1f1f1;
+    color: #555;
+    padding: 40px 50px;
+    font-size: 14px;
+    border-top: 1px solid #ddd;
+}
+.footer-info { margin-bottom: 15px; }
+.footer-info a { margin-right: 15px; color: #555; }
+.footer-copyright { color: #999; }
