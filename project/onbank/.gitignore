@@ -38,3 +38,6 @@ out/
 
 .metadata
 /.metadata/
+### 비밀정보 (DB 접속 정보 등) ###
+application-local.properties
+application-prod.properties
