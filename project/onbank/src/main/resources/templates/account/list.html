@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>전계좌조회 - ONBANK</title>
+    <!-- 공통 CSS (헤더/푸터 등) -->
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <!-- 전계좌조회 전용 CSS -->
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <!-- 헤더 영역 -->
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">전계좌조회</h2>
+
+        <!-- 메인 탭 -->
+        <ul class="main-tabs">
+            <li class="active"><a href="#">ONBANK</a></li>
+            <li><a href="#">다른금융</a></li>
+        </ul>
+
+        <!-- 서브 탭 -->
+        <ul class="sub-tabs">
+            <li class="active"><a href="#">예금/신탁</a></li>
+            <li><a href="#">펀드</a></li>
+            <li><a href="#">대출</a></li>
+            <li><a href="#">외화</a></li>
+            <li><a href="#">골드</a></li>
+            <li><a href="#">보험</a></li>
+            <li><a href="#">전체계좌</a></li>
+        </ul>
+
+        <!-- 배너 영역 (선택사항) -->
+        <div class="banner-area">
+            <div class="banner-box">
+                <span class="banner-badge">ONBANK</span>
+                <strong>금융과 내가 만나, 우리가 되다</strong>
+                <p>ON하는 순간 이뤄지는 나만의 맞춤금융</p>
+            </div>
+            <div class="banner-box">
+                <span class="banner-badge">서비스</span>
+                <strong>ON글로벌</strong>
+                <p>영업점 방문없이 편리하게</p>
+            </div>
+        </div>
+
+        <!-- 1. 입출금 영역 -->
+        <div class="account-section">
+            <div class="section-title-wrap">
+                <h3>입출금</h3>
+            </div>
+            <div class="section-header">
+                <div class="left-area">
+                    <span class="total-balance">총잔액 : <strong>0원</strong></span>
+                    <button class="btn-import">➕ 다른은행에서 가져오기</button>
+                </div>
+                <div class="right-area">
+                    <span class="last-login">최근접속일시 : 2024.12.14 01:31:56 | 조회기준일시 : 2026.10.01 23:03:52</span>
+                </div>
+            </div>
+            <table class="account-table">
+                <colgroup>
+                    <col style="width: 25%;">
+                    <col style="width: 20%;">
+                    <col style="width: 15%;">
+                    <col style="width: 20%;">
+                    <col style="width: 20%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>예금명</th>
+                        <th>계좌번호</th>
+                        <th>최종거래일</th>
+                        <th>잔액(원)</th>
+                        <th>바로가기</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            ON 통장
+                        </td>
+                        <td>1002-862-******</td>
+                        <td>
+                            2026.10.01<br>
+                            <span class="sub-text">한도제한계좌</span>
+                        </td>
+                        <td class="balance">0</td>
+                        <td class="actions">
+                            <button class="btn-sm">조회</button>
+                            <button class="btn-sm">이체</button>
+                            <button class="btn-sm">계좌관리</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. 예금/신탁 영역 -->
+        <div class="account-section">
+            <div class="section-title-wrap">
+                <h3>예금/신탁</h3>
+            </div>
+            <div class="section-header">
+                <div class="left-area">
+                    <span class="total-balance">총잔액 : <strong>0원</strong></span>
+                </div>
+                <div class="right-area">
+                    <span class="last-login">최근접속일시 : 2024.12.14 01:31:56 | 조회기준일시 : 2026.10.01 23:03:52</span>
+                </div>
+            </div>
+            <table class="account-table">
+                <colgroup>
+                    <col style="width: 25%;">
+                    <col style="width: 20%;">
+                    <col style="width: 15%;">
+                    <col style="width: 20%;">
+                    <col style="width: 20%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>예금명</th>
+                        <th>계좌번호</th>
+                        <th>최종거래일</th>
+                        <th>잔액(원)</th>
+                        <th>바로가기</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>청년 주택드림 청약통장</td>
+                        <td>1073-719-******</td>
+                        <td>2026.10.01</td>
+                        <td class="balance">0</td>
+                        <td class="actions">
+                            <button class="btn-sm">조회</button>
+                            <button class="btn-sm">입금</button>
+                            <button class="btn-sm">계좌관리</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 3. 적금 영역 -->
+        <div class="account-section">
+            <div class="section-title-wrap">
+                <h3>적금</h3>
+            </div>
+            <div class="section-header">
+                <div class="left-area">
+                    <span class="total-balance">총잔액 : <strong class="text-blue">0원</strong></span>
+                </div>
+                <div class="right-area">
+                    <span class="last-login">최근접속일시 : 2024.12.14 01:31:56 | 조회기준일시 : 2026.10.01 23:03:52</span>
+                </div>
+            </div>
+            <table class="account-table">
+                <colgroup>
+                    <col style="width: 25%;">
+                    <col style="width: 20%;">
+                    <col style="width: 15%;">
+                    <col style="width: 20%;">
+                    <col style="width: 20%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>예금명</th>
+                        <th>계좌번호</th>
+                        <th>최종거래일</th>
+                        <th>잔액(원)</th>
+                        <th>바로가기</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="5" class="empty-row">
+                            <p>보유중인 상품이 없습니다.</p>
+                            <p class="sub-desc">매달 차곡차곡 쌓이는 재미, 적금 가입하고 소소한 재미를 즐겨보세요.</p>
+                            <button class="btn-join">가입하기</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 하단 공통 버튼 영역 -->
+        <div class="bottom-actions">
+            <button class="btn-outline">계좌정렬순서변경</button>
+            <button class="btn-outline">엑셀저장</button>
+            <button class="btn-outline">인쇄</button>
+        </div>
+    </main>
+
+    <!-- 푸터 영역 -->
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+</body>
+</html>

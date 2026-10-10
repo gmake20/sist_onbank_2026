@@ -1,0 +1,271 @@
+/* 전계좌조회 전용 스타일 - 네이비 테마 적용 */
+
+.account-container {
+    width: 1000px;
+    margin: 40px auto;
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    color: #333;
+}
+
+/* 페이지 타이틀 (네이비) */
+.page-title {
+    font-size: 28px;
+    color: #003366; 
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+/* 메인 탭 */
+.main-tabs {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+}
+
+.main-tabs li {
+    width: 200px;
+    text-align: center;
+}
+
+.main-tabs li a {
+    display: block;
+    padding: 15px 0;
+    text-decoration: none;
+    color: #666;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background-color: #f8f8f8;
+}
+
+/* 메인 탭 활성화 상태 (네이비) */
+.main-tabs li.active a {
+    background-color: #003366;
+    color: #fff;
+    border-color: #003366;
+}
+
+/* 서브 탭 */
+.sub-tabs {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 30px 0;
+    border: 1px solid #e0e0e0;
+    border-top: none;
+    background-color: #fdfdfd;
+}
+
+.sub-tabs li {
+    flex: 1;
+    text-align: center;
+    position: relative;
+}
+
+.sub-tabs li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 30%;
+    height: 40%;
+    width: 1px;
+    background-color: #e0e0e0;
+}
+
+.sub-tabs li a {
+    display: block;
+    padding: 12px 0;
+    text-decoration: none;
+    color: #666;
+    font-size: 14px;
+}
+
+/* 서브 탭 활성화 상태 (네이비) */
+.sub-tabs li.active a {
+    color: #003366;
+    font-weight: bold;
+}
+
+/* 배너 영역 */
+.banner-area {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.banner-box {
+    flex: 1;
+    border: 1px solid #eaeaea;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+/* 배너 뱃지 (네이비) */
+.banner-badge {
+    color: #003366;
+    font-size: 12px;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.banner-box strong {
+    font-size: 18px;
+    color: #333;
+}
+
+.banner-box p {
+    font-size: 13px;
+    color: #777;
+    margin-top: 5px;
+}
+
+/* 계좌 섹션 공통 */
+.account-section {
+    margin-bottom: 50px;
+}
+
+.section-title-wrap h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #111;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 10px;
+}
+
+.total-balance {
+    font-size: 15px;
+}
+
+.total-balance strong {
+    font-size: 16px;
+}
+
+/* 텍스트 강조 컬러 (네이비) */
+.text-blue {
+    color: #003366;
+}
+
+.btn-import {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.last-login {
+    font-size: 12px;
+    color: #888;
+}
+
+/* 테이블 스타일 */
+.account-table {
+    width: 100%;
+    border-top: 2px solid #555;
+    border-collapse: collapse;
+}
+
+.account-table th, .account-table td {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px 10px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.account-table th {
+    background-color: #f9f9f9;
+    color: #333;
+    font-weight: bold;
+}
+
+.account-table td {
+    color: #444;
+}
+
+.account-table .sub-text {
+    font-size: 12px;
+    color: #999;
+}
+
+.account-table .balance {
+    text-align: right;
+    padding-right: 30px;
+    font-weight: bold;
+}
+
+.actions .btn-sm {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+    margin: 0 2px;
+}
+
+/* 테이블 내 버튼 호버 상태 (네이비) */
+.actions .btn-sm:hover {
+    border-color: #003366;
+    color: #003366;
+}
+
+/* 빈 목록 영역 */
+.empty-row {
+    padding: 40px 0 !important;
+    background-color: #fbfbfb;
+}
+
+.empty-row p {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.empty-row .sub-desc {
+    color: #777;
+    font-size: 13px;
+    margin-bottom: 15px;
+}
+
+.btn-join {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 8px 20px;
+    color: #555;
+    cursor: pointer;
+}
+
+/* 하단 버튼 그룹 */
+.bottom-actions {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+}
+
+/* 하단 기능 버튼 (네이비) */
+.btn-outline {
+    background-color: #fff;
+    border: 1px solid #003366;
+    color: #003366;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0 5px;
+}
+
+/* 하단 버튼 호버 시 살짝 어두운 배경 */
+.btn-outline:hover {
+    background-color: #f2f5f9;
+}
