@@ -10,14 +10,15 @@
 |---|---|
 | 목표 | 실제 인터넷뱅킹 서비스를 참고한 **모의(가상) 인터넷뱅킹 서비스** 구현 |
 | 팀 구성 | 4명 |
-| 백엔드 | Java, Spring Boot, Spring MVC, Spring Security |
+| 백엔드 | Java 21, Spring Boot 4.1.1, Spring MVC, Spring Security 7 |
+| 빌드 | Gradle |
 | 데이터 접근 | **Spring Data JPA** (복잡한 검색 조회는 JPQL, 필요 시 Querydsl) |
-| DB | Oracle |
+| DB | **MySQL**  |
 | 프론트 | **Thymeleaf** (서버 사이드 렌더링) + HTML / CSS / JavaScript |
 | 통신 | Thymeleaf 화면 요청 + 비동기 처리가 필요한 기능(계좌주 확인, 알림 등)은 REST API(fetch) |
 | 인증 방식 | Spring Security **세션 기반 로그인** (Thymeleaf SSR 구조에 맞춰 JWT 대신 세션 사용) |
 | 형상관리 | Git / GitHub |
-| 배포 | **AWS** (EC2에 Spring Boot 실행, DB는 AWS 상의 Oracle) — 상세는 [13-1장](#13-1-배포-aws) |
+| 배포 | **AWS** (EC2에 Spring Boot 실행, DB는 AWS 상의 MySQL) — 상세는 [13-1장](#13-1-배포-aws) |
 
 > **기술 스택 확정**: Spring Boot + Spring Data JPA + Thymeleaf 조합으로 확정합니다. (MyBatis, JSP는 사용하지 않음)
 
@@ -567,7 +568,7 @@ http.authorizeHttpRequests(auth -> auth
 1. 계좌 비밀번호 검증 (실패 시 오류 횟수 증가, 5회째에 LOCKED 전환 후 예외)
    - 오류 횟수 갱신은 이체 롤백과 무관하게 남아야 하므로 별도 트랜잭션(REQUIRES_NEW)으로 커밋
 2. 관련 계좌를 비관적 락으로 조회
-   - JPA: @Lock(LockModeType.PESSIMISTIC_WRITE) → Oracle: SELECT ... FOR UPDATE
+   - JPA: @Lock(LockModeType.PESSIMISTIC_WRITE) → MySQL: SELECT ... FOR UPDATE
    - 이체처럼 계좌 2개를 잠글 때는 반드시 "계좌 ID 오름차순"으로 잠금
 3. 검증: 계좌 상태(정상 여부), 잔액, 1일 이체한도
 4. ACCOUNT.BALANCE 갱신 (출금 계좌 차감, 입금 계좌 증가)
@@ -581,8 +582,10 @@ A→B 이체와 B→A 이체가 동시에 실행되면, 각 트랜잭션이 자�
 
 ```
 트랜잭션1 (A→B): A 잠금 → B 대기 ⏳
-트랜잭션2 (B→A): B 잠금 → A 대기 ⏳   → 서로 영원히 대기 (Oracle ORA-00060)
+트랜잭션2 (B→A): B 잠금 → A 대기 ⏳   → 서로 대기 (MySQL은 이를 감지해 한쪽을 강제 롤백, Error 1213 Deadlock)
 ```
+
+MySQL(InnoDB)은 데드락을 감지하면 한쪽 트랜잭션을 실패시키므로 무한 대기는 아니지만, 사용자 입장에서는 이체가 이유 없이 실패하게 됩니다.
 
 출금/입금 방향과 상관없이 **항상 계좌 ID가 작은 계좌부터 잠그면** 두 트랜잭션이 같은 계좌를 먼저 잡으려 경쟁하게 되므로 순환 대기가 생기지 않습니다.
 
@@ -596,7 +599,7 @@ Account second = accountRepository.findByIdForUpdate(secondId);
 
 추가 규칙:
 - 출금 계좌와 입금 계좌가 같으면 락을 걸기 전에 예외 처리합니다.
-- 락 대기 시간 제한(`jakarta.persistence.lock.timeout` 힌트)을 두어 무한 대기를 막습니다.
+- 락 대기 시간 제한을 둡니다. MySQL에서는 JPA의 `jakarta.persistence.lock.timeout` 힌트가 초 단위로 적용되지 않으므로, DB 설정 `innodb_lock_wait_timeout`(기본 50초)을 기준으로 생각합니다.
 - 3주차 이체 구현 시 **동시 이체 테스트**(`ExecutorService`로 A→B, B→A를 동시에 다수 실행)를 작성해 데드락이 없고 잔액 합계가 보존되는지 검증합니다.
 
 ---
@@ -632,7 +635,7 @@ Account second = accountRepository.findByIdForUpdate(secondId);
 2. **패키지 구조로 물리적 충돌 최소화**: 도메인별 패키지(`member`, `account`, `product`, `admin`)를 처음부터 분리하여 각자 다른 파일/디렉토리에서 작업하도록 설계. 공통 파일(설정, 공통 응답 클래스)은 최소 인원(1명)만 수정 권한을 갖도록 규칙화.
 3. **PR 리뷰 필수화**: `develop` 브랜치에 직접 push 금지, 최소 1명 이상 리뷰 후 머지.
 4. **잦은 커밋 & 작은 단위 PR**: 기능 단위로 작게 쪼개 자주 머지하여 충돌 범위를 줄임.
-5. **공통 파일 변경 시 사전 공지**: `application.yml`, `build.gradle`(or `pom.xml`), 공통 Entity/DTO 수정 시 팀 채널에 사전 공지 후 진행.
+5. **공통 파일 변경 시 사전 공지**: `application.properties`, `build.gradle`, 공통 Entity/DTO 수정 시 팀 채널에 사전 공지 후 진행.
 6. **이슈/칸반 보드 연동**: GitHub Issues + Projects(칸반)로 작업 항목을 트래킹하여 중복 작업 방지.
 7. **커밋 컨벤션 통일**: `feat:`, `fix:`, `refactor:`, `docs:` 등 접두사 규칙을 초기에 합의.
 
@@ -642,18 +645,18 @@ Account second = accountRepository.findByIdForUpdate(secondId);
 
 **기본 구성**
 ```
-[브라우저] → [EC2: Spring Boot 실행 (java -jar)] → [Oracle DB]
-                                                   ├─ 방법 1: Amazon RDS for Oracle
-                                                   └─ 방법 2: 같은 EC2 또는 별도 EC2에 Oracle XE 설치(Docker)
+[브라우저] → [EC2: Spring Boot 실행 (java -jar)] → [MySQL DB]
+                                                   ├─ 방법 1: Amazon RDS for MySQL
+                                                   └─ 방법 2: 같은 EC2 또는 별도 EC2에 MySQL 설치(Docker)
 ```
 
 | 항목 | 내용 |
 |---|---|
 | 애플리케이션 | EC2 인스턴스 1대에 빌드한 jar 실행. 필요 시 Nginx를 앞에 두고 80 → 8080 연결 |
-| DB | 비용과 학원 계정 조건에 따라 RDS for Oracle 또는 EC2 + Oracle XE 중 선택. **착수 전에 프리티어/크레딧 적용 범위와 인스턴스 메모리를 반드시 확인** (Oracle XE는 메모리를 많이 쓰므로 가장 작은 인스턴스에서는 부족할 수 있음) |
-| 설정 분리 | `application-local.yml`(개발) / `application-prod.yml`(배포)로 프로필 분리, 실행 시 `--spring.profiles.active=prod` |
+| DB | 비용과 학원 계정 조건에 따라 RDS for MySQL 또는 EC2 + MySQL 중 선택. **착수 전에 프리티어/크레딧 적용 범위를 반드시 확인** (개발 중 쓰는 cafe24 DB를 시연에도 그대로 쓸지 함께 결정) |
+| 설정 분리 | `application-local.properties`(개발) / `application-prod.properties`(배포)로 프로필 분리, 실행 시 `--spring.profiles.active=prod` |
 | 비밀정보 | DB 비밀번호 등은 **Git에 커밋하지 않고** EC2 환경변수로 주입 (`.gitignore`에 로컬 설정 파일 추가) |
-| 보안그룹 | 웹 포트(80/8080)만 외부 공개, DB 포트(1521)는 애플리케이션 서버에서만 접근 허용, SSH(22)는 팀원 IP로 제한 |
+| 보안그룹 | 웹 포트(80/8080)만 외부 공개, DB 포트(3306)는 애플리케이션 서버에서만 접근 허용, SSH(22)는 팀원 IP로 제한 |
 | 비용 관리 | 발표가 끝나면 인스턴스 중지/삭제, 결제 알림(Billing alarm) 설정 |
 
 **일정**
