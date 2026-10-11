@@ -16,7 +16,8 @@
 | DB | **MySQL**  |
 | 프론트 | **Thymeleaf** (서버 사이드 렌더링) + HTML / CSS / JavaScript |
 | 통신 | Thymeleaf 화면 요청 + 비동기 처리가 필요한 기능(계좌주 확인, 알림 등)은 REST API(fetch) |
-| 인증 방식 | Spring Security **세션 기반 로그인** (Thymeleaf SSR 구조에 맞춰 JWT 대신 세션 사용) |
+| 인증 방식 | Spring Security **세션 기반 로그인** (Thymeleaf SSR 구조에 맞춰 JWT 대신 세션 사용). **고객(`/login`)과 직원(`/admin/login`) 로그인을 분리** |
+| 스키마 관리 | 테이블은 **SQL 파일**(`docs/schema-team*-mysql.sql`)로 만들고 JPA는 `ddl-auto=validate`(검사만). 이름은 **소문자 + 밑줄**(`login_id`) — 13장 8번 |
 | 형상관리 | Git / GitHub |
 | 배포 | **AWS** (EC2에 Spring Boot 실행, DB는 AWS 상의 MySQL) — 상세는 [13-1장](#13-1-배포-aws) |
 
@@ -376,9 +377,17 @@
 
 ### 8-1. 권한별 접근 범위 (Spring Security 설정 기준)
 
-권한은 `ROLE_USER`, `ROLE_ADMIN` 두 가지입니다. URL 단위 접근 제어는 Spring Security 설정(`SecurityFilterChain`)에서, **본인확인 완료 여부**처럼 회원 상태에 따른 제한은 Service 계층(`memberService.requireVerified()`)에서 처리합니다.
+고객과 은행 직원은 **테이블(`MEMBER` / `EMPLOYEE`)과 로그인이 완전히 분리**되어 있습니다. 실제 은행에서 고객용 인터넷뱅킹과 직원용 업무 시스템이 별개인 것과 같습니다.
 
-| 기능 | 비회원 | USER (본인확인 전) | USER (본인확인 완료) | ADMIN |
+| 구분 | 테이블 | 로그인 | 권한 |
+|---|---|---|---|
+| 고객 | `MEMBER` | `/login` (아이디) | `ROLE_USER` |
+| 직원 | `EMPLOYEE` | `/admin/login` (사번) | `ROLE_STAFF` < `ROLE_MANAGER` < `ROLE_SYSTEM_ADMIN` |
+
+- 직원 권한은 **위 권한이 아래 권한을 포함**합니다(Spring Security `RoleHierarchy`). 예: MANAGER는 STAFF 화면도 사용 가능.
+- URL 단위 접근 제어는 Spring Security 설정(`SecurityFilterChain`)에서, **본인확인 완료 여부**처럼 회원 상태에 따른 제한은 Service 계층(`memberService.requireVerified()`)에서 처리합니다.
+
+| 기능 | 비회원 | USER (본인확인 전) | USER (본인확인 완료) | 직원 |
 |---|:---:|:---:|:---:|:---:|
 | 메인, 회원가입, 로그인, 아이디/비밀번호 찾기 | O | - | - | - |
 | 예적금 상품 조회, 대출 이자 시뮬레이터 | O | O | O | O |
@@ -388,20 +397,39 @@
 | 계좌 추가 개설, 입출금, 이체, 거래내역, 자산관리 | X | X | O | X |
 | 예적금 가입, 카드 신청, 대출 신청 | X | X | O | X |
 | 1:1 문의 등록/조회 | X | O | O | X |
-| 관리자 메뉴 전체 (`/admin/**`) | X | X | X | O |
+| 관리자 메뉴 (`/admin/**`) | X | X | X | O (권한별, 아래 표) |
 
-- **관리자 계정은 은행 직원용**이라 고객 금융 기능(계좌, 이체 등)을 사용하지 않습니다. 시연할 때는 고객 계정과 관리자 계정을 따로 사용합니다.
-- URL 규칙 예시
+**직원 권한별 업무 (`/admin/**`)**
+
+| 업무 | STAFF | MANAGER | SYSTEM_ADMIN |
+|---|:---:|:---:|:---:|
+| 회원·계좌·거래 조회, 본인확인 심사, 고객센터(공지·FAQ·1:1 답변) | O | O | O |
+| 승인 업무: 계좌 동결/해제, 이체한도 증액, 대출 심사, 상품 관리, 카드 정지 | X | O | O |
+| 직원·지점/ATM 관리, 관리자 활동 로그·직원 로그인 이력 조회 | X | X | O |
+
+- **직원 계정은 고객 금융 기능(계좌, 이체 등)을 사용하지 않습니다.** 시연할 때는 고객 계정과 직원 계정을 따로 사용합니다. 같은 브라우저에서 동시에 로그인하면 세션이 섞일 수 있으므로 직원은 시크릿 창을 사용합니다.
+- **직원 계정은 회원가입으로 만들지 않습니다.** 시드 데이터 또는 SYSTEM_ADMIN의 직원 관리 화면에서 등록합니다(임시 비밀번호 → 첫 로그인 시 변경).
+- 필터 체인을 2개로 나눕니다. `/admin/**`용 체인을 먼저(`@Order(1)`) 검사하고, 나머지는 고객용 체인이 처리합니다.
 
 ```java
+// 직원용 (/admin/**)
+http.securityMatcher("/admin/**")
+    .authorizeHttpRequests(auth -> auth
+        .requestMatchers("/admin/login").permitAll()
+        .requestMatchers("/admin/employees/**", "/admin/branches/**", "/admin/logs/**").hasRole("SYSTEM_ADMIN")
+        .requestMatchers("/admin/approvals/**").hasRole("MANAGER")
+        .anyRequest().hasRole("STAFF"));
+
+// 고객용 (나머지 전부)
 http.authorizeHttpRequests(auth -> auth
     .requestMatchers("/", "/signup", "/login", "/find-id", "/reset-password",
                      "/products/**", "/loans/calculator",
                      "/support/notices/**", "/support/faq/**", "/branches/**",
-                     "/css/**", "/js/**", "/images/**").permitAll()
-    .requestMatchers("/admin/**").hasRole("ADMIN")
+                     "/css/**", "/js/**", "/images/**", "/error").permitAll()
     .anyRequest().hasRole("USER"));
 ```
+
+> 관리자 URL 구조(`/admin/approvals/**` 등)는 예시입니다. 실제 경로는 팀원4가 정하고, 권한 규칙은 팀원1의 `SecurityConfig`에 반영합니다.
 
 > `/products/**`는 목록·상세 조회만 공개하고, 가입 요청(`/products/{id}/subscribe`)은 Controller에서 로그인과 본인확인을 추가로 검사합니다. 경로를 더 엄격히 나누고 싶다면 가입 경로를 `permitAll` 규칙보다 먼저 `hasRole("USER")`로 선언합니다.
 
@@ -453,6 +481,8 @@ http.authorizeHttpRequests(auth -> auth
 | 40 | 관리자 - 활동 로그 조회 화면 *(신규)* | 관리자별 작업 이력 조회 | 심화 |
 | 41 | 지점/ATM 찾기 화면 *(신규)* | 지역/주소 검색, 지도(카카오맵) 또는 목록으로 지점·ATM 위치와 영업시간 표시 | 심화 |
 | 42 | 관리자 - 지점/ATM 관리 화면 *(신규)* | 지점/ATM 데이터 등록/수정/삭제 | 선택 |
+| 43 | 직원 로그인 화면 *(신규)* | 사번/비밀번호 입력 (`/admin/login`). 임시 비밀번호면 비밀번호 변경 화면으로 이동 | 핵심 |
+| 44 | 관리자 - 직원 관리 화면 *(신규)* | 직원 등록(임시 비밀번호 발급)/권한·소속 변경/퇴사 처리, 직원 로그인 이력 조회 (SYSTEM_ADMIN 전용) | 선택 |
 
 ---
 
@@ -460,10 +490,16 @@ http.authorizeHttpRequests(auth -> auth
 
 메뉴가 확장됨에 따라 테이블도 함께 늘어났습니다. 핵심 도메인(회원/계좌/거래/상품/카드/관리자) 테이블은 그대로 유지하고, 신규 메뉴(이체 심화, 자산관리, 고객센터, 보안)에 대응하는 테이블을 추가했습니다.
 
+> **표기 규칙**: 이 문서에서는 읽기 쉽게 대문자(`MEMBER`)로 쓰지만, **실제 MySQL 테이블·컬럼 이름은 소문자 + 밑줄**입니다(`members`, `login_id`). `MEMBER`는 MySQL 8 예약어라 실제 테이블은 `members`입니다. 팀원1 테이블의 실제 정의는 [schema-team1-mysql.sql](schema-team1-mysql.sql)을 기준으로 합니다.
+
 | 테이블명 | 설명 |
 |---|---|
-| `MEMBER` | 회원 정보 (아이디, 비밀번호, 이름, 연락처, 권한(ROLE), 상태(정상/정지/탈퇴), **실명확인상태(미확인/확인대기/확인완료/반려)**) |
-| `IDENTITY_VERIFICATION` *(신규)* | 본인확인 심사 이력 (회원FK, 신분증종류, 신분증발급일자(mock), 1원인증여부, 신청일시, 상태(대기/승인/반려), 반려사유, 심사관리자FK, 심사일시) — 반려 후 재신청 시 새 행 추가 |
+| `MEMBER` | 고객 회원 정보 (아이디, 비밀번호, 이름, 이메일, 휴대폰, 상태(정상/정지/탈퇴), **실명확인상태(미확인/확인대기/확인완료/반려)**, 로그인 실패횟수, 잠금일시) — 직원은 `EMPLOYEE`로 분리 |
+| `EMPLOYEE` *(신규)* | 은행 직원 (사번, 비밀번호, 이름, 소속지점FK, 직급(표시용), **권한(STAFF/MANAGER/SYSTEM_ADMIN)**, 상태(재직/휴직/퇴사), 임시비밀번호여부, 입사일/퇴사일) |
+| `EMPLOYEE_LOGIN_LOG` *(신규)* | 직원 로그인 이력 (직원FK, 입력한 사번, 성공여부, 실패사유, IP, 접속기기정보, 로그인일시) |
+| `IDENTITY_VERIFICATION` *(신규)* | 본인확인 심사 이력 (회원FK, 신분증종류, 신분증발급일자(mock), 1원인증 계좌(마스킹), 신청일시, 상태(대기/승인/반려), 반려사유, **심사직원FK**, 심사일시) — 반려 후 재신청 시 새 행 추가 |
+| `TRANSFER_LIMIT_REQUEST` *(신규)* | 이체한도 변경 신청 (회원FK, 계좌FK, 현재한도, 희망한도, 사유, 상태, 심사직원FK) — 감액은 즉시 승인, 증액은 MANAGER 심사 |
+| `OTP_DEVICE` *(신규)* | 가상 OTP 기기 (회원FK, 일련번호, 시드(AES 암호화), 상태(발급/사용중/정지/분실/폐기), 오류횟수, 마지막 사용 구간) — 이체 2차 인증 |
 | `ACCOUNT` | 계좌 정보 (계좌번호, 회원FK, 상품유형FK, 별명, 잔액, **계좌비밀번호(BCrypt 해시)**, **비밀번호 오류횟수**, 상태(개설대기/정상/동결/잠금/해지/개설거절), 개설일) |
 | `FAVORITE_ACCOUNT` *(신규)* | 즐겨찾기 계좌/이체 대상 (회원FK, 대상계좌번호, 예금주명, 별명) |
 | `TRANSACTION_HISTORY` | 거래내역 (계좌FK, 카테고리FK, 거래유형(입금/출금/이체), 금액, 거래 후 잔액, 거래일시, 상대계좌) |
@@ -479,12 +515,13 @@ http.authorizeHttpRequests(auth -> auth
 | `LOAN_REPAYMENT_SCHEDULE` *(확장)* | 대출 상환 스케줄 (대출FK, 회차, 상환예정일, 원금, 이자, 상환상태) |
 | `NOTIFICATION` *(확장)* | 실시간 알림 (회원FK, 알림유형, 내용, 발생일시, 읽음여부) |
 | `NOTIFICATION_SETTING` *(신규)* | 알림 수신 설정 (회원FK, 알림유형, 수신여부) |
-| `NOTICE` *(신규)* | 공지사항 (작성관리자FK, 제목, 내용, 등록일) |
+| `NOTICE` *(신규)* | 공지사항 (**작성직원FK**, 제목, 내용, 등록일) |
 | `FAQ` *(신규)* | 자주 묻는 질문 (카테고리, 질문, 답변) |
-| `INQUIRY` *(신규)* | 1:1 문의 (회원FK, 제목, 내용, 답변, 상태(대기/완료), 답변관리자FK) |
-| `ADMIN_LOG` | 관리자 작업 로그 (관리자FK, 작업유형, 대상, 처리일시) — 감사(audit) 목적 |
-| `LOGIN_LOG` *(신규 필수화)* | 로그인 이력 (회원FK, 로그인일시, 성공여부, IP, 접속기기정보) — 마이페이지 보안설정 화면에서 조회 |
-| `BRANCH` *(신규)* | 지점/ATM 정보 (구분(지점/ATM), 이름, 주소, 위도, 경도, 전화번호, 영업시간, 24시간 운영 여부, 이용 가능 업무) — 다른 테이블과 FK 관계 없는 독립 마스터, 초기 데이터는 시드로 준비 |
+| `INQUIRY` *(신규)* | 1:1 문의 (회원FK, 제목, 내용, 답변, 상태(대기/완료), **답변직원FK**) |
+| `ADMIN_LOG` | 관리자 작업 로그 (**직원FK**, 작업유형, 대상, 처리일시) — 감사(audit) 목적 |
+| `LOGIN_LOG` *(신규 필수화)* | 고객 로그인 이력 (회원FK(없는 아이디면 NULL), 입력한 아이디, 성공여부, 실패사유, IP, 접속기기정보, 로그인일시) — 마이페이지 보안설정 화면에서 조회 |
+| `BRANCH` *(신규)* | 지점/ATM 정보 (구분(지점/ATM), 이름, 주소, 위도, 경도, 전화번호, 영업시간, 24시간 운영 여부, 사용여부) — 직원의 소속 지점으로도 사용, 초기 데이터는 시드로 준비 |
+| `BRANCH_SERVICE` *(신규)* | 지점/ATM별 이용 가능 업무 (지점FK, 업무코드(입금/출금/이체/잔액조회/계좌개설/대출상담/카드발급)) |
 
 > **계좌 상태 구분**: `개설대기(PENDING)`는 첫 계좌가 본인확인 심사를 기다리는 상태로 입금을 포함한 모든 거래가 불가하며, 심사 결과에 따라 `정상(ACTIVE)` 또는 `개설거절(REJECTED)`로 바뀝니다. `동결(FROZEN)`은 관리자가 의도적으로 거는 거래 정지이고, `잠금(LOCKED)`은 계좌 비밀번호 5회 오류로 자동 전환되는 상태입니다. 두 상태 모두 출금/이체가 차단되며 입금은 허용합니다. 해제는 모두 관리자 계좌 관리 화면(14.3)에서 하고, 잠금 해제 시 오류 횟수를 0으로 초기화합니다.
 >
@@ -497,8 +534,20 @@ http.authorizeHttpRequests(auth -> auth
 - **MEMBER : ACCOUNT = 1 : N**
   한 회원은 여러 계좌(입출금/예금/적금)를 가질 수 있음. `ACCOUNT.MEMBER_ID`가 `MEMBER`를 참조.
 
-- **MEMBER : IDENTITY_VERIFICATION = 1 : N, MEMBER(ADMIN) : IDENTITY_VERIFICATION = 1 : N** *(신규)*
-  회원의 본인확인 신청 이력(반려 후 재신청 포함)을 기록. `IDENTITY_VERIFICATION.MEMBER_ID`가 신청 회원을, `REVIEWED_ADMIN_ID`(nullable)가 심사한 관리자를 참조. 최신 심사 결과는 조회 편의를 위해 `MEMBER.VERIFICATION_STATUS`에도 반영.
+- **MEMBER : IDENTITY_VERIFICATION = 1 : N, EMPLOYEE : IDENTITY_VERIFICATION = 1 : N** *(신규)*
+  회원의 본인확인 신청 이력(반려 후 재신청 포함)을 기록. `IDENTITY_VERIFICATION.MEMBER_ID`가 신청 회원을, `REVIEWED_EMPLOYEE_ID`(nullable)가 심사한 직원을 참조. 최신 심사 결과는 조회 편의를 위해 `MEMBER.VERIFICATION_STATUS`에도 반영(같은 트랜잭션에서 함께 변경).
+
+- **BRANCH : EMPLOYEE = 1 : N, BRANCH : BRANCH_SERVICE = 1 : N** *(신규)*
+  직원은 소속 지점(`EMPLOYEE.BRANCH_ID`, 지점만 가능·ATM 불가)을 가짐. 지점/ATM마다 이용 가능 업무 여러 개를 `BRANCH_SERVICE`에 기록.
+
+- **EMPLOYEE : EMPLOYEE_LOGIN_LOG = 1 : N** *(신규)*
+  직원 로그인 시도 이력. SYSTEM_ADMIN이 관리자 활동 로그 화면에서 조회.
+
+- **MEMBER : TRANSFER_LIMIT_REQUEST = 1 : N, ACCOUNT : TRANSFER_LIMIT_REQUEST = 1 : N, EMPLOYEE : TRANSFER_LIMIT_REQUEST = 1 : N** *(신규)*
+  고객의 이체한도 변경 신청. 증액 신청은 MANAGER가 심사(`REVIEWED_EMPLOYEE_ID`), 승인 시 팀원2가 `ACCOUNT`의 한도에 반영.
+
+- **MEMBER : OTP_DEVICE = 1 : N** *(신규)*
+  회원당 사용 가능한(발급·사용중·정지) OTP는 1개, 분실·폐기 이력은 보관.
 
 - **ACCOUNT : TRANSACTION_HISTORY = 1 : N**
   한 계좌에서 여러 건의 거래(입금/출금/이체)가 발생. `TRANSACTION_HISTORY.ACCOUNT_ID`가 `ACCOUNT`를 참조.
@@ -512,8 +561,8 @@ http.authorizeHttpRequests(auth -> auth
 - **MEMBER : CARD = 1 : N**
   한 회원이 여러 장의 카드를 가질 수 있고, 카드는 특정 `ACCOUNT`(결제 연동 계좌)를 참조.
 
-- **MEMBER : ADMIN_LOG = 1 : N**
-  관리자(=MEMBER 중 ROLE이 ADMIN인 회원)가 수행한 작업 이력을 기록. `ADMIN_LOG.ADMIN_ID`가 `MEMBER`를 참조.
+- **EMPLOYEE : ADMIN_LOG = 1 : N**
+  직원이 관리자 화면에서 수행한 작업 이력을 기록. `ADMIN_LOG.EMPLOYEE_ID`가 `EMPLOYEE`를 참조.
 
 - **MEMBER : FAVORITE_ACCOUNT = 1 : N** *(신규)*
   회원 한 명이 여러 개의 즐겨찾기 계좌(자주 쓰는 이체 대상)를 등록. `FAVORITE_ACCOUNT.MEMBER_ID`가 `MEMBER`를 참조.
@@ -533,17 +582,17 @@ http.authorizeHttpRequests(auth -> auth
 - **MEMBER : NOTIFICATION_SETTING = 1 : N** *(신규)*
   회원별로 알림 유형(입출금/이체/대출/공지 등)마다 수신 여부를 설정.
 
-- **MEMBER(ADMIN) : NOTICE = 1 : N** *(신규)*
-  관리자가 작성한 공지사항 목록. `NOTICE.ADMIN_ID`가 `MEMBER`(ROLE=ADMIN)를 참조.
+- **EMPLOYEE : NOTICE = 1 : N** *(신규)*
+  직원이 작성한 공지사항 목록. `NOTICE.EMPLOYEE_ID`가 `EMPLOYEE`를 참조.
 
-- **MEMBER : INQUIRY = 1 : N, MEMBER(ADMIN) : INQUIRY = 1 : N** *(신규)*
-  회원이 작성한 1:1 문의(`INQUIRY.MEMBER_ID`)와 답변한 관리자(`INQUIRY.ANSWERED_ADMIN_ID`, nullable)를 각각 참조하는 이중 FK 구조.
+- **MEMBER : INQUIRY = 1 : N, EMPLOYEE : INQUIRY = 1 : N** *(신규)*
+  회원이 작성한 1:1 문의(`INQUIRY.MEMBER_ID`)와 답변한 직원(`INQUIRY.ANSWERED_EMPLOYEE_ID`, nullable)을 각각 참조하는 이중 FK 구조.
 
 - **MEMBER : LOGIN_LOG = 1 : N** *(신규 필수화)*
   회원의 로그인 시도 이력을 기록. 마이페이지 보안설정 화면(13.3)에서 본인 이력 조회.
 
-- **MEMBER : LOAN = 1 : N, MEMBER(ADMIN) : LOAN = 1 : N** *(확장)*
-  한 회원이 여러 건의 대출을 신청할 수 있음. `LOAN.MEMBER_ID`가 신청 회원을, `LOAN.REVIEWED_ADMIN_ID`(nullable)가 심사한 관리자를 참조하는 이중 FK 구조. `LOAN.DEPOSIT_ACCOUNT_ID`는 대출금을 받을 `ACCOUNT`를 참조.
+- **MEMBER : LOAN = 1 : N, EMPLOYEE : LOAN = 1 : N** *(확장)*
+  한 회원이 여러 건의 대출을 신청할 수 있음. `LOAN.MEMBER_ID`가 신청 회원을, `LOAN.REVIEWED_EMPLOYEE_ID`(nullable)가 심사한 직원(MANAGER 이상)을 참조하는 이중 FK 구조. `LOAN.DEPOSIT_ACCOUNT_ID`는 대출금을 받을 `ACCOUNT`를 참조.
 
 - **LOAN : LOAN_REPAYMENT_SCHEDULE = 1 : N** *(확장)*
   승인된 대출 1건에 대해 회차별 상환 스케줄이 여러 건 생성됨. `LOAN_REPAYMENT_SCHEDULE.LOAN_ID`가 `LOAN`을 참조.
@@ -551,8 +600,8 @@ http.authorizeHttpRequests(auth -> auth
 - **MEMBER : NOTIFICATION = 1 : N** *(확장)*
   회원 한 명에게 여러 건의 알림이 발생. `NOTIFICATION.MEMBER_ID`가 `MEMBER`를 참조하며, 입출금/이체(`TRANSACTION_HISTORY`)나 대출 승인(`LOAN`) 이벤트 발생 시점에 생성되는 파생 데이터 성격.
 
-- **MEMBER.ROLE**
-  단일 `MEMBER` 테이블에서 `ROLE` 컬럼(USER/ADMIN)으로 권한을 구분하는 방식을 권장(테이블을 분리하지 않아 단순함 유지).
+- **고객과 직원의 분리 (`MEMBER` / `EMPLOYEE`)**
+  고객과 직원은 테이블을 분리합니다. `MEMBER`에는 권한(ROLE) 컬럼이 없고(고객은 모두 `ROLE_USER`), 직원 권한은 `EMPLOYEE.ROLE`(STAFF/MANAGER/SYSTEM_ADMIN)로 구분합니다. "처리한 사람"을 기록하는 컬럼(심사자, 작성자, 답변자, 작업자)은 모두 `EMPLOYEE`를 참조하며, 이름은 `~_EMPLOYEE_ID`로 통일합니다.
 
 > **설계 원칙 — 거래 원장과 잔액의 관계**
 > - `TRANSACTION_HISTORY`는 **거래 원장**입니다. 한 번 기록된 거래는 수정·삭제하지 않고, 취소가 필요하면 반대 방향 거래를 새로 기록합니다.
@@ -610,7 +659,7 @@ Account second = accountRepository.findByIdForUpdate(secondId);
 
 | 파트 | 담당 메뉴 | 담당 영역 | 주요 산출물(테이블) |
 |---|---|---|---|
-| **팀원 1 — 인증/보안/대시보드 파트** | 2, 3, 13, 15 | 회원가입, 로그인/로그아웃, 아이디/비번찾기, Spring Security 설정, **본인확인 신청/심사 처리 로직**, 대시보드(자산요약), 마이페이지, 보안설정(로그인이력/접속기기), **지점/ATM 찾기(지도 API)** | `MEMBER`, `IDENTITY_VERIFICATION`, `LOGIN_LOG`, `BRANCH`, 인증/인가 공통 모듈(다른 파트가 재사용) |
+| **팀원 1 — 인증/보안/대시보드 파트** | 2, 3, 13, 15 | 회원가입, 고객·직원 로그인/로그아웃, 아이디/비번찾기, Spring Security 설정(고객·직원 필터 체인, 직원 권한 3단계), **본인확인 신청/심사 처리 로직**, 대시보드(자산요약), 마이페이지, 보안설정(로그인이력/접속기기/이체한도 변경 신청), 가상 OTP, **지점/ATM 찾기(지도 API)** | `MEMBER`, `EMPLOYEE`, `IDENTITY_VERIFICATION`, `LOGIN_LOG`, `EMPLOYEE_LOGIN_LOG`, `TRANSFER_LIMIT_REQUEST`, `OTP_DEVICE`, `BRANCH`, `BRANCH_SERVICE`, 인증/인가 공통 모듈(다른 파트가 재사용) |
 | **팀원 2 — 계좌/이체/자산관리 파트** | 4, 5, 6, 7 | 계좌 개설/즐겨찾기, 계좌 비밀번호(설정·검증·잠금), 입출금, 일반·예약·정기이체, 동시성 제어(락 순서 규칙), 거래내역/소비분석, 자산관리 리포트 | `ACCOUNT`, `FAVORITE_ACCOUNT`, `TRANSACTION_HISTORY`, `TRANSACTION_CATEGORY`, `TRANSFER`, `SCHEDULED_TRANSFER`, `SAVING_GOAL` (프로젝트의 핵심 로직) |
 | **팀원 3 — 예적금/카드/대출 파트** | 8, 9, 10 | 예적금 상품 가입/해지, 카드 신청·관리, **대출 신청/승인 처리 로직/상환 스케줄 (확장)**, 대출 이자 시뮬레이터 | `PRODUCT`, `PRODUCT_SUBSCRIPTION`, `CARD`, `CARD_USAGE_HISTORY`, `LOAN`, `LOAN_REPAYMENT_SCHEDULE` |
 | **팀원 4 — 관리자/고객센터/공통 인프라 파트** | 11, 12, 14 | 관리자 대시보드/회원·계좌·상품·대출심사·카드·거래 관리, 공지사항/FAQ/1:1문의(고객센터), **실시간 알림 인프라(확장)**, 공통 레이아웃, 예외처리/공통 응답 포맷, **AWS 배포 환경 구축** | `ADMIN_LOG`, `NOTICE`, `FAQ`, `INQUIRY`, `NOTIFICATION`, `NOTIFICATION_SETTING`, 공통 인프라(Exception Handler, Response DTO, WebSocket 설정, 프론트 공통 레이아웃, 배포 설정) |
@@ -638,6 +687,12 @@ Account second = accountRepository.findByIdForUpdate(secondId);
 5. **공통 파일 변경 시 사전 공지**: `application.properties`, `build.gradle`, 공통 Entity/DTO 수정 시 팀 채널에 사전 공지 후 진행.
 6. **이슈/칸반 보드 연동**: GitHub Issues + Projects(칸반)로 작업 항목을 트래킹하여 중복 작업 방지.
 7. **커밋 컨벤션 통일**: `feat:`, `fix:`, `refactor:`, `docs:` 등 접두사 규칙을 초기에 합의.
+8. **DB 스키마는 SQL 파일로 관리**: 공용 DB를 쓰므로 JPA가 테이블을 자동으로 바꾸지 않게 합니다.
+   - 설정: `spring.jpa.hibernate.ddl-auto=validate` (엔티티와 테이블이 다르면 앱이 시작되지 않음 → 불일치를 바로 발견)
+   - 파트별 파일: `docs/schema-team{번호}-mysql.sql`, 시드는 `docs/data-team{번호}-mysql.sql`
+   - 이름 규칙: 테이블·컬럼 모두 **소문자 + 밑줄**(`login_id`). Spring Boot 기본 naming strategy와 같으므로 `@Column(name = ...)`을 붙이지 않아도 됨. 리눅스 MySQL은 테이블 이름 대소문자를 구분하므로 대문자 금지
+   - 변경 순서: SQL 파일 수정 + 파일 끝 "변경 이력"에 `ALTER` 문 추가 → PR 리뷰 → **공용 DB에 ALTER 실행** → 그다음 엔티티 push (순서가 바뀌면 다른 팀원 앱이 validate에서 멈춤)
+   - 엔티티 설계를 실험할 때는 각자 로컬 MySQL에서 `ddl-auto=update`로 따로 실험
 
 ### 13-1. 배포 (AWS)
 
