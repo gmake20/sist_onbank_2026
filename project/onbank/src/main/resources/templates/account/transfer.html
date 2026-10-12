@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>이체 - ONBANK</title>
+    <!-- 공통 CSS (헤더/푸터 등) -->
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <!-- 계좌/이체 공통 CSS -->
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <!-- 헤더 영역 -->
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <!-- 타이틀 및 스텝 인디케이터 -->
+        <div class="page-header-flex">
+            <h2 class="page-title" style="margin-bottom: 0; border: none;">즉시이체/예약이체</h2>
+            <div class="step-indicator">
+                <span class="step active"><span class="num">1</span> 정보입력</span>
+                <span class="step"><span class="num">2</span></span>
+                <span class="step"><span class="num">3</span></span>
+            </div>
+        </div>
+
+        <!-- 메인 탭 -->
+        <ul class="main-tabs" style="margin-bottom: 30px;">
+            <li class="active"><a href="#">ONBANK</a></li>
+            <li><a href="#">다른금융</a></li>
+        </ul>
+
+        <!-- 1. 출금계좌정보 -->
+        <div class="transfer-section">
+            <div class="section-title-wrap">
+                <h3>출금계좌정보</h3>
+                <button class="btn-import text-blue">⭐ 즐겨찾는이체정보</button>
+            </div>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>출금계좌번호</th>
+                        <td>
+                            <select class="form-select">
+                                <option>ON 통장 (1002-862-******)</option>
+                            </select>
+                            <button class="btn-sm btn-outline">잔액조회</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>계좌비밀번호</th>
+                        <td>
+                            <input type="password" class="form-input pw-input" maxlength="4">
+                            <label class="checkbox-label"><input type="checkbox"> 마우스로 입력</label>
+                            <span class="btn-group-right">
+                                <button class="btn-sm">비밀번호오류횟수조회</button>
+                                <button class="btn-sm">수수료면제횟수조회</button>
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>이체금액</th>
+                        <td>
+                            <div class="amount-input-wrap">
+                                <input type="text" class="form-input amount-input" placeholder="0">
+                                <span class="unit">원</span>
+                                <button class="btn-sm btn-outline">이체한도조회</button>
+                            </div>
+                            <div class="amount-shortcut">
+                                <button type="button">100만</button>
+                                <button type="button">50만</button>
+                                <button type="button">10만</button>
+                                <button type="button">5만</button>
+                                <button type="button">3만</button>
+                                <button type="button">1만</button>
+                                <button type="button">전액</button>
+                                <button type="button" class="btn-dark">정정</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>보내는분통장표시내용</th>
+                        <td>
+                            <input type="text" class="form-input" style="width: 300px;" placeholder="최대 8자리">
+                            <button class="btn-sm">자주쓰는 문구</button>
+                            <span class="sub-text">(생략시 입금통장 예금주명 표시)</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. 입금계좌정보 -->
+        <div class="transfer-section">
+            <div class="section-title-wrap">
+                <h3>입금계좌정보</h3>
+            </div>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>입금은행<br>입금계좌번호</th>
+                        <td>
+                            <div class="btn-group-top">
+                                <button class="btn-sm">자주쓰는 입금계좌</button>
+                                <button class="btn-sm">최근입금계좌</button>
+                                <button class="btn-sm">본인계좌</button>
+                            </div>
+                            <div class="input-flex" style="margin-top: 10px;">
+                                <select class="form-select" style="width: 150px;">
+                                    <option>ONBANK</option>
+                                    <option>국민은행</option>
+                                    <option>신한은행</option>
+                                </select>
+                                <input type="text" class="form-input" style="width: 300px;" placeholder="- 없이 숫자만 입력">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>받는분통장표시내용</th>
+                        <td>
+                            <input type="text" class="form-input" style="width: 300px;" placeholder="최대 10자리">
+                            <button class="btn-sm">자주쓰는 문구</button>
+                            <span class="sub-text">(생략시 출금통장 예금주명 표시)</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>이체실행일자</th>
+                        <td>
+                            <strong style="margin-right: 15px;">2026년 10월 12일</strong>
+                            <button class="btn-sm btn-outline">예약이체일지정</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 3. 선택입력정보 (아코디언) -->
+        <div class="accordion-section">
+            <div class="accordion-header">
+                <strong>선택입력정보</strong> <span class="sub-text">우측 버튼을 누르면 선택입력정보를 펼치고 닫을 수 있습니다.</span>
+                <span class="arrow">∨</span>
+            </div>
+            <div class="accordion-content warning-text">
+                <p>· 입금은행 장애일 경우 해당 은행으로 문의 주시거나, 장애 상태가 해제된 후 거래 하시기 바랍니다. <button class="btn-sm">장애은행조회</button></p>
+                <p class="text-red">· 경찰청, 검찰청, 국세청 등 기관원을 사칭하거나, 대출실행을 목적으로 송금 또는 금융정보를 요구받았으면, 보이스피싱 금융사기일 가능성이 높습니다.</p>
+            </div>
+        </div>
+
+        <!-- 하단 확인 버튼 -->
+        <div class="submit-action">
+            <button class="btn-submit">확인</button>
+        </div>
+
+        <!-- 4. 알아두세요 (안내사항) -->
+        <div class="notice-section">
+            <div class="notice-header">
+                📄 알아두세요! <span class="arrow">∧</span>
+            </div>
+            <div class="notice-content">
+                <strong>거래이용시 유의사항</strong>
+                <ul>
+                    <li>이체 후에는 취소가 불가능 하오니 입력내용을 확인하신 후 [이체실행]을 클릭하시기 바랍니다.</li>
+                    <li>ONBANK 본인계좌로 즉시이체 시 보안카드/OTP나 인증서 입력이 생략됩니다.</li>
+                    <li>다른 은행(금융기관 가상계좌 포함)으로의 이체는 상대은행의 서비스 시간에 따라 제한될 수 있습니다.</li>
+                </ul>
+                <br>
+                <strong>지연이체 및 예약이체 등록시 유의사항</strong>
+                <ul>
+                    <li>입력항목(출금계좌번호, 입금계좌번호, 이체금액, 이체일시)의 내용이 모두 동일한 예약이체는 중복등록이 불가합니다.</li>
+                </ul>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 푸터 영역 -->
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+</body>
+</html>

@@ -269,3 +269,168 @@
 .btn-outline:hover {
     background-color: #f2f5f9;
 }
+
+/* =========================================
+   [이체] transfer.html 전용 스타일 (네이비 테마)
+   ========================================= */
+
+/* 헤더 & 스텝 인디케이터 */
+.page-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.step-indicator .step {
+    font-size: 14px;
+    color: #999;
+    margin-left: 15px;
+    font-weight: bold;
+}
+
+.step-indicator .step.active {
+    color: #003366;
+}
+
+.step-indicator .step .num {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 50%;
+    background-color: #ccc;
+    color: #fff;
+}
+
+.step-indicator .step.active .num {
+    background-color: #003366;
+}
+
+/* 이체 입력 폼 테이블 */
+.transfer-section {
+    margin-bottom: 40px;
+}
+
+.transfer-form-table {
+    width: 100%;
+    border-top: 1px solid #333;
+    border-collapse: collapse;
+}
+
+.transfer-form-table th, .transfer-form-table td {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px;
+    text-align: left;
+}
+
+.transfer-form-table th {
+    background-color: #f9f9f9;
+    font-weight: bold;
+    color: #333;
+    vertical-align: middle;
+}
+
+/* 입력 폼 요소 */
+.form-input, .form-select {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    outline: none;
+}
+
+.form-input:focus, .form-select:focus {
+    border-color: #003366;
+}
+
+.pw-input {
+    width: 80px;
+    margin-right: 10px;
+}
+
+.amount-input-wrap {
+    margin-bottom: 10px;
+}
+
+.amount-input {
+    width: 250px;
+    text-align: right;
+    font-weight: bold;
+}
+
+.amount-shortcut button {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 5px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #333;
+}
+
+.amount-shortcut button:hover {
+    border-color: #003366;
+    color: #003366;
+}
+
+.amount-shortcut .btn-dark {
+    background-color: #666;
+    color: #fff;
+    border-color: #666;
+}
+
+/* 아코디언 및 안내사항 (알아두세요) */
+.accordion-header, .notice-header {
+    border-top: 1px solid #333;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fdfdfd;
+}
+
+.accordion-content, .notice-content {
+    padding: 20px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.6;
+}
+
+.warning-text p {
+    margin: 5px 0;
+}
+
+.text-red {
+    color: #d9534f;
+}
+
+.notice-content ul {
+    margin: 5px 0 0 0;
+    padding-left: 20px;
+}
+
+/* 하단 확인 버튼 */
+.submit-action {
+    text-align: center;
+    margin: 40px 0;
+}
+
+.btn-submit {
+    background-color: #003366;
+    color: #fff;
+    border: none;
+    padding: 15px 50px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+}
+
+.btn-submit:hover {
+    background-color: #002244;
+}
