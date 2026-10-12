@@ -2,6 +2,8 @@
 
 > 담당: 팀원1 (인증/보안 파트) | 관련 문서: [README.md](README.md) 5-2장, 6장, 8-1장, 11-1장, 12장
 >
+> 보안 용어(세션, 필터, BCrypt, CSRF 등)가 낯설다면 먼저 [security-basics.md](security-basics.md)를 읽으세요.
+>
 > 이 문서는 **기획 단계의 참고 자료**입니다. 코드는 구조를 이해하기 위한 뼈대이며, 실제 구현은 프로젝트 초기 세팅(`build.gradle`, 패키지 구조 등)이 확정된 뒤 진행합니다.
 
 ---
@@ -60,16 +62,24 @@
 POST /login ──▶ UsernamePasswordAuthenticationFilter
               → MemberDetailsService.loadUserByUsername(아이디)  (DB 조회)
               → BCrypt로 비밀번호 비교, 잠금/탈퇴 여부 확인
-              ├ 성공 → 세션 생성, 실패 횟수 0으로 초기화, LOGIN_LOG 기록 → USER는 /mybank, ADMIN은 /admin
+              ├ 성공 → 세션 생성, 실패 횟수 0으로 초기화, LOGIN_LOG 기록 → /mybank
               └ 실패 → 실패 횟수 +1(5회면 잠금), LOGIN_LOG 기록 → /login?error
+
+[직원 로그인]  ※ 고객과 테이블·로그인 창구가 분리되어 있습니다 (README 8-1장)
+POST /admin/login ──▶ (직원용 필터 체인) EmployeeDetailsService.loadUserByUsername(사번)  (EMPLOYEE 조회)
+              ├ 성공 → EMPLOYEE_LOGIN_LOG 기록 → 임시 비밀번호면 /admin/password, 아니면 /admin
+              └ 실패 → 실패 횟수 +1(5회면 잠금), EMPLOYEE_LOGIN_LOG 기록 → /admin/login?error
 
 [로그아웃]
 POST /logout ──▶ 세션 무효화 + JSESSIONID 삭제 → / 로 이동
+POST /admin/logout ──▶ 세션 무효화 + JSESSIONID 삭제 → /admin/login 으로 이동
 ```
 
 ---
 
-## 3. 구성 요소별 설명과 코드 뼈대 (Spring Boot 3 / Spring Security 6)
+## 3. 구성 요소별 설명과 코드 뼈대 (Spring Boot 4.1.1 / Spring Security 7 / Java 21)
+
+> 코드 뼈대는 Boot 3 시절 자료를 바탕으로 작성했습니다. 실제 프로젝트는 Boot 4이므로, 옮길 때 **의존성 이름**(예: `spring-boot-starter-web` → `spring-boot-starter-webmvc`, 테스트 스타터는 기능별로 분리)을 확인하세요.
 
 | 구성 요소 | 역할 |
 |---|---|
@@ -77,13 +87,17 @@ POST /logout ──▶ 세션 무효화 + JSESSIONID 삭제 → / 로 이동
 | `SignupForm`, `MemberService`, `SignupController` | 회원가입 입력 검증, 저장 |
 | `PhoneVerifyApiController`, `PhoneVerificationService`, `SmsSender` | 휴대폰 인증 (REST + fetch, 문자메시지 API로 실제 발송) |
 | `MemberDetailsService`, `LoginMember` | Spring Security가 로그인 시 회원을 조회하는 통로 |
-| `LoginSuccessHandler`, `LoginFailureHandler`, `LoginService` | 로그인 결과 처리 (5회 잠금, 이력 기록, 권한별 이동) |
-| `SecurityConfig` | 접근 권한, 로그인/로그아웃, 세션 규칙 설정 |
+| `LoginSuccessHandler`, `LoginFailureHandler`, `LoginService` | 로그인 결과 처리 (5회 잠금, 이력 기록) |
+| `Employee`, `EmployeeDetailsService`, `LoginEmployee` | 직원 로그인 (고객과 같은 구조, 3장 ⑥-2) |
+| `SecurityConfig` | 접근 권한, 로그인/로그아웃, 세션 규칙 설정 (고객용·직원용 필터 체인 2개) |
+
+> 테이블의 실제 정의는 [schema-team1-mysql.sql](schema-team1-mysql.sql)이 기준입니다. 테이블은 SQL 파일로 만들고 JPA는 `ddl-auto=validate`로 검사만 하므로, **엔티티 필드는 SQL 컬럼과 정확히 맞아야** 합니다(필드 `loginId` ↔ 컬럼 `login_id`).
 
 ### ① 회원 엔티티: `MEMBER`
 
-- 권한(`role`), 회원 상태(`status`), 실명확인 상태(`verificationStatus`)를 모두 enum으로 관리합니다.
-- 로그인 실패 횟수(`loginFailCount`)를 엔티티가 직접 관리하고, 5회째에 `LOCKED`로 전환합니다.
+- 회원 상태(`status`), 실명확인 상태(`verificationStatus`)를 enum으로 관리합니다.
+- **권한(role) 컬럼은 없습니다.** 고객은 모두 `ROLE_USER`이고, 직원은 별도 `EMPLOYEE` 테이블입니다.
+- **로그인 잠금은 상태값이 아니라 잠금 시각(`loginLockedAt`)으로 표현합니다.** 5회째 실패 시 현재 시각을 기록하고, NULL이면 잠기지 않은 것입니다. 잠금 시각이 있으므로 나중에 "30분 후 자동 해제" 같은 규칙도 추가할 수 있습니다.
 
 - MySQL 기준으로 작성했습니다. 테이블 이름과 PK 생성 방식은 아래 "MySQL 사용 시 주의점"을 참고하세요.
 
@@ -92,33 +106,46 @@ POST /logout ──▶ 세션 무효화 + JSESSIONID 삭제 → / 로 이동
 @Getter @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)   // MySQL AUTO_INCREMENT
-    private Long id;
+    private Long memberId;                                     // 컬럼 member_id
 
-    @Column(unique = true, nullable = false, length = 20) private String loginId;
-    @Column(nullable = false, length = 60) private String password;      // BCrypt 해시(60자)
-    @Column(length = 50) private String name;
-    @Column(unique = true, length = 11) private String phone;
+    private String loginId;
+    private String password;                                   // BCrypt 해시(60자)
+    private String name;
+    private String email;
+    private String phone;
     private LocalDate birthDate;
 
-    @Enumerated(EnumType.STRING) private Role role;                       // USER, ADMIN
-    @Enumerated(EnumType.STRING) private MemberStatus status;             // ACTIVE, LOCKED, SUSPENDED, WITHDRAWN
+    @Enumerated(EnumType.STRING) private MemberStatus status;             // ACTIVE, SUSPENDED, WITHDRAWN
     @Enumerated(EnumType.STRING) private VerificationStatus verificationStatus; // NONE, PENDING, VERIFIED, REJECTED
     private int loginFailCount;
+    private LocalDateTime loginLockedAt;                       // NULL이면 잠기지 않음
+    private LocalDateTime termsAgreedAt;
+    @Convert(converter = YesNoConverter.class)                  // CHAR(1) 'Y'/'N' ↔ boolean
+    private boolean marketingAgreeYn;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime withdrawnAt;
 
-    public static Member signup(String loginId, String encodedPw, String name, String phone, LocalDate birth) {
+    public static Member signup(String loginId, String encodedPw, String name, String email,
+                                String phone, LocalDate birth, boolean marketingAgree) {
         Member m = new Member();
-        m.loginId = loginId; m.password = encodedPw; m.name = name; m.phone = phone; m.birthDate = birth;
-        m.role = Role.USER; m.status = MemberStatus.ACTIVE;
-        m.verificationStatus = VerificationStatus.NONE; m.createdAt = LocalDateTime.now();
+        m.loginId = loginId; m.password = encodedPw; m.name = name; m.email = email;
+        m.phone = phone; m.birthDate = birth; m.marketingAgreeYn = marketingAgree;
+        m.status = MemberStatus.ACTIVE; m.verificationStatus = VerificationStatus.NONE;
+        m.termsAgreedAt = LocalDateTime.now(); m.createdAt = LocalDateTime.now();
         return m;
     }
+    public boolean isLoginLocked() { return loginLockedAt != null; }
     public void loginSucceeded() { this.loginFailCount = 0; }
     public void loginFailed() {
-        if (++this.loginFailCount >= 5) this.status = MemberStatus.LOCKED;
+        if (++this.loginFailCount >= 5 && loginLockedAt == null) this.loginLockedAt = LocalDateTime.now();
     }
+    public void unlock() { this.loginFailCount = 0; this.loginLockedAt = null; }   // 비밀번호 재설정 성공 시
 }
 ```
+
+> - 필드에 `@Column(name = ...)`을 붙이지 않아도 Spring Boot 기본 이름 규칙이 `loginId` → `login_id`로 바꿔 줍니다. 길이·NOT NULL·UNIQUE 같은 제약은 SQL 파일에 있으므로 엔티티에 반복하지 않습니다.
+> - `validate`가 enum 필드에서 "타입이 다르다"는 오류를 내면 해당 필드에 `@JdbcTypeCode(SqlTypes.VARCHAR)`를 추가합니다. (Hibernate가 MySQL의 enum 전용 타입을 기대하는 경우가 있음)
 
 #### MySQL 사용 시 주의점
 
@@ -131,24 +158,29 @@ public class Member {
 | **시간대** | 서버(AWS는 UTC)와 DB 시간대가 다르면 가입일시·로그인 이력 시간이 9시간 어긋날 수 있습니다. | 아래 설정처럼 JDBC URL과 Hibernate 시간대를 `Asia/Seoul`로 맞춥니다. |
 | **User-Agent 길이** | `LOGIN_LOG`의 접속 기기 정보(User-Agent)는 255자를 넘을 수 있어, 기본 `VARCHAR(255)`면 저장 오류가 납니다. | `@Column(length = 500)`으로 늘리거나 저장 전에 잘라냅니다. |
 
-```yaml
-# application-local.yml — 접속 정보 예시 (비밀번호는 환경변수로)
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/onbank?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: onbank
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: Asia/Seoul
+실제 프로젝트는 `.properties` 형식이며, 설정이 두 파일로 나뉘어 있습니다.
+
+```properties
+# application.properties (Git에 올라감) — 공통 설정
+spring.profiles.active=local
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.jpa.hibernate.ddl-auto=validate     # 테이블은 SQL 파일로 만들고 JPA는 검사만
+# naming strategy는 지정하지 않음 → Spring Boot 기본값(loginId → login_id)
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Seoul
+```
+
+```properties
+# application-local.properties (Git 제외) — 접속 정보
+# application-local.properties.example 을 복사해서 만들고, 실제 값은 팀 채널에서 받음
+spring.datasource.url=jdbc:mysql://DB주소:3306/onbank?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+spring.datasource.username=DB계정
+spring.datasource.password=DB비밀번호
 ```
 
 > 드라이버 의존성은 `com.mysql:mysql-connector-j`입니다. (예전 이름 `mysql:mysql-connector-java`는 더 이상 쓰지 않습니다.)
 
-> ⚠️ **기획서 보완 필요**: README 10장의 `MEMBER` 상태는 정상/정지/탈퇴뿐입니다. 로그인 잠금을 위해 **`LOCKED` 상태와 `loginFailCount` 컬럼을 ERD에 추가**해야 합니다.
+> 로그인 잠금은 상태값(`LOCKED`)을 추가하지 않고 `login_fail_count`와 `login_locked_at` 컬럼으로 처리합니다. 그래서 `MEMBER.STATUS`는 README 10장대로 정상/정지/탈퇴 세 가지만 있습니다.
 
 ### ② 회원가입: 입력 검증 + 서비스 + 컨트롤러
 
@@ -168,9 +200,11 @@ public class SignupForm {
     private String password;
     @NotBlank private String passwordConfirm;
     @NotBlank private String name;
+    @NotBlank @Email @Size(max = 100) private String email;
     @NotBlank @Pattern(regexp = "^010\\d{8}$") private String phone;
     @NotNull @Past private LocalDate birthDate;
     @AssertTrue(message = "필수 약관에 동의해주세요") private boolean termsAgreed;
+    private boolean marketingAgree;                              // 선택 약관
 }
 ```
 
@@ -187,12 +221,15 @@ public class MemberService {
             throw new BusinessException("비밀번호가 일치하지 않습니다.");
         if (memberRepository.existsByLoginId(f.getLoginId()))
             throw new BusinessException("이미 사용 중인 아이디입니다.");
+        if (memberRepository.existsByEmail(f.getEmail()))
+            throw new BusinessException("이미 가입된 이메일입니다.");
         if (memberRepository.existsByPhone(f.getPhone()))
             throw new BusinessException("이미 가입된 휴대폰 번호입니다.");
 
         Member m = Member.signup(f.getLoginId(), passwordEncoder.encode(f.getPassword()),
-                                 f.getName(), f.getPhone(), f.getBirthDate());
-        return memberRepository.save(m).getId();
+                                 f.getName(), f.getEmail(), f.getPhone(), f.getBirthDate(),
+                                 f.isMarketingAgree());
+        return memberRepository.save(m).getMemberId();
     }
 }
 ```
@@ -322,12 +359,11 @@ public class ApiSmsSender implements SmsSender {
 }
 ```
 
-```yaml
-# application-prod.yml — 값은 환경변수로 주입, 파일에 실제 키를 쓰지 않음
-sms:
-  api-key: ${SMS_API_KEY}
-  api-secret: ${SMS_API_SECRET}
-  from: ${SMS_FROM_NUMBER}
+```properties
+# application-prod.properties — 값은 환경변수로 주입, 파일에 실제 키를 쓰지 않음
+sms.api-key=${SMS_API_KEY}
+sms.api-secret=${SMS_API_SECRET}
+sms.from=${SMS_FROM_NUMBER}
 ```
 
 ```java
@@ -410,8 +446,8 @@ public class PhoneVerifyApiController {
 
 - 로그인 처리는 Spring Security 필터가 담당합니다. 우리는 **"아이디로 회원을 찾아주는 방법"만 알려주면** 됩니다(`loadUserByUsername`).
 - `LoginMember`는 세션에 저장되는 로그인 사용자 정보입니다. 상태에 따라 Security가 자동으로 예외를 던집니다.
-  - `isAccountNonLocked() == false` → `LockedException` (5회 오류 잠금)
-  - `isEnabled() == false` → `DisabledException` (관리자 정지, 탈퇴)
+  - `isAccountNonLocked() == false` → `LockedException` (5회 오류 잠금, `loginLockedAt != null`)
+  - `isEnabled() == false` → `DisabledException` (직원에 의한 정지, 탈퇴)
 
 ```java
 @Service @RequiredArgsConstructor
@@ -432,20 +468,20 @@ public class MemberDetailsService implements UserDetailsService {
 public class LoginMember implements UserDetails {
     private final Long memberId;
     private final String loginId, password, name;
-    private final Role role;
     private final MemberStatus status;
+    private final boolean locked;
 
     public LoginMember(Member m) {
-        this.memberId = m.getId(); this.loginId = m.getLoginId(); this.password = m.getPassword();
-        this.name = m.getName(); this.role = m.getRole(); this.status = m.getStatus();
+        this.memberId = m.getMemberId(); this.loginId = m.getLoginId(); this.password = m.getPassword();
+        this.name = m.getName(); this.status = m.getStatus(); this.locked = m.isLoginLocked();
     }
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));   // 고객은 모두 USER
     }
     @Override public String getUsername() { return loginId; }
-    @Override public boolean isAccountNonLocked() { return status != MemberStatus.LOCKED; }
-    @Override public boolean isEnabled() { return status == MemberStatus.ACTIVE || status == MemberStatus.LOCKED; }
-    // SUSPENDED(관리자 정지) 또는 WITHDRAWN(탈퇴)이면 isEnabled=false → DisabledException
+    @Override public boolean isAccountNonLocked() { return !locked; }
+    @Override public boolean isEnabled() { return status == MemberStatus.ACTIVE; }
+    // SUSPENDED(직원에 의한 정지) 또는 WITHDRAWN(탈퇴)이면 isEnabled=false → DisabledException
 }
 ```
 
@@ -454,8 +490,9 @@ public class LoginMember implements UserDetails {
 ### ⑤ 로그인 성공/실패 핸들러: 5회 잠금 + 이력 기록
 
 - **실패 핸들러**: 비밀번호 오류(`BadCredentialsException`)면 실패 횟수를 늘리고, 5회째에 잠급니다. 실패 사유를 쿼리 파라미터로 넘겨 화면에 안내합니다.
-- **성공 핸들러**: 실패 횟수를 초기화하고, 권한에 따라 이동할 화면을 나눕니다(USER → `/mybank`, ADMIN → `/admin`).
-- 두 경우 모두 `LOGIN_LOG`에 IP와 접속 기기(User-Agent)를 기록합니다.
+- **성공 핸들러**: 실패 횟수를 초기화하고 `/mybank`로 이동합니다. (직원은 별도 핸들러, ⑥-2)
+- 두 경우 모두 `LOGIN_LOG`에 IP와 접속 기기(User-Agent)를 기록합니다. **없는 아이디로 시도한 것도** `member_id = NULL`, `fail_reason = UNKNOWN_ID`로 기록합니다. 같은 IP에서 여러 아이디를 대입해 보는 공격을 나중에 찾아낼 수 있습니다.
+- 실패 사유(`fail_reason`) 값: `BAD_CREDENTIALS`(비밀번호 오류), `LOGIN_LOCKED`(잠긴 계정), `SUSPENDED`, `WITHDRAWN`, `UNKNOWN_ID`
 - 핸들러는 트랜잭션 밖에서 실행되므로, DB 변경은 `@Transactional`이 붙은 `LoginService`에 맡깁니다.
 
 ```java
@@ -468,10 +505,15 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
             throws IOException {
         String loginId = req.getParameter("loginId");
         String reason = "bad";
-        if (ex instanceof LockedException) reason = "locked";
-        else if (ex instanceof DisabledException) reason = "disabled";
-        else if (ex instanceof BadCredentialsException) {
-            int count = loginService.recordFailure(loginId, req);   // 실패 횟수+1, LOGIN_LOG 기록, 5회면 LOCKED
+        if (ex instanceof LockedException) {
+            reason = "locked";
+            loginService.recordBlocked(loginId, "LOGIN_LOCKED", req);
+        } else if (ex instanceof DisabledException) {
+            reason = "disabled";
+            loginService.recordBlocked(loginId, null, req);           // 회원 상태로 SUSPENDED/WITHDRAWN 판단
+        } else if (ex instanceof BadCredentialsException) {
+            // 비밀번호 오류 또는 없는 아이디 (Security가 둘을 구분하지 않고 넘겨줌)
+            int count = loginService.recordFailure(loginId, req);   // 실패 횟수+1, LOGIN_LOG 기록, 5회면 잠금
             if (count >= 5) reason = "locked";
         }
         res.sendRedirect("/login?error=" + reason);
@@ -489,7 +531,7 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
             throws IOException {
         LoginMember me = (LoginMember) auth.getPrincipal();
         loginService.recordSuccess(me.getMemberId(), req);  // 실패 횟수 0, LOGIN_LOG 기록
-        res.sendRedirect(me.getRole() == Role.ADMIN ? "/admin" : "/mybank");
+        res.sendRedirect("/mybank");
     }
 }
 ```
@@ -502,19 +544,35 @@ public class LoginService {
 
     @Transactional
     public int recordFailure(String loginId, HttpServletRequest req) {
-        return memberRepository.findByLoginId(loginId).map(m -> {
-            m.loginFailed();
-            loginLogRepository.save(LoginLog.fail(m, req.getRemoteAddr(), req.getHeader("User-Agent")));
-            return m.getLoginFailCount();
-        }).orElse(0);   // 없는 아이디는 기록하지 않습니다
+        Optional<Member> found = memberRepository.findByLoginId(loginId);
+        if (found.isEmpty()) {   // 없는 아이디: member_id 없이 기록
+            loginLogRepository.save(LoginLog.fail(null, loginId, "UNKNOWN_ID", ip(req), ua(req)));
+            return 0;
+        }
+        Member m = found.get();
+        m.loginFailed();
+        loginLogRepository.save(LoginLog.fail(m, loginId, "BAD_CREDENTIALS", ip(req), ua(req)));
+        return m.getLoginFailCount();
+    }
+
+    @Transactional
+    public void recordBlocked(String loginId, String reason, HttpServletRequest req) {
+        memberRepository.findByLoginId(loginId).ifPresent(m -> {
+            String r = reason != null ? reason : m.getStatus().name();   // SUSPENDED / WITHDRAWN
+            loginLogRepository.save(LoginLog.fail(m, loginId, r, ip(req), ua(req)));
+        });
     }
 
     @Transactional
     public void recordSuccess(Long memberId, HttpServletRequest req) {
         Member m = memberRepository.findById(memberId).orElseThrow();
         m.loginSucceeded();
-        loginLogRepository.save(LoginLog.success(m, req.getRemoteAddr(), req.getHeader("User-Agent")));
+        loginLogRepository.save(LoginLog.success(m, m.getLoginId(), ip(req), ua(req)));
     }
+
+    private String ip(HttpServletRequest req) { return req.getRemoteAddr(); }
+    private String ua(HttpServletRequest req) { return req.getHeader("User-Agent"); }
+    // LoginLog.fail()/success() 안에서 login_id_input은 30자, user_agent는 500자로 잘라 저장
 }
 ```
 
@@ -522,6 +580,8 @@ public class LoginService {
 
 | 설정 | 의미 |
 |---|---|
+| `securityMatcher` + `@Order` | 필터 체인을 2개로 나눔: `/admin/**`는 직원용(먼저 검사), 나머지는 고객용 |
+| `userDetailsService` | 체인마다 회원을 찾는 곳을 지정 (고객 → `MEMBER`, 직원 → `EMPLOYEE`) |
 | `authorizeHttpRequests` | URL별 접근 권한 (README 8-1장 권한표 기준) |
 | `formLogin` | 우리가 만든 로그인 화면 사용, `POST /login`은 Security가 처리 |
 | `logout` | `POST /logout` → 세션 무효화 + 쿠키 삭제 |
@@ -532,20 +592,23 @@ public class LoginService {
 ```java
 @Configuration @EnableWebSecurity @RequiredArgsConstructor
 public class SecurityConfig {
+    private final MemberDetailsService memberDetailsService;
     private final LoginSuccessHandler successHandler;
     private final LoginFailureHandler failureHandler;
 
     @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
-    @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    // 직원용 체인은 ⑥-2 참고 (@Order(1)로 먼저 검사)
+
+    @Bean @Order(2)
+    SecurityFilterChain memberFilterChain(HttpSecurity http) throws Exception {
         http
+          .userDetailsService(memberDetailsService)          // 고객은 MEMBER에서 조회
           .authorizeHttpRequests(auth -> auth
               .requestMatchers("/", "/signup", "/login", "/find-id", "/reset-password", "/api/phone/**",
                                "/products/**", "/loans/calculator", "/support/notices/**", "/support/faq/**",
-                               "/branches/**", "/css/**", "/js/**", "/images/**", "/error").permitAll()
-              .requestMatchers("/admin/**").hasRole("ADMIN")
-              .anyRequest().hasRole("USER"))
+                               "/branches/**", "/otp-device", "/css/**", "/js/**", "/images/**", "/error").permitAll()
+              .anyRequest().hasRole("USER"))                   // /admin/**는 직원용 체인이 먼저 가져감
           .formLogin(form -> form
               .loginPage("/login")                 // 우리가 만든 Thymeleaf 로그인 화면
               .loginProcessingUrl("/login")        // POST /login은 Security가 처리
@@ -567,22 +630,104 @@ public class SecurityConfig {
 }
 ```
 
-```yaml
-# application.yml
-server:
-  servlet:
-    session:
-      timeout: 10m        # 10분 동안 아무것도 안 하면 자동 로그아웃
+```properties
+# application.properties
+# 10분 동안 아무것도 안 하면 자동 로그아웃
+server.servlet.session.timeout=10m
 ```
 
 > `maximumSessions(1)`의 기본 동작은 **새 로그인이 기존 세션을 끊는 것**입니다. 반대로 새 로그인을 막고 싶다면 `.maxSessionsPreventsLogin(true)`를 씁니다. 이때는 로그아웃 시 세션이 정리되도록 `HttpSessionEventPublisher` 빈을 함께 등록해야 합니다.
+
+### ⑥-2 직원 로그인 (EMPLOYEE)
+
+고객 로그인(①~⑥)과 **구조가 똑같습니다.** 이름만 바뀐 클래스를 한 세트 더 만든다고 생각하면 됩니다. 팀원2·3이 기다리는 것은 고객 쪽이므로 **고객 로그인을 먼저 완성한 뒤** 만듭니다.
+
+| 고객 | 직원 | 차이점 |
+|---|---|---|
+| `Member` | `Employee` | 사번(`employeeNo`), 소속 지점, 권한(`role`), 임시 비밀번호 여부 |
+| `MemberDetailsService` | `EmployeeDetailsService` | 사번으로 `EMPLOYEE` 조회 |
+| `LoginMember` | `LoginEmployee` | 권한이 `ROLE_STAFF` / `ROLE_MANAGER` / `ROLE_SYSTEM_ADMIN` |
+| `LoginSuccessHandler` 등 | `EmployeeLoginSuccessHandler` 등 | 임시 비밀번호면 `/admin/password`로 이동, `EMPLOYEE_LOGIN_LOG`에 기록 |
+| `/login`, `/logout` | `/admin/login`, `/admin/logout` | |
+
+```java
+@Getter
+public class LoginEmployee implements UserDetails {
+    private final Long employeeId;
+    private final String employeeNo, password, name;
+    private final EmployeeRole role;          // STAFF, MANAGER, SYSTEM_ADMIN
+    private final EmployeeStatus status;      // ACTIVE, ON_LEAVE, RETIRED
+    private final boolean locked, tempPassword;
+
+    public LoginEmployee(Employee e) {
+        this.employeeId = e.getEmployeeId(); this.employeeNo = e.getEmployeeNo(); this.password = e.getPassword();
+        this.name = e.getName(); this.role = e.getRole(); this.status = e.getStatus();
+        this.locked = e.getLoginLockedAt() != null; this.tempPassword = e.isTempPwYn();
+    }
+    @Override public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+    @Override public String getUsername() { return employeeNo; }
+    @Override public boolean isAccountNonLocked() { return !locked; }
+    @Override public boolean isEnabled() { return status == EmployeeStatus.ACTIVE; }   // 휴직·퇴사는 로그인 불가
+}
+```
+
+```java
+// SecurityConfig 안에 추가
+@Bean @Order(1)
+SecurityFilterChain employeeFilterChain(HttpSecurity http, EmployeeDetailsService employeeDetailsService,
+                                        EmployeeLoginSuccessHandler successHandler,
+                                        EmployeeLoginFailureHandler failureHandler) throws Exception {
+    http
+      .securityMatcher("/admin/**")                      // 이 체인은 /admin/** 요청만 담당
+      .userDetailsService(employeeDetailsService)        // 직원은 EMPLOYEE에서 조회
+      .authorizeHttpRequests(auth -> auth
+          .requestMatchers("/admin/login").permitAll()
+          .requestMatchers("/admin/employees/**", "/admin/branches/**", "/admin/logs/**").hasRole("SYSTEM_ADMIN")
+          .requestMatchers("/admin/approvals/**").hasRole("MANAGER")
+          .anyRequest().hasRole("STAFF"))
+      .formLogin(form -> form
+          .loginPage("/admin/login")
+          .loginProcessingUrl("/admin/login")
+          .usernameParameter("employeeNo")
+          .passwordParameter("password")
+          .successHandler(successHandler)
+          .failureHandler(failureHandler))
+      .logout(logout -> logout
+          .logoutUrl("/admin/logout")
+          .logoutSuccessUrl("/admin/login?logout")
+          .invalidateHttpSession(true)
+          .deleteCookies("JSESSIONID"))
+      .sessionManagement(s -> s
+          .maximumSessions(1)
+          .expiredUrl("/admin/login?error=duplicate"));
+    return http.build();
+}
+
+// 직원 권한의 상하 관계: SYSTEM_ADMIN > MANAGER > STAFF
+// 등록하면 hasRole("STAFF") 화면에 MANAGER·SYSTEM_ADMIN도 들어갈 수 있음
+@Bean
+static RoleHierarchy roleHierarchy() {
+    return RoleHierarchyImpl.withDefaultRolePrefix()
+            .role("SYSTEM_ADMIN").implies("MANAGER")
+            .role("MANAGER").implies("STAFF")
+            .build();
+}
+```
+
+> - **`@Order` 숫자가 작은 체인이 먼저 검사됩니다.** 직원용 체인이 `/admin/**`를 먼저 가져가고, 나머지는 고객용 체인으로 넘어갑니다. 고객용 체인에는 `securityMatcher`가 없으므로 "나머지 전부"를 담당합니다.
+> - 직원 로그인 화면에서 쓰는 CSS(`/css/**`)는 `/admin/**`가 아니므로 고객용 체인의 `permitAll`로 처리됩니다.
+> - **같은 브라우저에서 고객과 직원으로 동시에 로그인하면 세션 안의 로그인 정보가 서로 덮어씁니다.** 시연할 때는 직원을 시크릿 창으로 접속합니다. 꼭 동시에 써야 한다면 체인마다 `HttpSessionSecurityContextRepository`의 저장 키를 다르게 설정합니다.
+> - 관리자 URL 구조(`/admin/approvals/**` 등)는 예시입니다. 실제 경로는 팀원4와 맞춥니다.
+> - 다른 팀원의 관리자 컨트롤러는 `@AuthenticationPrincipal LoginEmployee me`로 처리 직원을 받아 `me.getEmployeeId()`를 심사자·작성자 컬럼(`~_employee_id`)에 저장합니다.
 
 ### ⑦ 화면 (Thymeleaf)
 
 - `th:action`을 쓰면 CSRF 토큰이 폼에 자동으로 들어갑니다.
 - 실패 사유(`?error=locked` 등)에 따라 안내 문구를 다르게 보여줍니다.
 - 로그아웃은 링크가 아니라 **POST 폼**으로 만듭니다.
-- `sec:` 속성을 쓰려면 `thymeleaf-extras-springsecurity6` 의존성이 필요합니다.
+- `sec:` 속성을 쓰려면 Thymeleaf Spring Security extras 의존성이 필요합니다. 이름 끝의 숫자는 Spring Security 버전을 뜻합니다(`thymeleaf-extras-springsecurity6` = Security 6용). 이 프로젝트는 **Security 7**이므로, 추가할 때 Security 7에서 동작하는 이름·버전인지 확인하세요.
 
 ```html
 <!-- auth/login.html -->
@@ -684,7 +829,7 @@ otpService.verify(memberId, otpCode);
 
 | 테이블 | 컬럼 |
 |---|---|
-| `OTP_DEVICE` | 회원FK, 일련번호, 시드(AES 암호화), 상태(발급/사용중/정지/분실/폐기), 오류 횟수, 마지막 사용 구간, 발급일시, 사용등록일시 |
+| `OTP_DEVICE` | 회원FK, 일련번호, 시드(AES 암호화), 상태(발급/사용중/정지/분실/폐기), 오류 횟수, 마지막 사용 구간, 발급일시, 사용등록일시 — 정의는 [schema-team1-mysql.sql](schema-team1-mysql.sql) 8번 |
 
 > 회원 한 명당 사용 가능한(발급·사용중·정지) OTP는 1개만 허용합니다. 분실·폐기된 이력은 남겨 둡니다.
 
@@ -703,8 +848,8 @@ otpService.verify(memberId, otpCode);
 1. **아이디가 없는지, 비밀번호가 틀렸는지 구분해서 알려주지 않습니다.** 둘 다 "아이디 또는 비밀번호가 올바르지 않습니다"로 안내해야 아이디 존재 여부를 알아내는 공격을 막을 수 있습니다.
 2. **비밀번호는 BCrypt 해시로만 저장합니다.** 평문 저장이나 로그 출력은 금지입니다.
 3. **로그아웃은 반드시 POST로 합니다.** `<a href="/logout">`은 CSRF 보호가 켜져 있으면 동작하지 않습니다.
-4. **잠금 해제 경로를 정해야 합니다.** 추천 방식은 비밀번호 재설정(2.4, 휴대폰 SMS 인증) 성공 시 `LOCKED`를 `ACTIVE`로 바꾸고 실패 횟수를 0으로 만드는 것입니다. 관리자 화면에서도 해제할지는 팀원4와 협의합니다.
-5. **관리자 계정은 회원가입으로 만들지 않습니다.** `data.sql` 등 시드 데이터로 넣고, 비밀번호도 BCrypt 해시값으로 넣습니다.
+4. **잠금 해제 경로를 정해야 합니다.** 추천 방식은 비밀번호 재설정(2.4, 휴대폰 SMS 인증) 성공 시 `member.unlock()`으로 `login_locked_at`을 NULL, 실패 횟수를 0으로 만드는 것입니다. 직원 화면에서도 해제할지는 팀원4와 협의합니다.
+5. **직원 계정은 회원가입으로 만들지 않습니다.** [data-team1-mysql.sql](data-team1-mysql.sql) 시드로 넣거나 SYSTEM_ADMIN의 직원 관리 화면에서 임시 비밀번호로 등록합니다. 비밀번호는 항상 BCrypt 해시값으로 넣습니다.
 6. **문자 발송은 실제 비용이 드는 기능입니다.** API 키는 Git에 올리지 않고, 재발송·일일 횟수 제한을 반드시 넣고, 개발 중에는 `local` 프로필로 실제 발송을 끕니다.
 7. **테스트 계정을 시드로 공유합니다.** README 14장대로 "본인확인 완료" 상태의 테스트 회원을 만들어 두면 팀원2·3이 관리자 기능 없이도 바로 개발할 수 있습니다.
 
@@ -715,9 +860,11 @@ otpService.verify(memberId, otpCode);
 **1~2주차: 회원가입 · 로그인 (`[핵심]`)**
 
 
+0. 공용 DB에 [schema-team1-mysql.sql](schema-team1-mysql.sql), [data-team1-mysql.sql](data-team1-mysql.sql) 실행 (팀 공지 후 한 번만)
 1. `Member` 엔티티, `MemberRepository`, `LoginMember` 작성 → **팀원들에게 먼저 공유**
-2. `SecurityConfig` 최소 버전 작성 (`formLogin`, `logout`, 권한 규칙)
-3. 시드 계정(USER, ADMIN)으로 로그인/로그아웃 동작 확인
+2. `SecurityConfig` 최소 버전 작성 (고객용 체인: `formLogin`, `logout`, 권한 규칙)
+3. 시드 계정(user1~3)으로 로그인/로그아웃 동작 확인
+3-1. 직원 로그인 (⑥-2): `Employee`, `LoginEmployee`, 직원용 체인, `RoleHierarchy` → 시드 직원(E0001~3)으로 확인 → 팀원4에게 공유
 4. 회원가입 폼, 검증, 서비스 구현
 5. 휴대폰 인증 구현
    - 먼저 `ConsoleSmsSender`(local)로 인증 흐름과 발송 제한을 완성
