@@ -1,5 +1,140 @@
 <!DOCTYPE html><html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>대출 상품상세 - ONBANK</title><link rel="stylesheet" th:href="@{/css/index.css}"><link rel="stylesheet" th:href="@{/css/loan-products.css}"><script th:src="@{/js/loan-products.js}" defer></script></head><body>
 <div th:replace="~{fragments/header :: headerFragment}"></div>
-<div class="onloan"><nav class="onloan-subnav"><div class="onloan-container onloan-subitems"><a href="#">예금</a><a href="#">펀드</a><a class="current" th:href="@{/loan/products}">대출</a><a href="#">신탁</a><a href="#">ISA</a><a href="#">보험/공제</a><a href="#">골드</a><a href="#">외화예금</a></div></nav><div class="onloan-container"><p class="onloan-crumb">개인뱅킹 〉 금융상품 〉 대출 〉 <a th:href="@{/loan/products}">신용대출</a> 〉 <b>상품상세</b></p><div class="onloan-grid"><aside class="onloan-sidebar"><h2>대출</h2><div class="onloan-sidebox"><div class="onloan-sidehead">대출상품/신청 <span>⌄</span></div><a class="onloan-selected" th:href="@{/loan/products}">신용대출</a><a href="#">담보대출</a><a href="#">전월세/반환보증</a><a href="#">자동차대출</a><a href="#">주택도시기금대출</a></div><div class="onloan-side-extra"><a href="#">대출진행현황</a><a href="#">대출관리</a><a href="#">대출 가이드</a></div><div class="onloan-help">🔒 &nbsp;인증센터</div><div class="onloan-help">☎ &nbsp;신규상담</div></aside><main class="onloan-main"><div class="onloan-heading"><span class="onloan-eyebrow">ONBANK LOAN DETAIL</span><h1>신용대출</h1><p>상품의 주요 내용을 확인해 보세요.</p></div><section class="onloan-detail-hero"><span class="onloan-pill" th:text="${product.tag}">직장인</span><p class="onloan-detail-subtitle" th:text="${product.subtitle}">소개</p><h2 th:text="${product.name}">ON 직장인 신용대출</h2><div class="onloan-detail-highlights"><div><span class="onloan-symbol blue">♙</span><div><small>대상</small><b th:text="${product.target}">직장인</b></div></div><div><span class="onloan-symbol blue">₩</span><div><small>상환방법</small><b th:text="${product.method}">원리금균등</b></div></div><div><span class="onloan-symbol orange">↗</span><div><small>한도 (예시)</small><b th:text="${product.limit}">최대 1억원</b></div></div></div><div class="onloan-detail-actions"><a class="onloan-btn ghost" th:href="@{/loan/products}">목록보기</a><a class="onloan-btn primary" th:href="@{/loan}">대출 계산하기</a></div><p class="onloan-detail-disclaimer">※ 예시용 상품 정보이며 실제 취급 상품이나 승인조건을 의미하지 않습니다.</p></section>
+<div class="onloan"><nav class="onloan-subnav"><div class="onloan-container onloan-subitems"><a href="#">예금</a><a href="#">펀드</a><a class="current" th:href="@{/loan/products}">대출</a><a href="#">신탁</a><a href="#">ISA</a><a href="#">보험/공제</a><a href="#">골드</a><a href="#">외화예금</a></div></nav><div class="onloan-container"><p class="onloan-crumb">개인뱅킹 〉 금융상품 〉 대출 〉 <a th:href="@{/loan/products}">신용대출</a> 〉 <b>상품상세</b></p><div class="onloan-grid"><aside class="onloan-sidebar"><h2>대출</h2><div class="onloan-sidebox"><div class="onloan-sidehead">대출상품/신청 <span>⌄</span></div><a class="onloan-selected" th:href="@{/loan/products}">신용대출</a><a href="#">담보대출</a><a href="#">전월세/반환보증</a><a href="#">자동차대출</a><a href="#">주택도시기금대출</a></div><div class="onloan-side-extra"><a href="#">대출진행현황</a><a href="#">대출관리</a><a href="#">대출 가이드</a></div><div class="onloan-help">🔒 &nbsp;인증센터</div><div class="onloan-help">☎ &nbsp;신규상담</div></aside><main class="onloan-main"><div class="onloan-heading"><span class="onloan-eyebrow">ONBANK LOAN DETAIL</span><h1>신용대출</h1><p>상품의 주요 내용을 확인해 보세요.</p></div><section class="onloan-detail-hero"><span class="onloan-pill" th:text="${product.tag}">직장인</span><p class="onloan-detail-subtitle" th:text="${product.subtitle}">소개</p><h2 th:text="${product.name}">ON 직장인 신용대출</h2><div class="onloan-detail-highlights"><div><span class="onloan-symbol blue">♙</span><div><small>대상</small><b th:text="${product.target}">직장인</b></div></div><div><span class="onloan-symbol blue">₩</span><div><small>상환방법</small><b th:text="${product.method}">원리금균등</b></div></div><div><span class="onloan-symbol orange">↗</span><div><small>최고</small><b th:text="${product.limit}">최대 1억원</b></div></div></div><div class="onloan-detail-actions"><a class="onloan-btn ghost" th:href="@{/loan/products}">목록보기</a><a class="onloan-btn primary"
+   href="#interest-calculator">
+    대출 이자 계산하기
+</a></div><p class="onloan-detail-disclaimer">※ 예시용 상품 정보이며 실제 취급 상품이나 승인조건을 의미하지 않습니다.</p></section>
 <section class="onloan-detail-tabs"><nav class="onloan-anchor-nav"><a href="#features">상품안내</a><a href="#rates">금리 및 이율</a><a href="#guide">이용안내</a><a href="#notes">유의사항</a></nav><div class="onloan-facts" id="features"><h3>상품특징</h3><p>대출 조건에 따라 필요한 자금을 계획적으로 마련할 수 있는 예시 신용대출 상품입니다.</p></div><div class="onloan-facts"><h3>대출신청자격</h3><p th:text="${product.target} + ' (구체적인 심사 기준은 실제 상품 등록 시 별도로 안내)'">직장인</p></div><div class="onloan-facts"><h3>대출금액</h3><p th:text="${product.limit} + ' (예시 한도)'">예시</p></div><div class="onloan-facts" id="rates"><h3>금리 및 이율</h3><p>금리는 실제 대출 심사 결과 및 상품 설정에 따라 달라집니다. 확정된 금리는 제공되지 않았습니다.</p></div><div class="onloan-facts" id="guide"><h3>이용안내</h3><p>대출 계산기에서 예상 원리금과 상환 일정을 확인할 수 있습니다.</p></div><div class="onloan-facts" id="notes"><h3>유의사항</h3><p>대출 계산 결과는 참고용이며 실제 금융기관의 적용금리, 수수료, 이자 계산 방식에 따라 다를 수 있습니다.</p></div></section>
-</main></div></div></div><div th:replace="~{fragments/footer :: footerFragment}"></div></body></html>
+
+<!-- 대출 이자 계산기 -->
+<section class="onloan-interest-calculator" id="interest-calculator">
+
+    <div class="interest-calc-header">
+        <div>
+            <span class="interest-calc-eyebrow">LOAN SIMULATOR</span>
+            <h2>대출 이자 계산기</h2>
+            <p>대출 조건을 입력하고 예상 상환금액을 확인해 보세요.</p>
+        </div>
+    </div>
+
+    <form id="interestCalcForm">
+
+        <div class="interest-calc-grid">
+
+            <!-- 대출금액 -->
+            <div class="interest-calc-field">
+                <label for="calcAmount">대출금액 (원)</label>
+
+                <input type="number"
+                       id="calcAmount"
+                       min="10000"
+                       step="10000"
+                       placeholder="예: 30000000"
+                       required>
+            </div>
+
+            <!-- 대출기간 -->
+            <div class="interest-calc-field">
+                <label for="calcMonths">대출기간 (개월)</label>
+
+                <input type="number"
+                       id="calcMonths"
+                       min="1"
+                       max="600"
+                       placeholder="예: 36"
+                       th:value="${product.maxTermMonths}"
+                       required>
+            </div>
+
+            <!-- 연 이자율 -->
+            <div class="interest-calc-field">
+                <label for="calcRate">연 이자율 (%)</label>
+
+                <input type="number"
+                       id="calcRate"
+                       min="0"
+                       max="100"
+                       step="0.0001"
+                       placeholder="예: 4.5"
+                       th:value="${product.annualInterestRate}"
+                       required>
+            </div>
+
+            <!-- 상환방식 -->
+            <div class="interest-calc-field">
+                <label for="calcMethod">상환방식</label>
+
+                <select id="calcMethod">
+                    <option value="EQUAL">원리금균등상환</option>
+                    <option value="PRINCIPAL">원금균등상환</option>
+                    <option value="BULLET">원금만기일시상환</option>
+                </select>
+            </div>
+
+        </div>
+
+        <div class="interest-calc-actions">
+            <button type="submit" class="interest-calc-submit">
+                예상 상환금액 계산하기
+            </button>
+        </div>
+
+    </form>
+
+    <!-- 계산 결과 -->
+    <div id="interestCalcResult" class="interest-calc-result" hidden>
+
+        <h3>예상 대출 상환 결과</h3>
+
+        <div class="interest-result-cards">
+
+            <div class="interest-result-card">
+                <span id="calcMonthlyLabel">첫 달 상환금액</span>
+                <strong id="calcMonthlyResult">0원</strong>
+            </div>
+
+            <div class="interest-result-card">
+                <span>총 대출이자</span>
+                <strong id="calcInterestResult">0원</strong>
+            </div>
+
+            <div class="interest-result-card">
+                <span>총 상환금액</span>
+                <strong id="calcTotalResult">0원</strong>
+            </div>
+
+        </div>
+
+        <h3 class="interest-schedule-title">월별 상환내역</h3>
+
+        <div class="interest-table-wrap">
+            <table class="interest-schedule-table">
+                <thead>
+                    <tr>
+                        <th>회차</th>
+                        <th>상환 원금</th>
+                        <th>상환 이자</th>
+                        <th>월 상환금액</th>
+                        <th>남은 대출원금</th>
+                    </tr>
+                </thead>
+
+                <tbody id="interestScheduleBody"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <p class="interest-calc-notice">
+        ※ 이 계산기는 예상 상환액을 보여주는 참고용 서비스입니다.
+        실제 금융기관의 이자 계산 방식과 수수료에 따라 차이가 발생할 수 있습니다.
+    </p>
+
+</section>
+</main></div></div></div><div th:replace="~{fragments/footer :: footerFragment}"></div></body>
+
+<script th:src="@{/js/loan-interest-calculator.js}" defer></script>
+</html>
+
+
+

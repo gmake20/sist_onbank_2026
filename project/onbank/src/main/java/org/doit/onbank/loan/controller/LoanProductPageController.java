@@ -1,37 +1,93 @@
 package org.doit.onbank.loan.controller;
 
-import java.util.List;
-import java.util.Map;
-
+import org.doit.onbank.loan.dto.LoanProductForm;
+import org.doit.onbank.loan.service.LoanProductService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 @RequestMapping("/loan/products")
 public class LoanProductPageController {
 
-    private static final List<Map<String, Object>> PRODUCTS = List.of(
-        Map.of("id", 1L, "name", "ON 직장인 신용대출", "subtitle", "재직 중인 고객을 위한 간편한 금융 서비스", "target", "직장인", "limit", "최대 1억원", "method", "원리금균등·원금균등", "tag", "직장인"),
-        Map.of("id", 2L, "name", "ON 비상금대출", "subtitle", "일상에서 필요한 자금을 간편하게 확인하세요", "target", "개인", "limit", "최대 300만원", "method", "만기일시상환", "tag", "소액대출"),
-        Map.of("id", 3L, "name", "ON 생활안정 신용대출", "subtitle", "생활자금 마련을 위한 신용대출 상품", "target", "직장인·개인", "limit", "상품별 심사", "method", "원리금균등", "tag", "생활자금")
-    );
+    private final LoanProductService loanProductService;
 
+    // 1. 상품 목록
     @GetMapping
-    public String list(Model model) {
-        model.addAttribute("products", PRODUCTS);
+    public String list(
+            @RequestParam(name = "keyword", required = false)
+            String keyword,
+            Model model) {
+
+        model.addAttribute(
+            "products",
+            loanProductService.findProducts(keyword)
+        );
+
+        model.addAttribute("keyword", keyword);
         model.addAttribute("activeCategory", "신용대출");
+
         return "loan/products";
     }
 
+    // 2. 상품 상세
     @GetMapping("/{id}")
-    public String detail(@PathVariable("id") Long id, Model model) {
-        var product = PRODUCTS.stream().filter(p -> p.get("id").equals(id)).findFirst()
-                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."));
-        model.addAttribute("product", product);
+    public String detail(
+            @PathVariable("id") Long id,
+            Model model) {
+
+        model.addAttribute(
+            "product",
+            loanProductService.findById(id)
+        );
+
         model.addAttribute("activeCategory", "신용대출");
+
         return "loan/product-detail";
+    }
+
+    // 3. 상품 등록 화면
+    @GetMapping("/new")
+    public String registerPage(Model model) {
+
+        model.addAttribute(
+            "loanProductForm",
+            new LoanProductForm()
+        );
+
+        return "loan/product-register";
+    }
+
+    // 4. 상품 등록 처리
+    @PostMapping
+    public String register(
+            @Valid @ModelAttribute("loanProductForm")
+            LoanProductForm form,
+            BindingResult bindingResult,
+            RedirectAttributes redirectAttributes) {
+
+        if (bindingResult.hasErrors()) {
+            return "loan/product-register";
+        }
+
+        Long productId = loanProductService.register(form);
+
+        redirectAttributes.addFlashAttribute(
+            "message",
+            "대출 상품이 등록되었습니다."
+        );
+
+        return "redirect:/loan/products/" + productId;
     }
 }

@@ -1,0 +1,190 @@
+@charset "UTF-8";
+
+.loan-register-page {
+    background: #f5f7fb;
+    padding: 60px 20px 90px;
+    min-height: 80vh;
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #202637;
+}
+
+.loan-register-page * {
+    box-sizing: border-box;
+}
+
+.loan-register-page .register-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.loan-register-page .register-heading {
+    margin-bottom: 30px;
+}
+
+.loan-register-page .page-label {
+    display: inline-block;
+    padding: 7px 13px;
+    background: #e8efff;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #315ec7;
+    margin-bottom: 14px;
+}
+
+.loan-register-page .register-heading h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin: 0 0 12px;
+}
+
+.loan-register-page .register-heading p {
+    font-size: 15px;
+    color: #788294;
+    margin: 0;
+}
+
+.loan-register-page .register-form {
+    background: #fff;
+    padding: 42px;
+    border: 1px solid #e5e9f1;
+    border-radius: 18px;
+    box-shadow: 0 10px 35px rgba(24, 49, 90, 0.05);
+}
+
+.loan-register-page .form-section-title {
+    border-bottom: 2px solid #283957;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.loan-register-page .form-section-title h2 {
+    margin: 0 0 8px;
+    font-size: 22px;
+}
+
+.loan-register-page .form-section-title p {
+    color: #858e9e;
+    font-size: 13px;
+    margin: 0;
+}
+
+.loan-register-page .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 24px;
+}
+
+.loan-register-page .form-group {
+    margin-bottom: 25px;
+    min-width: 0;
+}
+
+.loan-register-page .form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.loan-register-page .form-group label em {
+    color: #e04452;
+    font-style: normal;
+}
+
+.loan-register-page input,
+.loan-register-page select,
+.loan-register-page textarea {
+    width: 100%;
+    min-height: 49px;
+    border: 1px solid #dbe1eb;
+    background: #fbfcff;
+    border-radius: 9px;
+    padding: 13px 15px;
+    color: #202637;
+    font: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.loan-register-page textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.loan-register-page input:focus,
+.loan-register-page select:focus,
+.loan-register-page textarea:focus {
+    border-color: #315ec7;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(49, 94, 199, .1);
+}
+
+.loan-register-page .field-error {
+    display: block;
+    margin-top: 7px;
+    color: #d83d4d;
+    font-size: 12px;
+}
+
+.loan-register-page .register-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    border-top: 1px solid #edf0f5;
+    margin-top: 20px;
+    padding-top: 30px;
+}
+
+.loan-register-page .btn-cancel,
+.loan-register-page .btn-submit {
+    padding: 15px 28px;
+    min-width: 160px;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.loan-register-page .btn-cancel {
+    border: 1px solid #dbe1eb;
+    color: #596374;
+    background: #fff;
+}
+
+.loan-register-page .btn-submit {
+    border: 0;
+    background: #315ec7;
+    color: #fff;
+}
+
+.loan-register-page .btn-submit:hover {
+    background: #2149a4;
+}
+
+@media (max-width: 650px) {
+    .loan-register-page {
+        padding: 30px 14px 60px;
+    }
+
+    .loan-register-page .register-form {
+        padding: 25px 18px;
+    }
+
+    .loan-register-page .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .loan-register-page .register-actions {
+        flex-direction: column;
+    }
+
+    .loan-register-page .btn-cancel,
+    .loan-register-page .btn-submit {
+        width: 100%;
+    }
+}
