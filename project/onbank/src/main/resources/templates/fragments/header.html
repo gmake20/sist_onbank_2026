@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <div th:fragment="headerFragment">
     <header class="header-wrap">
         <div class="header-logo">
@@ -16,7 +17,13 @@
             </ul>
         </nav>
         <div class="header-login">
-            <a href="/login" style="border: 1px solid #d4af37; padding: 8px 20px; border-radius: 20px; color: #d4af37;">로그인</a>
+            <!-- 로그인하지 않은 경우 -->
+            <a href="/login" sec:authorize="isAnonymous()" style="border: 1px solid #d4af37; padding: 8px 20px; border-radius: 20px; color: #d4af37;">로그인</a>
+            <!-- 로그인한 경우 : 로그아웃은 POST 폼으로 (CSRF 보호) -->
+            <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()" style="display: flex; align-items: center; gap: 12px; margin: 0;">
+                <span><strong sec:authentication="principal.name"></strong>님</span>
+                <button type="submit" style="background: none; border: 1px solid #d4af37; padding: 8px 20px; border-radius: 20px; color: #d4af37; cursor: pointer; font: inherit;">로그아웃</button>
+            </form>
         </div>
     </header>
 </div>
