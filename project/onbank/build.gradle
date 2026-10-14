@@ -31,6 +31,8 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 	// Spring Security (로그인/로그아웃, 권한)
 	implementation 'org.springframework.boot:spring-boot-starter-security'

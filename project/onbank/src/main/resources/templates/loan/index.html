@@ -14,16 +14,29 @@
       <a href="#">예금</a><a href="#">펀드</a><a class="selected" th:href="@{/loan}" href="/loan">대출</a><a href="#">신탁</a><a href="#">ISA</a><a href="#">보험/공제</a><a href="#">골드</a><a href="#">외화예금</a>
     </div></nav>
     <section class="loan-hero content-width" aria-label="대출상품 소개">
-      <div class="hero-main"><span class="hero-pill">담보/전세대출</span><p class="hero-desc">혼합금리와 변동금리 중 선택이 가능한 주택담보대출</p><h1>KB 주택담보대출</h1>
+      <div class="hero-main"><span class="hero-pill">담보/전세대출</span><p class="hero-desc">혼합금리와 변동금리 중 선택이 가능한 주택담보대출</p><h1>ON 주택담보대출</h1>
         <div class="hero-metrics"><div class="metric"><span class="metric-icon blue">▣</span><span><small>기간</small><strong>최장 50년</strong></span></div><div class="metric"><span class="metric-icon orange">₩</span><span><small>최고</small><strong>대출가능금액 이내</strong></span></div></div>
         <span class="hero-link-note">대출상품 안내 예시</span>
         <div class="hero-dots">‹　•　●　•　Ⅱ　›</div>
       </div>
       <div class="hero-shortcuts">
-        <div><span>♙</span>신용대출</div><div><span>▤</span>담보대출</div><div><span>⌂</span>전월세/반환보증</div><div><span>♧</span>자동차대출</div><div><span>⌂</span>집단중도금/<br>이주비대출</div><div><span>▥</span>주택도시기금대출</div>
-      </div>
+
+    <div onclick="location.href='/loan/products'"
+         style="cursor:pointer;">
+        <span>♙</span>
+        신용대출
+    </div>
+
+    <div><span>▤</span>담보대출</div>
+    <div><span>⌂</span>전월세/반환보증</div>
+    <div><span>♧</span>자동차대출</div>
+    <div><span>⌂</span>집단중도금/<br>이주비대출</div>
+    <div><span>▥</span>주택도시기금대출</div>
+
+</div>
     </section>
-    <div class="loan-search-bar"><div class="content-width search-inner"><h2><strong>원하시는 상품</strong>을 찾아보세요.</h2><label class="search-field"><input type="search" aria-label="상품 검색어" placeholder="검색어를 입력하세요."><span aria-hidden="true">⌕</span></label></div></div>
+    <div class="loan-search-bar"><div class="content-width search-inner"><h2><strong>원하시는 상품</strong>을 찾아보세요.</h2>
+    <label class="search-field"><input type="search" aria-label="상품 검색어" placeholder="검색어를 입력하세요."><span aria-hidden="true">⌕</span></label></div></div>
     <main class="content-width loan-main">
       <section class="service-row" aria-label="주요 서비스"><h2>주요 서비스</h2><div class="service-actions">
         <div class="service-action"><span class="service-symbol">♧</span>대출진행조회</div><div class="service-action"><span class="service-symbol">▤</span>대출한도변경</div><div class="service-action"><span class="service-symbol">▥</span>이자/월부금 입금</div><div class="service-action"><span class="service-symbol">♙</span>대출금상환</div>
