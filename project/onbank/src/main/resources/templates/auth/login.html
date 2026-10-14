@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <style>
+        .login-wrap { max-width: 400px; margin: 80px auto; padding: 40px; border: 1px solid #e5e5e5; border-radius: 12px; }
+        .login-wrap h2 { margin: 0 0 24px; color: #0b1d3a; text-align: center; }
+        .login-wrap input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 12px;
+                            border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        .login-wrap button { width: 100%; padding: 12px; border: 0; border-radius: 6px;
+                             background: #0b1d3a; color: #fff; font-size: 16px; cursor: pointer; }
+        .login-error { color: #c0392b; font-size: 14px; margin: 0 0 12px; }
+    </style>
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="login-wrap">
+        <h2>로그인</h2>
+
+        <!-- th:action 을 써야 CSRF 토큰이 자동으로 들어감 -->
+        <form th:action="@{/login}" method="post">
+            <!-- 아이디가 없는지, 비밀번호가 틀렸는지 구분하지 않고 같은 문구로 안내 -->
+            <p class="login-error" th:if="${param.error}">아이디 또는 비밀번호가 올바르지 않습니다.</p>
+
+            <input type="text" name="loginId" placeholder="아이디" required autofocus>
+            <input type="password" name="password" placeholder="비밀번호" required>
+            <button type="submit">로그인</button>
+        </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+</body>
+</html>
