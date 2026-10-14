@@ -34,3 +34,46 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btn.classList.contains('active')) alert('해당 상품 분류는 아직 준비 중입니다.');
   }));
 });
+
+// ONBANK 대출 상품 상세 탭
+function initLoanProductTabs() {
+
+    const wrapper = document.getElementById("loanProductInformation");
+
+    if (!wrapper) return;
+
+    const buttons = wrapper.querySelectorAll(".loan-tab-btn");
+    const panels = wrapper.querySelectorAll(".loan-tab-content");
+
+    function changeTab(tabId) {
+
+        buttons.forEach(button => {
+            const active = button.dataset.tab === tabId;
+
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-selected", String(active));
+            button.tabIndex = active ? 0 : -1;
+        });
+
+        panels.forEach(panel => {
+            const active = panel.id === tabId;
+
+            panel.hidden = !active;
+            panel.classList.toggle("active", active);
+        });
+    }
+
+    buttons.forEach(button => {
+        button.addEventListener("click", function () {
+            changeTab(this.dataset.tab);
+        });
+    });
+
+    changeTab("features");
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initLoanProductTabs);
+} else {
+    initLoanProductTabs();
+}

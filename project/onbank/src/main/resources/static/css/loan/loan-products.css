@@ -1,0 +1,2008 @@
+/* ONBANK loan product pages: all custom selectors scoped under .onloan */
+.onloan {
+	--brand: #ffcc31;
+	--deep: #222b36;
+	--line: #e6e7ea;
+	--muted: #75818e;
+	color: #263442;
+	font: 15px/1.6 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+	background: #fff;
+	padding-bottom: 78px
+}
+
+.onloan * {
+	box-sizing: border-box
+}
+
+.onloan a {
+	color: inherit;
+	text-decoration: none
+}
+
+.onloan button, .onloan input, .onloan select {
+	font: inherit
+}
+
+.onloan button {
+	cursor: pointer
+}
+
+.onloan-container {
+	max-width: 1140px;
+	margin: auto;
+	padding: 0 24px
+}
+
+.onloan-subnav {
+	border-bottom: 1px solid #ebedf0;
+	background: #fff
+}
+
+.onloan-subitems {
+	height: 58px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px
+}
+
+.onloan-subitems a {
+	font-weight: 700;
+	padding: 12px 23px;
+	border-radius: 8px;
+	white-space: nowrap
+}
+
+.onloan-subitems a:hover, .onloan-subitems a.current {
+	background: #fff7dc;
+	color: #a27700
+}
+
+.onloan-crumb {
+	text-align: right;
+	font-size: 12px;
+	color: #8a929c;
+	margin: 20px 0 12px
+}
+
+.onloan-grid {
+	display: grid;
+	grid-template-columns: 215px minmax(0, 1fr);
+	gap: 52px;
+	align-items: start
+}
+
+.onloan-sidebar h2 {
+	font-size: 25px;
+	letter-spacing: -1px;
+	margin: 12px 0 16px
+}
+
+.onloan-sidebox {
+	background: #f7f8fa;
+	border: 1px solid #edf0f2;
+	border-radius: 10px;
+	overflow: hidden;
+	padding-bottom: 12px
+}
+
+.onloan-sidehead {
+	background: #eef1f4;
+	border-bottom: 1px solid #e5e8eb;
+	padding: 16px 14px;
+	font-weight: 800;
+	display: flex;
+	justify-content: space-between
+}
+
+.onloan-sidebox a {
+	display: block;
+	padding: 10px 15px;
+	font-size: 13px;
+	transition: background .15s
+}
+
+.onloan-sidebox a:hover {
+	background: #fff4cf
+}
+
+.onloan-sidebox a.onloan-selected {
+	background: #ffcb25;
+	color: #20242b;
+	font-weight: 800
+}
+
+.onloan-side-extra {
+	display: grid;
+	gap: 4px;
+	margin: 14px 0 24px
+}
+
+.onloan-side-extra a {
+	font-size: 13px;
+	padding: 8px 15px
+}
+
+.onloan-side-extra a:hover {
+	color: #bd8d00
+}
+
+.onloan-help {
+	margin-top: 10px;
+	padding: 17px 15px;
+	border: 1px solid #e3e6e9;
+	border-radius: 8px;
+	color: #586576;
+	font-size: 14px
+}
+
+.onloan-heading {
+	border-bottom: 2px solid #263442;
+	padding: 8px 0 19px;
+	margin-bottom: 22px
+}
+
+.onloan-eyebrow {
+	font-size: 11px;
+	font-weight: 800;
+	color: #ba8d19;
+	letter-spacing: 2px
+}
+
+.onloan-heading h1 {
+	font-size: 29px;
+	letter-spacing: -1px;
+	margin: 2px 0 3px
+}
+
+.onloan-heading p {
+	font-size: 14px;
+	color: #788391;
+	margin: 0
+}
+
+.onloan-category {
+	display: flex;
+	overflow-x: auto;
+	border-bottom: 1px solid #dedfe3;
+	margin-bottom: 20px
+}
+
+.onloan-category button {
+	flex: 1;
+	min-width: 115px;
+	white-space: nowrap;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	background: #fff;
+	padding: 16px 11px;
+	font-size: 12px;
+	color: #5b6671;
+	font-weight: 700
+}
+
+.onloan-category button.active {
+	color: #202c37;
+	border-color: #ffcd31;
+	background: #fffaf0
+}
+
+.onloan-filter {
+	border: 1px solid #e1e5ea;
+	background: #fafbfc;
+	border-radius: 12px;
+	padding: 23px 28px;
+	box-shadow: 0 8px 25px rgba(18, 31, 45, .035)
+}
+
+.onloan-filter-row {
+	display: flex;
+	align-items: center;
+	gap: 28px;
+	min-height: 49px
+}
+
+.onloan-filter-row>label:first-child, .onloan-filter-label {
+	flex: 0 0 90px;
+	font-size: 13px;
+	font-weight: 800;
+	color: #525d6b
+}
+
+.onloan-filter-row input[type=search] {
+	height: 42px;
+	width: 100%;
+	max-width: 560px;
+	border: 1px solid #d7dce1;
+	border-radius: 6px;
+	background: #fff;
+	padding: 0 14px;
+	outline-color: #e9b90a
+}
+
+.onloan-radios {
+	display: flex;
+	align-items: center;
+	gap: 17px;
+	flex-wrap: wrap;
+	font-size: 13px;
+	color: #626e7c
+}
+
+.onloan-radios label {
+	cursor: pointer;
+	white-space: nowrap
+}
+
+.onloan-radios input {
+	accent-color: #d7a800;
+	vertical-align: middle;
+	margin-right: 4px
+}
+
+.onloan-filter-actions {
+	border-top: 1px solid #e6e9ed;
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 16px;
+	padding-top: 18px
+}
+
+.onloan-btn {
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+	min-width: 120px;
+	padding: 11px 20px;
+	border-radius: 6px;
+	border: 1px solid #d5d9df;
+	font-size: 13px;
+	font-weight: 800;
+	cursor: pointer;
+	transition: transform .15s, background .15s
+}
+
+.onloan-btn:hover, .onloan-outline:hover {
+	transform: translateY(-1px)
+}
+
+.onloan-btn.primary {
+	background: #363c44;
+	color: #fff;
+	border-color: #363c44
+}
+
+.onloan-btn.primary:hover {
+	background: #191f25
+}
+
+.onloan-btn.ghost {
+	background: #fff;
+	color: #39434e
+}
+
+.onloan-listbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #cfd5db;
+	margin-top: 36px;
+	padding: 0 0 14px
+}
+
+.onloan-listbar h2 {
+	font-size: 19px;
+	margin: 0
+}
+
+.onloan-listbar h2 strong {
+	color: #ee6d18;
+	margin-left: 4px
+}
+
+.onloan-listbar small {
+	font-size: 13px;
+	margin-left: 2px
+}
+
+.onloan-listbar select {
+	padding: 9px 12px;
+	border: 1px solid #d6dce2;
+	border-radius: 6px;
+	background: #fff;
+	color: #475466;
+	font-size: 13px
+}
+
+.onloan-product {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 25px;
+	padding: 29px 12px;
+	border-bottom: 1px solid #e1e5e9
+}
+
+.onloan-pill {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 800;
+	color: #426ec4;
+	background: #ebf1ff;
+	padding: 4px 9px;
+	border-radius: 4px
+}
+
+.onloan-product-name {
+	display: block;
+	font-size: 22px;
+	font-weight: 800;
+	letter-spacing: -.7px;
+	margin: 7px 0 3px
+}
+
+.onloan-product-name:hover {
+	text-decoration: underline;
+	color: #a57d00
+}
+
+.onloan-product-body>p {
+	font-size: 13px;
+	color: #7e8791;
+	margin: 4px 0
+}
+
+.onloan-product-body .onloan-max {
+	font-size: 13px;
+	margin-top: 10px;
+	color: #596572
+}
+
+.onloan-max strong {
+	color: #ef621a;
+	font-size: 15px
+}
+
+.onloan-product-actions {
+	display: flex;
+	gap: 9px;
+	align-items: center;
+	flex-shrink: 0
+}
+
+.onloan-outline, .onloan-iconbtn {
+	border: 1px solid #d8dce1;
+	background: #fff;
+	border-radius: 6px;
+	font-weight: 700;
+	padding: 10px 15px;
+	font-size: 13px
+}
+
+.onloan-iconbtn {
+	font-size: 20px;
+	padding: 5px 13px;
+	color: #a38a52
+}
+
+.onloan-iconbtn.saved {
+	background: #fff2bc
+}
+
+.onloan-empty {
+	text-align: center;
+	padding: 42px;
+	color: #778390
+}
+
+.onloan-notice {
+	font-size: 12px;
+	color: #89939b;
+	margin: 18px 0
+}
+
+.onloan-detail-hero {
+	border: 1px solid #e2e7ec;
+	border-radius: 13px;
+	padding: 34px 34px 19px;
+	box-shadow: 0 10px 32px rgba(32, 48, 65, .06);
+	background: linear-gradient(145deg, #fff 67%, #fff9e9)
+}
+
+.onloan-detail-subtitle {
+	font-size: 14px;
+	color: #6d7a88;
+	margin: 15px 0 0
+}
+
+.onloan-detail-hero h2 {
+	font-size: 29px;
+	letter-spacing: -1px;
+	margin: 0;
+	padding-bottom: 25px;
+	border-bottom: 1px solid #e1e6ea
+}
+
+.onloan-detail-highlights {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 14px;
+	padding: 29px 0 25px
+}
+
+.onloan-detail-highlights>div {
+	display: flex;
+	gap: 11px;
+	align-items: center
+}
+
+.onloan-symbol {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 49px;
+	height: 49px;
+	border-radius: 50%;
+	font-size: 23px
+}
+
+.onloan-symbol.blue {
+	background: #edf5fd;
+	color: #408fc9
+}
+
+.onloan-symbol.orange {
+	background: #fff1e9;
+	color: #f06d22
+}
+
+.onloan-detail-highlights small {
+	display: block;
+	color: #858f9b;
+	font-size: 12px
+}
+
+.onloan-detail-highlights b {
+	display: block;
+	font-size: 14px;
+	line-height: 1.5
+}
+
+.onloan-detail-actions {
+	display: flex;
+	gap: 10px;
+	justify-content: center;
+	margin: 5px 0 25px
+}
+
+.onloan-detail-disclaimer {
+	text-align: right;
+	color: #929aa3;
+	font-size: 11px
+}
+
+.onloan-detail-tabs {
+	margin-top: 44px
+}
+
+.onloan-anchor-nav {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	border-bottom: 2px solid #313d49;
+	background: #f3f5f7
+}
+
+.onloan-anchor-nav a {
+	text-align: center;
+	font-weight: 700;
+	font-size: 13px;
+	padding: 15px 5px;
+	border-right: 1px solid #e1e5e8
+}
+
+.onloan-anchor-nav a:first-child {
+	background: #fff;
+	border-top: 3px solid #ffcb2a
+}
+
+.onloan-facts {
+	display: grid;
+	grid-template-columns: 155px 1fr;
+	gap: 15px;
+	padding: 24px 8px;
+	border-bottom: 1px solid #e6e9ed;
+	scroll-margin-top: 20px
+}
+
+.onloan-facts h3 {
+	margin: 0;
+	font-size: 14px
+}
+
+.onloan-facts p {
+	margin: 0;
+	font-size: 13px;
+	color: #647181
+}
+
+.onloan [hidden] {
+	display: none !important
+}
+
+@media ( max-width :850px) {
+	.onloan-grid {
+		grid-template-columns: 1fr;
+		gap: 10px
+	}
+	.onloan-sidebar {
+		display: none
+	}
+	.onloan-container {
+		padding: 0 18px
+	}
+	.onloan-crumb {
+		text-align: left
+	}
+	.onloan-detail-highlights {
+		grid-template-columns: 1fr 1fr
+	}
+	.onloan-subitems {
+		justify-content: flex-start;
+		overflow: auto
+	}
+	.onloan-subitems a {
+		padding: 10px 15px
+	}
+	.onloan-filter {
+		padding: 16px
+	}
+	.onloan-product-name {
+		font-size: 19px
+	}
+}
+
+@media ( max-width :560px) {
+	.onloan-filter-row {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 4px;
+		margin-bottom: 12px
+	}
+	.onloan-filter-row>label:first-child, .onloan-filter-label {
+		flex: auto
+	}
+	.onloan-product {
+		align-items: flex-start;
+		flex-direction: column
+	}
+	.onloan-detail-hero {
+		padding: 20px
+	}
+	.onloan-detail-highlights {
+		grid-template-columns: 1fr
+	}
+	.onloan-anchor-nav {
+		grid-template-columns: repeat(2, 1fr)
+	}
+	.onloan-facts {
+		grid-template-columns: 1fr;
+		gap: 5px
+	}
+	.onloan-heading h1 {
+		font-size: 24px
+	}
+}
+
+/* ================================
+   ONBANK 대출 이자 계산기
+================================ */
+.onloan .onloan-interest-calculator {
+	margin-top: 40px;
+	padding: 36px;
+	background: #ffffff;
+	border: 1px solid #e4eaf4;
+	border-radius: 18px;
+	box-shadow: 0 8px 28px rgba(28, 54, 99, 0.06);
+}
+
+.onloan .interest-calc-header {
+	margin-bottom: 30px;
+	padding-bottom: 22px;
+	border-bottom: 1px solid #e8edf5;
+}
+
+.onloan .interest-calc-eyebrow {
+	font-size: 12px;
+	font-weight: 800;
+	color: #315ec7;
+	letter-spacing: 1px;
+}
+
+.onloan .interest-calc-header h2 {
+	margin: 10px 0;
+	font-size: 26px;
+	font-weight: 800;
+	color: #1e2a42;
+}
+
+.onloan .interest-calc-header p {
+	color: #7b879a;
+	font-size: 14px;
+}
+
+.onloan .interest-calc-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 22px;
+}
+
+.onloan .interest-calc-field {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.onloan .interest-calc-field label {
+	font-size: 14px;
+	font-weight: 700;
+	color: #34415b;
+}
+
+.onloan .interest-calc-field input, .onloan .interest-calc-field select
+	{
+	width: 100%;
+	height: 52px;
+	padding: 0 16px;
+	border: 1px solid #dce3ee;
+	border-radius: 10px;
+	background: #f9fbfe;
+	font-size: 15px;
+	color: #263650;
+	box-sizing: border-box;
+}
+
+.onloan .interest-calc-field input:focus, .onloan .interest-calc-field select:focus
+	{
+	border-color: #315ec7;
+	outline: none;
+	background: #ffffff;
+	box-shadow: 0 0 0 3px rgba(49, 94, 199, 0.10);
+}
+
+.onloan .interest-calc-actions {
+	margin-top: 30px;
+}
+
+.onloan .interest-calc-submit {
+	width: 100%;
+	height: 54px;
+	border: none;
+	border-radius: 10px;
+	background: #315ec7;
+	color: #ffffff;
+	font-size: 16px;
+	font-weight: 800;
+	cursor: pointer;
+	transition: background 0.2s;
+}
+
+.onloan .interest-calc-submit:hover {
+	background: #244ba8;
+}
+
+/* 결과 영역 */
+.onloan .interest-calc-result {
+	margin-top: 35px;
+	padding-top: 25px;
+	border-top: 1px solid #e8edf5;
+}
+
+.onloan .interest-calc-result[hidden] {
+	display: none;
+}
+
+.onloan .interest-calc-result h3 {
+	font-size: 20px;
+	margin-bottom: 20px;
+}
+
+.onloan .interest-result-cards {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 14px;
+}
+
+.onloan .interest-result-card {
+	padding: 22px 16px;
+	border-radius: 12px;
+	background: #f3f7ff;
+	border: 1px solid #e4ecff;
+}
+
+.onloan .interest-result-card:first-child {
+	background: #315ec7;
+	border-color: #315ec7;
+	color: #ffffff;
+}
+
+.onloan .interest-result-card span {
+	display: block;
+	font-size: 13px;
+	margin-bottom: 14px;
+	opacity: 0.85;
+}
+
+.onloan .interest-result-card strong {
+	display: block;
+	font-size: 20px;
+	font-weight: 800;
+	overflow-wrap: anywhere;
+}
+
+.onloan .interest-schedule-title {
+	margin-top: 35px;
+}
+
+.onloan .interest-table-wrap {
+	overflow-x: auto;
+	max-height: 400px;
+}
+
+.onloan .interest-schedule-table {
+	width: 100%;
+	min-width: 620px;
+	border-collapse: collapse;
+	text-align: right;
+}
+
+.onloan .interest-schedule-table th {
+	padding: 15px 12px;
+	background: #f1f5fb;
+	border-bottom: 2px solid #dce4f0;
+	font-size: 13px;
+	white-space: nowrap;
+}
+
+.onloan .interest-schedule-table td {
+	padding: 13px 12px;
+	border-bottom: 1px solid #edf0f5;
+	font-size: 13px;
+	white-space: nowrap;
+}
+
+.onloan .interest-schedule-table th:first-child, .onloan .interest-schedule-table td:first-child
+	{
+	text-align: center;
+}
+
+.onloan .interest-calc-notice {
+	margin-top: 25px;
+	font-size: 12px;
+	color: #818b9c;
+	line-height: 1.8;
+}
+
+@media ( max-width : 768px) {
+	.onloan .onloan-interest-calculator {
+		padding: 22px 16px;
+	}
+	.onloan .interest-calc-grid {
+		grid-template-columns: 1fr;
+	}
+	.onloan .interest-result-cards {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* 상품 상세 정보 영역 */
+.onloan .onloan-detail-tabs {
+	margin-top: 35px;
+	background: #fff;
+	border: 1px solid #e5eaf2;
+	border-radius: 14px;
+	overflow: hidden;
+}
+
+/* 상단 탭 */
+.onloan .onloan-anchor-nav {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	background: #f7f9fd;
+	border-bottom: 1px solid #e3e8f0;
+}
+
+.onloan .onloan-anchor-nav a {
+	padding: 20px 10px;
+	text-align: center;
+	color: #34415c;
+	text-decoration: none;
+	font-size: 14px;
+	font-weight: 700;
+	border-right: 1px solid #e3e8f0;
+	transition: 0.2s;
+}
+
+.onloan .onloan-anchor-nav a:hover {
+	color: #315ec7;
+	background: #eaf0ff;
+}
+
+/* 정보 항목 */
+.onloan .onloan-facts {
+	padding: 35px;
+	border-bottom: 1px solid #edf0f5;
+	scroll-margin-top: 30px;
+}
+
+.onloan .onloan-facts h3 {
+	font-size: 23px;
+	color: #1e2c46;
+	margin: 0 0 25px;
+	padding-bottom: 15px;
+	border-bottom: 2px solid #315ec7;
+}
+
+.onloan .onloan-facts h4 {
+	margin: 24px 0 10px;
+	font-size: 15px;
+	font-weight: 700;
+	color: #2c3950;
+}
+
+.onloan .onloan-facts p {
+	font-size: 14px;
+	line-height: 1.9;
+	color: #5c677a;
+	margin: 0 0 14px;
+}
+
+.onloan .loan-info-pending {
+	color: #858e9e;
+}
+
+.onloan .loan-notice-list {
+	padding: 22px;
+	background: #f5f8ff;
+	border-radius: 10px;
+}
+
+@media ( max-width : 768px) {
+	.onloan .onloan-anchor-nav {
+		grid-template-columns: repeat(2, 1fr);
+	}
+	.onloan .onloan-facts {
+		padding: 22px 16px;
+	}
+}
+
+/* =========================
+   상품 상세 탭
+========================= */
+.onloan .onloan-anchor-nav {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	border-bottom: 2px solid #315ec7;
+	background: #f8faff;
+}
+
+.onloan .loan-tab-btn {
+	padding: 20px 10px;
+	background: transparent;
+	border: none;
+	border-right: 1px solid #e4e8f0;
+	font-size: 15px;
+	font-weight: 600;
+	color: #667085;
+	cursor: pointer;
+	transition: background 0.2s, color 0.2s;
+}
+
+.onloan .loan-tab-btn:last-child {
+	border-right: none;
+}
+
+.onloan .loan-tab-btn:hover {
+	background: #eaf0ff;
+	color: #315ec7;
+}
+
+/* 선택된 탭 */
+.onloan .loan-tab-btn.active {
+	background: #315ec7;
+	color: #fff;
+	font-weight: 800;
+}
+
+/* 탭 내용 */
+.onloan .loan-tab-content {
+	padding: 35px;
+	background: #fff;
+	animation: loanTabFade 0.25s ease;
+}
+
+.onloan .loan-tab-content[hidden] {
+	display: none !important;
+}
+
+.onloan .loan-tab-content h3 {
+	font-size: 23px;
+	color: #202c43;
+	margin: 0 0 25px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid #dce3ee;
+}
+
+keyframes loanTabFade {from { opacity:0;
+	transform: translateY(5px);
+}
+
+to {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+}
+@media ( max-width : 768px) {
+	.onloan .onloan-anchor-nav {
+		grid-template-columns: repeat(2, 1fr);
+	}
+	.onloan .loan-tab-btn {
+		padding: 16px 8px;
+		font-size: 13px;
+	}
+	.onloan .loan-tab-content {
+		padding: 20px 15px;
+	}
+}
+
+/* ONBANK loan product pages: all custom selectors scoped under .onloan */
+.onloan {
+	--brand: #ffcc31;
+	--deep: #222b36;
+	--line: #e6e7ea;
+	--muted: #75818e;
+	color: #263442;
+	font: 15px/1.6 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+	background: #fff;
+	padding-bottom: 78px
+}
+
+.onloan * {
+	box-sizing: border-box
+}
+
+.onloan a {
+	color: inherit;
+	text-decoration: none
+}
+
+.onloan button, .onloan input, .onloan select {
+	font: inherit
+}
+
+.onloan button {
+	cursor: pointer
+}
+
+.onloan-container {
+	max-width: 1140px;
+	margin: auto;
+	padding: 0 24px
+}
+
+.onloan-subnav {
+	border-bottom: 1px solid #ebedf0;
+	background: #fff
+}
+
+.onloan-subitems {
+	height: 58px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px
+}
+
+.onloan-subitems a {
+	font-weight: 700;
+	padding: 12px 23px;
+	border-radius: 8px;
+	white-space: nowrap
+}
+
+.onloan-subitems a:hover, .onloan-subitems a.current {
+	background: #fff7dc;
+	color: #a27700
+}
+
+.onloan-crumb {
+	text-align: right;
+	font-size: 12px;
+	color: #8a929c;
+	margin: 20px 0 12px
+}
+
+.onloan-grid {
+	display: grid;
+	grid-template-columns: 215px minmax(0, 1fr);
+	gap: 52px;
+	align-items: start
+}
+
+.onloan-sidebar h2 {
+	font-size: 25px;
+	letter-spacing: -1px;
+	margin: 12px 0 16px
+}
+
+.onloan-sidebox {
+	background: #f7f8fa;
+	border: 1px solid #edf0f2;
+	border-radius: 10px;
+	overflow: hidden;
+	padding-bottom: 12px
+}
+
+.onloan-sidehead {
+	background: #eef1f4;
+	border-bottom: 1px solid #e5e8eb;
+	padding: 16px 14px;
+	font-weight: 800;
+	display: flex;
+	justify-content: space-between
+}
+
+.onloan-sidebox a {
+	display: block;
+	padding: 10px 15px;
+	font-size: 13px;
+	transition: background .15s
+}
+
+.onloan-sidebox a:hover {
+	background: #fff4cf
+}
+
+.onloan-sidebox a.onloan-selected {
+	background: #ffcb25;
+	color: #20242b;
+	font-weight: 800
+}
+
+.onloan-side-extra {
+	display: grid;
+	gap: 4px;
+	margin: 14px 0 24px
+}
+
+.onloan-side-extra a {
+	font-size: 13px;
+	padding: 8px 15px
+}
+
+.onloan-side-extra a:hover {
+	color: #bd8d00
+}
+
+.onloan-help {
+	margin-top: 10px;
+	padding: 17px 15px;
+	border: 1px solid #e3e6e9;
+	border-radius: 8px;
+	color: #586576;
+	font-size: 14px
+}
+
+.onloan-heading {
+	border-bottom: 2px solid #263442;
+	padding: 8px 0 19px;
+	margin-bottom: 22px
+}
+
+.onloan-eyebrow {
+	font-size: 11px;
+	font-weight: 800;
+	color: #ba8d19;
+	letter-spacing: 2px
+}
+
+.onloan-heading h1 {
+	font-size: 29px;
+	letter-spacing: -1px;
+	margin: 2px 0 3px
+}
+
+.onloan-heading p {
+	font-size: 14px;
+	color: #788391;
+	margin: 0
+}
+
+.onloan-category {
+	display: flex;
+	overflow-x: auto;
+	border-bottom: 1px solid #dedfe3;
+	margin-bottom: 20px
+}
+
+.onloan-category button {
+	flex: 1;
+	min-width: 115px;
+	white-space: nowrap;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	background: #fff;
+	padding: 16px 11px;
+	font-size: 12px;
+	color: #5b6671;
+	font-weight: 700
+}
+
+.onloan-category button.active {
+	color: #202c37;
+	border-color: #ffcd31;
+	background: #fffaf0
+}
+
+.onloan-filter {
+	border: 1px solid #e1e5ea;
+	background: #fafbfc;
+	border-radius: 12px;
+	padding: 23px 28px;
+	box-shadow: 0 8px 25px rgba(18, 31, 45, .035)
+}
+
+.onloan-filter-row {
+	display: flex;
+	align-items: center;
+	gap: 28px;
+	min-height: 49px
+}
+
+.onloan-filter-row>label:first-child, .onloan-filter-label {
+	flex: 0 0 90px;
+	font-size: 13px;
+	font-weight: 800;
+	color: #525d6b
+}
+
+.onloan-filter-row input[type=search] {
+	height: 42px;
+	width: 100%;
+	max-width: 560px;
+	border: 1px solid #d7dce1;
+	border-radius: 6px;
+	background: #fff;
+	padding: 0 14px;
+	outline-color: #e9b90a
+}
+
+.onloan-radios {
+	display: flex;
+	align-items: center;
+	gap: 17px;
+	flex-wrap: wrap;
+	font-size: 13px;
+	color: #626e7c
+}
+
+.onloan-radios label {
+	cursor: pointer;
+	white-space: nowrap
+}
+
+.onloan-radios input {
+	accent-color: #d7a800;
+	vertical-align: middle;
+	margin-right: 4px
+}
+
+.onloan-filter-actions {
+	border-top: 1px solid #e6e9ed;
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 16px;
+	padding-top: 18px
+}
+
+.onloan-btn {
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+	min-width: 120px;
+	padding: 11px 20px;
+	border-radius: 6px;
+	border: 1px solid #d5d9df;
+	font-size: 13px;
+	font-weight: 800;
+	cursor: pointer;
+	transition: transform .15s, background .15s
+}
+
+.onloan-btn:hover, .onloan-outline:hover {
+	transform: translateY(-1px)
+}
+
+.onloan-btn.primary {
+	background: #363c44;
+	color: #fff;
+	border-color: #363c44
+}
+
+.onloan-btn.primary:hover {
+	background: #191f25
+}
+
+.onloan-btn.ghost {
+	background: #fff;
+	color: #39434e
+}
+
+.onloan-listbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid #cfd5db;
+	margin-top: 36px;
+	padding: 0 0 14px
+}
+
+.onloan-listbar h2 {
+	font-size: 19px;
+	margin: 0
+}
+
+.onloan-listbar h2 strong {
+	color: #ee6d18;
+	margin-left: 4px
+}
+
+.onloan-listbar small {
+	font-size: 13px;
+	margin-left: 2px
+}
+
+.onloan-listbar select {
+	padding: 9px 12px;
+	border: 1px solid #d6dce2;
+	border-radius: 6px;
+	background: #fff;
+	color: #475466;
+	font-size: 13px
+}
+
+.onloan-product {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 25px;
+	padding: 29px 12px;
+	border-bottom: 1px solid #e1e5e9
+}
+
+.onloan-pill {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 800;
+	color: #426ec4;
+	background: #ebf1ff;
+	padding: 4px 9px;
+	border-radius: 4px
+}
+
+.onloan-product-name {
+	display: block;
+	font-size: 22px;
+	font-weight: 800;
+	letter-spacing: -.7px;
+	margin: 7px 0 3px
+}
+
+.onloan-product-name:hover {
+	text-decoration: underline;
+	color: #a57d00
+}
+
+.onloan-product-body>p {
+	font-size: 13px;
+	color: #7e8791;
+	margin: 4px 0
+}
+
+.onloan-product-body .onloan-max {
+	font-size: 13px;
+	margin-top: 10px;
+	color: #596572
+}
+
+.onloan-max strong {
+	color: #ef621a;
+	font-size: 15px
+}
+
+.onloan-product-actions {
+	display: flex;
+	gap: 9px;
+	align-items: center;
+	flex-shrink: 0
+}
+
+.onloan-outline, .onloan-iconbtn {
+	border: 1px solid #d8dce1;
+	background: #fff;
+	border-radius: 6px;
+	font-weight: 700;
+	padding: 10px 15px;
+	font-size: 13px
+}
+
+.onloan-iconbtn {
+	font-size: 20px;
+	padding: 5px 13px;
+	color: #a38a52
+}
+
+.onloan-iconbtn.saved {
+	background: #fff2bc
+}
+
+.onloan-empty {
+	text-align: center;
+	padding: 42px;
+	color: #778390
+}
+
+.onloan-notice {
+	font-size: 12px;
+	color: #89939b;
+	margin: 18px 0
+}
+
+.onloan-detail-hero {
+	border: 1px solid #e2e7ec;
+	border-radius: 13px;
+	padding: 34px 34px 19px;
+	box-shadow: 0 10px 32px rgba(32, 48, 65, .06);
+	background: linear-gradient(145deg, #fff 67%, #fff9e9)
+}
+
+.onloan-detail-subtitle {
+	font-size: 14px;
+	color: #6d7a88;
+	margin: 15px 0 0
+}
+
+.onloan-detail-hero h2 {
+	font-size: 29px;
+	letter-spacing: -1px;
+	margin: 0;
+	padding-bottom: 25px;
+	border-bottom: 1px solid #e1e6ea
+}
+
+.onloan-detail-highlights {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 14px;
+	padding: 29px 0 25px
+}
+
+.onloan-detail-highlights>div {
+	display: flex;
+	gap: 11px;
+	align-items: center
+}
+
+.onloan-symbol {
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 49px;
+	height: 49px;
+	border-radius: 50%;
+	font-size: 23px
+}
+
+.onloan-symbol.blue {
+	background: #edf5fd;
+	color: #408fc9
+}
+
+.onloan-symbol.orange {
+	background: #fff1e9;
+	color: #f06d22
+}
+
+.onloan-detail-highlights small {
+	display: block;
+	color: #858f9b;
+	font-size: 12px
+}
+
+.onloan-detail-highlights b {
+	display: block;
+	font-size: 14px;
+	line-height: 1.5
+}
+
+.onloan-detail-actions {
+	display: flex;
+	gap: 10px;
+	justify-content: center;
+	margin: 5px 0 25px
+}
+
+.onloan-detail-disclaimer {
+	text-align: right;
+	color: #929aa3;
+	font-size: 11px
+}
+
+.onloan-detail-tabs {
+	margin-top: 44px
+}
+
+.onloan-anchor-nav {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	border-bottom: 2px solid #313d49;
+	background: #f3f5f7
+}
+
+.onloan-anchor-nav a {
+	text-align: center;
+	font-weight: 700;
+	font-size: 13px;
+	padding: 15px 5px;
+	border-right: 1px solid #e1e5e8
+}
+
+.onloan-anchor-nav a:first-child {
+	background: #fff;
+	border-top: 3px solid #ffcb2a
+}
+
+.onloan-facts {
+	display: grid;
+	grid-template-columns: 155px 1fr;
+	gap: 15px;
+	padding: 24px 8px;
+	border-bottom: 1px solid #e6e9ed;
+	scroll-margin-top: 20px
+}
+
+.onloan-facts h3 {
+	margin: 0;
+	font-size: 14px
+}
+
+.onloan-facts p {
+	margin: 0;
+	font-size: 13px;
+	color: #647181
+}
+
+.onloan [hidden] {
+	display: none !important
+}
+
+@media ( max-width :850px) {
+	.onloan-grid {
+		grid-template-columns: 1fr;
+		gap: 10px
+	}
+	.onloan-sidebar {
+		display: none
+	}
+	.onloan-container {
+		padding: 0 18px
+	}
+	.onloan-crumb {
+		text-align: left
+	}
+	.onloan-detail-highlights {
+		grid-template-columns: 1fr 1fr
+	}
+	.onloan-subitems {
+		justify-content: flex-start;
+		overflow: auto
+	}
+	.onloan-subitems a {
+		padding: 10px 15px
+	}
+	.onloan-filter {
+		padding: 16px
+	}
+	.onloan-product-name {
+		font-size: 19px
+	}
+}
+
+@media ( max-width :560px) {
+	.onloan-filter-row {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 4px;
+		margin-bottom: 12px
+	}
+	.onloan-filter-row>label:first-child, .onloan-filter-label {
+		flex: auto
+	}
+	.onloan-product {
+		align-items: flex-start;
+		flex-direction: column
+	}
+	.onloan-detail-hero {
+		padding: 20px
+	}
+	.onloan-detail-highlights {
+		grid-template-columns: 1fr
+	}
+	.onloan-anchor-nav {
+		grid-template-columns: repeat(2, 1fr)
+	}
+	.onloan-facts {
+		grid-template-columns: 1fr;
+		gap: 5px
+	}
+	.onloan-heading h1 {
+		font-size: 24px
+	}
+}
+
+/* ===== ONBANK 상세 탭 및 KB 비교자료 - 기존 CSS 맨 아래 추가 ===== */
+.onloan .onloan-detail-tabs {
+	margin-top: 34px;
+	background: #fff;
+	border: 1px solid #e4e6e9;
+	border-radius: 0;
+	overflow: hidden
+}
+
+.onloan .onloan-anchor-nav {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	background: #f4f4f4;
+	border-bottom: 1px solid #d9d9d9
+}
+
+.onloan .loan-tab-btn {
+	appearance: none;
+	border: 0;
+	border-right: 1px solid #dedede;
+	border-top: 3px solid transparent;
+	cursor: pointer;
+	background: #f4f4f4;
+	color: #333;
+	padding: 18px 8px;
+	font: 600 14px/1.35 inherit;
+	font-size: 14px;
+	min-width: 0
+}
+
+.onloan .loan-tab-btn:last-child {
+	border-right: 0
+}
+
+.onloan .loan-tab-btn:hover {
+	background: #fff8df
+}
+
+.onloan .loan-tab-btn.active {
+	background: #fff;
+	border-top-color: #f9bc13;
+	color: #242424
+}
+
+.onloan .loan-tab-btn:focus-visible {
+	outline: 2px solid #2b67c5;
+	outline-offset: -3px
+}
+
+.onloan .loan-tab-content {
+	padding: 24px 28px 10px;
+	background: #fff
+}
+
+.onloan .loan-tab-content[hidden] {
+	display: none !important
+}
+
+.onloan .loan-pane-title {
+	font-size: 21px;
+	margin: 0 0 20px;
+	color: #242424
+}
+
+.onloan .loan-info-row {
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr);
+	gap: 12px;
+	padding: 22px 0;
+	border-top: 1px solid #dedede
+}
+
+.onloan .loan-info-row h4 {
+	font-size: 15px;
+	margin: 0;
+	color: #674a2d;
+	font-weight: 700;
+	line-height: 1.7
+}
+
+.onloan .loan-info-body {
+	min-width: 0;
+	line-height: 1.85;
+	font-size: 13px;
+	color: #49515b
+}
+
+.onloan .loan-info-body p {
+	margin: 0 0 10px
+}
+
+.onloan .loan-info-body p:last-child {
+	margin-bottom: 0
+}
+
+.onloan .loan-info-body .muted {
+	color: #747b83;
+	font-size: 12px
+}
+
+.onloan .loan-bullets {
+	list-style: none;
+	padding: 0;
+	margin: 8px 0 0
+}
+
+.onloan .loan-bullets li {
+	padding-left: 13px;
+	position: relative;
+	margin: 6px 0;
+	line-height: 1.75
+}
+
+.onloan .loan-bullets li:before {
+	content: '•';
+	color: #79bee2;
+	position: absolute;
+	left: 0
+}
+
+.onloan .loan-source-alert {
+	padding: 13px 16px;
+	background: #fffae9;
+	border: 1px solid #f4e5b7;
+	font-size: 12px;
+	line-height: 1.75;
+	margin: 0 0 20px;
+	color: #6a572d
+}
+
+.onloan .loan-table-caption {
+	text-align: right;
+	color: #087db4;
+	font-size: 12px;
+	margin-bottom: 6px !important
+}
+
+.onloan .loan-table-scroll {
+	overflow-x: auto;
+	width: 100%;
+	margin: 8px 0 16px
+}
+
+.onloan .loan-data-table {
+	width: 100%;
+	min-width: 525px;
+	border-collapse: collapse;
+	font-size: 12px;
+	text-align: center;
+	line-height: 1.5
+}
+
+.onloan .loan-data-table th, .onloan .loan-data-table td {
+	padding: 12px 8px;
+	border: 1px solid #e1e1e1;
+	white-space: normal
+}
+
+.onloan .loan-data-table thead th {
+	background: #f6f6f6;
+	color: #555;
+	font-weight: 600
+}
+
+.onloan .loan-data-table tbody th {
+	font-weight: 500;
+	color: #444
+}
+
+.onloan .loan-detail-bottom-actions {
+	display: flex;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px;
+	border-top: 1px solid #ddd
+}
+
+.onloan .loan-detail-bottom-actions .onloan-btn {
+	min-width: 115px;
+	text-align: center
+}
+
+@media ( max-width :750px) {
+	.onloan .loan-info-row {
+		grid-template-columns: 1fr;
+		gap: 8px;
+		padding: 16px 0
+	}
+	.onloan .loan-tab-content {
+		padding: 20px 14px
+	}
+	.onloan .loan-tab-btn {
+		font-size: 12px;
+		padding: 15px 4px
+	}
+}
+
+@media ( max-width :440px) {
+	.onloan .onloan-anchor-nav {
+		grid-template-columns: repeat(2, 1fr)
+	}
+}
+
+@media print {
+	.onloan .onloan-sidebar, .onloan .loan-detail-bottom-actions {
+		display: none !important
+	}
+	.onloan .loan-tab-content[hidden] {
+		display: block !important
+	}
+	.onloan .onloan-anchor-nav {
+		display: none !important
+	}
+}
+
+/* 인라인 대출 계산기: 기존 공통 헤더/푸터에 영향이 없도록 범위 제한 */
+.onloan .onloan-interest-calculator {
+	margin: 30px 0 0;
+	padding: 30px;
+	background: #fff;
+	border: 1px solid #e1e7ef;
+	border-radius: 12px;
+	box-shadow: 0 8px 26px rgba(31, 48, 72, .05)
+}
+
+.onloan .interest-calc-header {
+	border-bottom: 1px solid #e8edf3;
+	padding-bottom: 20px;
+	margin-bottom: 22px
+}
+
+.onloan .interest-calc-eyebrow {
+	font-weight: 800;
+	font-size: 11px;
+	letter-spacing: .12em;
+	color: #b68914
+}
+
+.onloan .interest-calc-header h2 {
+	font-size: 24px;
+	margin: 4px 0
+}
+
+.onloan .interest-calc-header p, .onloan .interest-calc-notice {
+	font-size: 13px;
+	color: #697787;
+	line-height: 1.8
+}
+
+.onloan .interest-calc-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 18px
+}
+
+.onloan .interest-calc-field {
+	display: grid;
+	gap: 8px;
+	min-width: 0
+}
+
+.onloan .interest-calc-field label {
+	font-size: 13px;
+	font-weight: 800;
+	color: #334255
+}
+
+.onloan .interest-calc-field input, .onloan .interest-calc-field select
+	{
+	min-width: 0;
+	width: 100%;
+	height: 45px;
+	border: 1px solid #d4dce5;
+	border-radius: 6px;
+	background: #fbfcfe;
+	padding: 0 12px;
+	color: #263442
+}
+
+.onloan .interest-calc-field input:focus, .onloan .interest-calc-field select:focus
+	{
+	outline: 2px solid #ffcb25;
+	outline-offset: 1px
+}
+
+.onloan .interest-calc-actions {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 24px
+}
+
+.onloan .interest-calc-submit, .onloan .interest-calc-reset {
+	border-radius: 6px;
+	border: 1px solid #303943;
+	font-weight: 800;
+	padding: 12px 20px;
+	font-size: 14px
+}
+
+.onloan .interest-calc-submit {
+	background: #303943;
+	color: #fff
+}
+
+.onloan .interest-calc-reset {
+	background: #fff;
+	color: #303943
+}
+
+.onloan .interest-calc-result {
+	margin-top: 28px;
+	border-top: 1px solid #e7eaf0;
+	padding-top: 22px
+}
+
+.onloan .interest-calc-result[hidden] {
+	display: none !important
+}
+
+.onloan .interest-calc-result h3 {
+	font-size: 19px;
+	margin: 0 0 14px
+}
+
+.onloan .interest-result-cards {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 10px
+}
+
+.onloan .interest-result-card {
+	border: 1px solid #e5e9f0;
+	border-top: 3px solid #ffcc32;
+	padding: 16px 12px;
+	background: #fcfdff;
+	min-width: 0
+}
+
+.onloan .interest-result-card span {
+	font-size: 12px;
+	color: #667688;
+	display: block;
+	margin-bottom: 8px
+}
+
+.onloan .interest-result-card strong {
+	font-size: 18px;
+	overflow-wrap: anywhere
+}
+
+.onloan .interest-schedule-title {
+	margin-top: 28px !important
+}
+
+.onloan .interest-table-wrap {
+	max-height: 420px;
+	overflow: auto
+}
+
+.onloan .interest-schedule-table {
+	border-collapse: collapse;
+	width: 100%;
+	min-width: 550px;
+	text-align: right;
+	font-size: 12px
+}
+
+.onloan .interest-schedule-table th, .onloan .interest-schedule-table td
+	{
+	padding: 12px 9px;
+	border-bottom: 1px solid #edf0f3;
+	white-space: nowrap
+}
+
+.onloan .interest-schedule-table th {
+	position: sticky;
+	top: 0;
+	background: #f1f4f8
+}
+
+.onloan .interest-schedule-table th:first-child, .onloan .interest-schedule-table td:first-child
+	{
+	text-align: center
+}
+
+@media ( max-width :760px) {
+	.onloan .onloan-interest-calculator {
+		padding: 22px 14px
+	}
+	.onloan .interest-calc-grid {
+		grid-template-columns: 1fr
+	}
+	.onloan .interest-result-cards {
+		grid-template-columns: 1fr
+	}
+}
+
+/* 대출 계산기 버튼 정렬 */
+.onloan .interest-calc-actions {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	width: 100%;
+	margin-top: 30px;
+}
+
+/* 계산하기 / 다시 입력 버튼 공통 */
+.onloan .interest-calc-actions button {
+	height: 52px;
+	min-width: 130px;
+	padding: 0 24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	white-space: nowrap;
+	word-break: keep-all;
+	border-radius: 8px;
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+/* 계산하기 버튼 */
+.onloan .interest-calc-submit {
+	flex: 1;
+	width: auto;
+	background: #315ec7;
+	color: white;
+	border: none;
+}
+
+/* 다시 입력 버튼 */
+.onloan .interest-calc-reset {
+	flex: 0 0 auto;
+	background: #fff;
+	color: #315ec7;
+	border: 1px solid #315ec7;
+}
+
+/* 모바일 */
+@media ( max-width : 480px) {
+	.onloan .interest-calc-actions {
+		flex-direction: column;
+	}
+	.onloan .interest-calc-actions button {
+		width: 100%;
+		flex: none;
+	}
+}
