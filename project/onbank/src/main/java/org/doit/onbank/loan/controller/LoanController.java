@@ -1,4 +1,4 @@
-package org.doit.onbank.controller;
+package org.doit.onbank.loan.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

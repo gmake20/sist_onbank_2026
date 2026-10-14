@@ -1,54 +1,166 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>대출 계산기 - ONBANK</title>
-  <link rel="stylesheet" th:href="@{/css/index.css}" href="/css/index.css">
-  <link rel="stylesheet" th:href="@{/css/loan.css}" href="/css/loan.css">
-  <script th:src="@{/js/loan.js}" src="/js/loan.js" defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>대출 계산기 - ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}" href="/css/index.css">
+<link rel="stylesheet" th:href="@{/css/loan/loan.css}"
+	href="/css/loan.css">
+<script th:src="@{/js/loan.js}" src="/js/loan.js" defer></script>
 </head>
 <body>
-  <div th:replace="~{fragments/header :: headerFragment}"></div>
-  <div class="loan-page">
-    <nav class="product-nav" aria-label="금융상품 메뉴"><div class="content-width">
-      <a href="#">예금</a><a href="#">펀드</a><a class="selected" th:href="@{/loan}" href="/loan">대출</a><a href="#">신탁</a><a href="#">ISA</a><a href="#">보험/공제</a><a href="#">골드</a><a href="#">외화예금</a>
-    </div></nav>
-    <section class="loan-hero content-width" aria-label="대출상품 소개">
-      <div class="hero-main"><span class="hero-pill">담보/전세대출</span><p class="hero-desc">혼합금리와 변동금리 중 선택이 가능한 주택담보대출</p><h1>KB 주택담보대출</h1>
-        <div class="hero-metrics"><div class="metric"><span class="metric-icon blue">▣</span><span><small>기간</small><strong>최장 50년</strong></span></div><div class="metric"><span class="metric-icon orange">₩</span><span><small>최고</small><strong>대출가능금액 이내</strong></span></div></div>
-        <span class="hero-link-note">대출상품 안내 예시</span>
-        <div class="hero-dots">‹　•　●　•　Ⅱ　›</div>
-      </div>
-      <div class="hero-shortcuts">
-        <div><span>♙</span>신용대출</div><div><span>▤</span>담보대출</div><div><span>⌂</span>전월세/반환보증</div><div><span>♧</span>자동차대출</div><div><span>⌂</span>집단중도금/<br>이주비대출</div><div><span>▥</span>주택도시기금대출</div>
-      </div>
-    </section>
-    <div class="loan-search-bar"><div class="content-width search-inner"><h2><strong>원하시는 상품</strong>을 찾아보세요.</h2><label class="search-field"><input type="search" aria-label="상품 검색어" placeholder="검색어를 입력하세요."><span aria-hidden="true">⌕</span></label></div></div>
-    <main class="content-width loan-main">
-      <section class="service-row" aria-label="주요 서비스"><h2>주요 서비스</h2><div class="service-actions">
-        <div class="service-action"><span class="service-symbol">♧</span>대출진행조회</div><div class="service-action"><span class="service-symbol">▤</span>대출한도변경</div><div class="service-action"><span class="service-symbol">▥</span>이자/월부금 입금</div><div class="service-action"><span class="service-symbol">♙</span>대출금상환</div>
-      </div></section>
-      <section class="loan-calculator" id="calculator" aria-labelledby="calc-heading">
-        <h2 id="calc-heading">대출 계산기</h2>
-        <div class="repayment-tabs" role="group" aria-label="상환 방식">
-          <button type="button" class="mode active" data-mode="equal" aria-pressed="true"><span>▥</span>원리금균등상환 <small title="원금과 이자 합계가 매월 같습니다">ⓘ</small></button>
-          <button type="button" class="mode" data-mode="principal" aria-pressed="false"><span>▤</span>원금균등상환 <small title="매월 갚는 원금이 같습니다">ⓘ</small></button>
-          <button type="button" class="mode" data-mode="bullet" aria-pressed="false"><span>▥</span>원금만기일시상환 <small title="만기에 원금을 갚습니다">ⓘ</small></button>
-        </div>
-        <form id="loan-form" novalidate><div class="loan-fields">
-          <label><input id="amount" name="amount" inputmode="decimal" placeholder="대출금액" aria-label="대출금액(만원)" required> <span>만원을</span></label>
-          <label><input id="years" name="years" inputmode="numeric" placeholder="기간" aria-label="대출기간(년)" required> <span>년 동안</span></label>
-          <label><input id="rate" name="rate" inputmode="decimal" placeholder="이자" aria-label="연 이자율(%)" required> <span>%로 대출 받으면?</span></label>
-          <div class="loan-buttons"><button type="submit" class="calculate-btn">결과보기</button><button class="detail-btn" type="button" id="details-button">자세히</button><button class="reset-btn" type="reset">다시하기</button></div>
-        </div><p class="error" id="error" role="alert" aria-live="polite"></p></form>
-        <p class="calc-note">ⓘ 원하시는 정보를 입력하신 후, 예상계산결과를 확인하세요.</p>
-        <section id="results" class="loan-results" aria-live="polite" hidden><h3>예상 대출 상환 결과</h3><div class="result-cards"><div><small id="payment-label">매월 상환금액</small><strong id="monthly">-</strong></div><div><small>총 대출이자</small><strong id="interest">-</strong></div><div><small>총 상환금액</small><strong id="total">-</strong></div></div>
-          <div class="schedule-wrap" id="schedule-wrap"><h4>월별 상환내역</h4><div class="table-scroll"><table><thead><tr><th>회차</th><th>납입원금</th><th>납입이자</th><th>월 상환액</th><th>남은 원금</th></tr></thead><tbody id="schedule-body"></tbody></table></div></div>
-          <p class="result-note">※ 참고용 시뮬레이션으로 실제 대출 상환액은 금융기관의 계산 방식과 수수료 등에 따라 달라질 수 있습니다.</p>
-        </section>
-      </section>
-    </main>
-  </div>
-  <div th:replace="~{fragments/footer :: footerFragment}"></div>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+	<div class="loan-page">
+		<nav class="product-nav" aria-label="금융상품 메뉴">
+			<div class="content-width">
+				<a href="#">예금</a><a href="#">펀드</a><a class="selected"
+					th:href="@{/loan}" href="/loan">대출</a><a href="#">신탁</a><a href="#">ISA</a><a
+					href="#">보험/공제</a><a href="#">골드</a><a href="#">외화예금</a>
+			</div>
+		</nav>
+		<section class="loan-hero content-width" aria-label="대출상품 소개">
+			<div class="hero-main">
+				<span class="hero-pill">담보/전세대출</span>
+				<p class="hero-desc">혼합금리와 변동금리 중 선택이 가능한 주택담보대출</p>
+				<h1>ON 주택담보대출</h1>
+				<div class="hero-metrics">
+					<div class="metric">
+						<span class="metric-icon blue">▣</span><span><small>기간</small><strong>최장
+								50년</strong></span>
+					</div>
+					<div class="metric">
+						<span class="metric-icon orange">₩</span><span><small>최고</small><strong>대출가능금액
+								이내</strong></span>
+					</div>
+				</div>
+				<span class="hero-link-note">대출상품 안내 예시</span>
+				<div class="hero-dots">‹ • ● • Ⅱ ›</div>
+			</div>
+			<div class="hero-shortcuts">
+
+				<div onclick="location.href='/loan/products'"
+					style="cursor: pointer;">
+					<span>♙</span> 신용대출
+				</div>
+
+				<div>
+					<span>▤</span>담보대출
+				</div>
+				<div>
+					<span>⌂</span>전월세/반환보증
+				</div>
+				<div>
+					<span>♧</span>자동차대출
+				</div>
+				<div>
+					<span>⌂</span>집단중도금/<br>이주비대출
+				</div>
+				<div>
+					<span>▥</span>주택도시기금대출
+				</div>
+
+			</div>
+		</section>
+		<div class="loan-search-bar">
+			<div class="content-width search-inner">
+				<h2>
+					<strong>원하시는 상품</strong>을 찾아보세요.
+				</h2>
+				<label class="search-field"><input type="search"
+					aria-label="상품 검색어" placeholder="검색어를 입력하세요."><span
+					aria-hidden="true">⌕</span></label>
+			</div>
+		</div>
+		<main class="content-width loan-main">
+			<section class="service-row" aria-label="주요 서비스">
+				<h2>주요 서비스</h2>
+				<div class="service-actions">
+					<div class="service-action">
+						<span class="service-symbol">♧</span>대출진행조회
+					</div>
+					<div class="service-action">
+						<span class="service-symbol">▤</span>대출한도변경
+					</div>
+					<div class="service-action">
+						<span class="service-symbol">▥</span>이자/월부금 입금
+					</div>
+					<div class="service-action">
+						<span class="service-symbol">♙</span>대출금상환
+					</div>
+				</div>
+			</section>
+			<section class="loan-calculator" id="calculator"
+				aria-labelledby="calc-heading">
+				<h2 id="calc-heading">대출 계산기</h2>
+				<div class="repayment-tabs" role="group" aria-label="상환 방식">
+					<button type="button" class="mode active" data-mode="equal"
+						aria-pressed="true">
+						<span>▥</span>원리금균등상환 <small title="원금과 이자 합계가 매월 같습니다">ⓘ</small>
+					</button>
+					<button type="button" class="mode" data-mode="principal"
+						aria-pressed="false">
+						<span>▤</span>원금균등상환 <small title="매월 갚는 원금이 같습니다">ⓘ</small>
+					</button>
+					<button type="button" class="mode" data-mode="bullet"
+						aria-pressed="false">
+						<span>▥</span>원금만기일시상환 <small title="만기에 원금을 갚습니다">ⓘ</small>
+					</button>
+				</div>
+				<form id="loan-form" novalidate>
+					<div class="loan-fields">
+						<label><input id="amount" name="amount"
+							inputmode="decimal" placeholder="대출금액" aria-label="대출금액(만원)"
+							required> <span>만원을</span></label> <label><input
+							id="years" name="years" inputmode="numeric" placeholder="기간"
+							aria-label="대출기간(년)" required> <span>년 동안</span></label> <label><input
+							id="rate" name="rate" inputmode="decimal" placeholder="이자"
+							aria-label="연 이자율(%)" required> <span>%로 대출 받으면?</span></label>
+						<div class="loan-buttons">
+							<button type="submit" class="calculate-btn">결과보기</button>
+							<button class="detail-btn" type="button" id="details-button">자세히</button>
+							<button class="reset-btn" type="reset">다시하기</button>
+						</div>
+					</div>
+					<p class="error" id="error" role="alert" aria-live="polite"></p>
+				</form>
+				<p class="calc-note">ⓘ 원하시는 정보를 입력하신 후, 예상계산결과를 확인하세요.</p>
+				<section id="results" class="loan-results" aria-live="polite" hidden>
+					<h3>예상 대출 상환 결과</h3>
+					<div class="result-cards">
+						<div>
+							<small id="payment-label">매월 상환금액</small><strong id="monthly">-</strong>
+						</div>
+						<div>
+							<small>총 대출이자</small><strong id="interest">-</strong>
+						</div>
+						<div>
+							<small>총 상환금액</small><strong id="total">-</strong>
+						</div>
+					</div>
+					<div class="schedule-wrap" id="schedule-wrap">
+						<h4>월별 상환내역</h4>
+						<div class="table-scroll">
+							<table>
+								<thead>
+									<tr>
+										<th>회차</th>
+										<th>납입원금</th>
+										<th>납입이자</th>
+										<th>월 상환액</th>
+										<th>남은 원금</th>
+									</tr>
+								</thead>
+								<tbody id="schedule-body"></tbody>
+							</table>
+						</div>
+					</div>
+					<p class="result-note">※ 참고용 시뮬레이션으로 실제 대출 상환액은 금융기관의 계산 방식과
+						수수료 등에 따라 달라질 수 있습니다.</p>
+				</section>
+			</section>
+		</main>
+	</div>
+	<div th:replace="~{fragments/footer :: footerFragment}"></div>
 </body>
 </html>

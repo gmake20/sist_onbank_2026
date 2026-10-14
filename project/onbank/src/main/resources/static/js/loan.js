@@ -39,3 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
     get('results').hidden=false;get('results').scrollIntoView({behavior:'smooth',block:'start'});
   });
 });
+
+function searchLoanProducts() {
+    const keyword = document.getElementById("loanSearch").value.trim();
+
+    location.href = "/loan/products?keyword="
+        + encodeURIComponent(keyword);
+}
+
+document.getElementById("loanSearch")
+    .addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            searchLoanProducts();
+        }
+    });
