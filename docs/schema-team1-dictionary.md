@@ -104,7 +104,7 @@
 | `phone` | VARCHAR(20), NULL 허용 | 연락처입니다. |
 | `branch_id` | BIGINT, FK → branch | 소속 지점입니다. `branch_type`이 `BRANCH`인 지점만 넣을 수 있고, ATM 소속은 안 됩니다. 이 검사는 Service에서 합니다. |
 | `position` | VARCHAR(20) | 직급(사원, 대리, 과장, 지점장 등)입니다. 화면에 보여 주기만 하고 권한에는 영향을 주지 않습니다. |
-| `role` | VARCHAR(20), 기본값 `STAFF` | 권한입니다. `STAFF` 일반 직원, `MANAGER` 책임자, `SYSTEM_ADMIN` 시스템 관리자 순으로 권한이 넓어집니다. Spring Security 권한 검사는 이 값으로 합니다. 직급과 권한을 분리했기 때문에, 예를 들어 과장도 MANAGER 권한을 받을 수 있습니다. |
+| `role` | VARCHAR(20), 기본값 `STAFF` | 권한입니다. `STAFF` 일반 직원, `MANAGER` 책임자 순으로 권한이 넓어집니다. 시스템 관리자는 이 테이블이 아니라 팀원4의 `ADMIN` 테이블(02_admin_ddl.sql)에서 관리합니다. Spring Security 권한 검사는 이 값으로 합니다. 직급과 권한을 분리했기 때문에, 예를 들어 과장도 MANAGER 권한을 받을 수 있습니다. |
 | `status` | VARCHAR(20), 기본값 `ACTIVE` | `ACTIVE` 재직, `ON_LEAVE` 휴직, `RETIRED` 퇴사 중 하나입니다. 재직(`ACTIVE`) 상태가 아니면 로그인할 수 없습니다. |
 | `temp_pw_yn` | CHAR(1), 기본값 `Y` | 임시 비밀번호인지 여부입니다. 직원 계정은 관리자가 임시 비밀번호로 만들기 때문에 기본값이 `Y`이고, 첫 로그인 때 비밀번호를 바꾸게 합니다. |
 | `login_fail_count` | INT | 로그인 연속 실패 횟수입니다. members와 같은 방식입니다. |
@@ -168,7 +168,7 @@
 
 ## 6. employee_login_log — 직원 로그인 이력
 
-`login_log`의 직원용 테이블입니다. SYSTEM_ADMIN이 관리자 활동 로그 화면에서 조회합니다.
+`login_log`의 직원용 테이블입니다. 시스템 관리자(`ADMIN` 테이블)가 관리자 활동 로그 화면에서 조회합니다.
 
 | 컬럼 | 타입 / 제약 | 설명 |
 |---|---|---|
