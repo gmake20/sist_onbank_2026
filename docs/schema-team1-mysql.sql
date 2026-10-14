@@ -51,6 +51,9 @@ CREATE TABLE members (
     created_at          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at          DATETIME(6),
     withdrawn_at        DATETIME(6),
+    daily_transfer_limit BIGINT COMMENT '1일 이체한도',
+    once_transfer_limit BIGINT COMMENT '1회 이체한도',
+    
     CONSTRAINT pk_members PRIMARY KEY (member_id),
     CONSTRAINT uk_members_login_id UNIQUE (login_id),
     CONSTRAINT uk_members_email UNIQUE (email),          -- NULL은 여러 개 허용
