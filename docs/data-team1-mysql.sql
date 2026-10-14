@@ -10,9 +10,10 @@
 --     ※ user3의 개설대기(PENDING) 계좌는 팀원2의 account 시드에서 함께 만들어야 함
 --
 -- 직원 계정 (/admin/login) - 비밀번호 모두 Staff1234!, 개발 편의상 비밀번호 변경 강제 해제
---   E0001 : SYSTEM_ADMIN (본점)     - 직원/지점/로그 관리
+--   E0001 : MANAGER      (본점)     - 승인 업무
 --   E0002 : MANAGER      (강남지점) - 승인 업무 (동결, 한도, 대출, 상품, 카드)
 --   E0003 : STAFF        (강남지점) - 조회, 본인확인 심사, 고객센터
+--   ※ 시스템 관리자 계정은 팀원4의 ADMIN 테이블 시드에서 만든다
 --
 -- 비밀번호 해시는 Spring Security 7.1.1 BCrypt로 일치 확인함 (2026-10-12)
 -- =====================================================================
@@ -79,8 +80,8 @@ WHERE b.name = '모의은행 잠실 ATM';
 INSERT INTO employee (employee_no, password, name, email, phone, branch_id, position,
                       role, status, temp_pw_yn, hired_at)
 SELECT 'E0001', '$2a$10$tjbLDI3KlIrVr/Flis8YAeMfn7vJRFIPin7Gdl6anU3okK/SmnUau',
-       '최시스템', 'e0001@mockbank.local', '0215880100', branch_id, '차장',
-       'SYSTEM_ADMIN', 'ACTIVE', 'N', DATE '2015-03-02'
+       '최본점', 'e0001@mockbank.local', '0215880100', branch_id, '차장',
+       'MANAGER', 'ACTIVE', 'N', DATE '2015-03-02'
 FROM branch WHERE name = '모의은행 본점';
 
 INSERT INTO employee (employee_no, password, name, email, phone, branch_id, position,

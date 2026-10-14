@@ -88,7 +88,7 @@ CREATE INDEX ix_branch_service_code ON branch_service (service_code, branch_id);
 
 -- ---------------------------------------------------------------------
 -- 3. employee : 은행 직원 (관리자 화면 /admin/** 사용자)
---    role     : STAFF 일반 직원 / MANAGER 책임자 / SYSTEM_ADMIN 시스템 관리자
+--    role     : STAFF 일반 직원 / MANAGER 책임자 (시스템 관리자는 ADMIN 테이블)
 --    position : 직급은 화면 표시용이며 권한과 무관
 -- ---------------------------------------------------------------------
 CREATE TABLE employee (
@@ -113,7 +113,7 @@ CREATE TABLE employee (
     CONSTRAINT uk_employee_no UNIQUE (employee_no),
     CONSTRAINT uk_employee_email UNIQUE (email),
     CONSTRAINT fk_employee_branch FOREIGN KEY (branch_id) REFERENCES branch (branch_id),
-    CONSTRAINT ck_employee_role CHECK (role IN ('STAFF', 'MANAGER', 'SYSTEM_ADMIN')),
+    CONSTRAINT ck_employee_role CHECK (role IN ('STAFF', 'MANAGER')),
     CONSTRAINT ck_employee_status CHECK (status IN ('ACTIVE', 'ON_LEAVE', 'RETIRED')),
     CONSTRAINT ck_employee_temp_pw CHECK (temp_pw_yn IN ('Y', 'N')),
     -- 퇴사 상태와 퇴사일은 함께 존재
@@ -193,7 +193,7 @@ CREATE INDEX ix_login_log_member ON login_log (member_id, login_at DESC);
 
 -- ---------------------------------------------------------------------
 -- 6. employee_login_log : 직원 로그인 이력 (추가만 하고 수정/삭제하지 않음)
---    SYSTEM_ADMIN 이 관리자 활동 로그 화면에서 조회
+--    시스템 관리자(ADMIN 테이블)가 관리자 활동 로그 화면에서 조회
 -- ---------------------------------------------------------------------
 CREATE TABLE employee_login_log (
     login_log_id        BIGINT          NOT NULL AUTO_INCREMENT,

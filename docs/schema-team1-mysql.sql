@@ -5,7 +5,8 @@
 --   공통: branch (지점/ATM, 직원 소속 지점), branch_service (이용 가능 업무)
 --
 -- 고객(members)과 직원(employee)은 테이블과 로그인을 완전히 분리한다.
--- 직원 권한 3단계: STAFF(일반 직원) < MANAGER(책임자) < SYSTEM_ADMIN(시스템 관리자)
+-- 직원 권한 2단계: STAFF(일반 직원) < MANAGER(책임자)
+-- 시스템 관리자는 employee가 아니라 팀원4의 ADMIN 테이블(02_admin_ddl.sql)로 관리한다.
 --
 -- [스키마 관리 규칙]
 --   - 테이블은 이 SQL 파일로 만든다. JPA는 spring.jpa.hibernate.ddl-auto=validate (검사만)
@@ -117,7 +118,7 @@ CREATE INDEX ix_branch_service_code ON branch_service (service_code, branch_id);
 
 -- ---------------------------------------------------------------------
 -- 3. employee : 은행 직원 (관리자 화면 /admin/** 사용자)
---    role     : STAFF 일반 직원 / MANAGER 책임자 / SYSTEM_ADMIN 시스템 관리자
+--    role     : STAFF 일반 직원 / MANAGER 책임자 (시스템 관리자는 ADMIN 테이블)
 --    position : 직급은 화면 표시용이며 권한과 무관
 -- ---------------------------------------------------------------------
 CREATE TABLE employee (
@@ -142,7 +143,7 @@ CREATE TABLE employee (
     CONSTRAINT uk_employee_no UNIQUE (employee_no),
     CONSTRAINT uk_employee_email UNIQUE (email),
     CONSTRAINT fk_employee_branch FOREIGN KEY (branch_id) REFERENCES branch (branch_id),
-    CONSTRAINT ck_employee_role CHECK (role IN ('STAFF', 'MANAGER', 'SYSTEM_ADMIN')),
+    CONSTRAINT ck_employee_role CHECK (role IN ('STAFF', 'MANAGER')),
     CONSTRAINT ck_employee_status CHECK (status IN ('ACTIVE', 'ON_LEAVE', 'RETIRED')),
     CONSTRAINT ck_employee_temp_pw CHECK (temp_pw_yn IN ('Y', 'N')),
     -- 퇴사 상태와 퇴사일은 함께 존재
@@ -222,7 +223,7 @@ CREATE INDEX ix_login_log_member ON login_log (member_id, login_at DESC);
 
 -- ---------------------------------------------------------------------
 -- 6. employee_login_log : 직원 로그인 이력 (추가만 하고 수정/삭제하지 않음)
---    SYSTEM_ADMIN 이 관리자 활동 로그 화면에서 조회
+--    시스템 관리자(ADMIN 테이블)가 관리자 활동 로그 화면에서 조회
 -- ---------------------------------------------------------------------
 CREATE TABLE employee_login_log (
     login_log_id        BIGINT          NOT NULL AUTO_INCREMENT,
@@ -344,4 +345,8 @@ CREATE INDEX ix_otp_device_member ON otp_device (member_id);
 -- 변경 이력 (공용 DB에 이미 테이블이 있으면 아래 ALTER만 실행)
 -- 형식: -- [날짜] 작성자 - 내용  다음 줄에 ALTER 문
 -- =====================================================================
--- (아직 없음)
+-- [2026-10-14] andy - employee.role 에서 SYSTEM_ADMIN 제거 (시스템 관리자는 팀원4 ADMIN 테이블로 이관)
+-- UPDATE employee SET role = 'MANAGER' WHERE role = 'SYSTEM_ADMIN';
+-- ALTER TABLE employee
+--     DROP CHECK ck_employee_role,
+--     ADD CONSTRAINT ck_employee_role CHECK (role IN ('STAFF', 'MANAGER'));
