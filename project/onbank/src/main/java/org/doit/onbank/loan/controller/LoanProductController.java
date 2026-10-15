@@ -1,4 +1,3 @@
-
 package org.doit.onbank.loan.controller;
 
 import java.util.List;
@@ -34,25 +33,10 @@ public class LoanProductController {
             "business", "개인사업자대출"
     );
 
-
-    @GetMapping("/products")
-    public String creditProducts(Model model) {
-
-        return productPage("credit", model);
-    }
-    
-
+    // 모든 대출 카테고리 목록
     @GetMapping("/categories/{category}")
     public String categoryProducts(
             @PathVariable("category") String category,
-            Model model
-    ) {
-
-        return productPage(category, model);
-    }
-
-    private String productPage(
-            String category,
             Model model
     ) {
 
@@ -71,24 +55,16 @@ public class LoanProductController {
         return "loan/products";
     }
 
+    // 모든 대출 카테고리 API
     @GetMapping("/categories/api/{category}")
     @ResponseBody
     public List<LoanProductListDTO> categoryApi(
             @PathVariable("category") String category
     ) {
-
         return loanProductService.getProductList(category);
     }
 
-    @GetMapping("/products/{id}")
-    public String creditDetail(
-            @PathVariable("id") Long id,
-            Model model
-    ) {
-
-        return productDetail("credit", id, model);
-    }
-
+    // 모든 대출 상품 상세
     @GetMapping("/categories/{category}/{id}")
     public String categoryDetail(
             @PathVariable("category") String category,
@@ -96,21 +72,11 @@ public class LoanProductController {
             Model model
     ) {
 
-        return productDetail(category, id, model);
-    }
-
-    private String productDetail(
-            String category,
-            Long id,
-            Model model
-    ) {
-
         LoanProduct product =
                 loanProductService.findDetail(category, id);
 
-        String listUrl = "credit".equals(category)
-                ? "/loan/products"
-                : "/loan/categories/" + category;
+        String listUrl =
+                "/loan/categories/" + category;
 
         model.addAttribute("product", product);
         model.addAttribute("categoryKey", category);

@@ -17,7 +17,7 @@
 		<nav class="onloan-subnav" aria-label="금융상품 분류">
 			<div class="onloan-container onloan-subitems">
 				<a href="#">예금</a> <a href="#">펀드</a> <a class="current"
-					th:href="@{/loan/products}">대출</a> <a href="#">신탁</a> <a href="#">ISA</a>
+					th:href="@{/loan/categories/credit}">대출</a> <a href="#">신탁</a> <a href="#">ISA</a>
 				<a href="#">보험/공제</a> <a href="#">골드</a> <a href="#">외화예금</a>
 			</div>
 		</nav>
@@ -42,7 +42,7 @@
 							대출상품/신청 <span>⌄</span>
 						</div>
 
-						<a th:href="@{/loan/products}"
+						<a th:href="@{/loan/categories/credit}"
 							th:classappend="${categoryKey == null or categoryKey == 'credit'} ? 'onloan-selected' : ''">
 							신용대출 </a> <a th:href="@{/loan/categories/mortgage}"
 							th:classappend="${categoryKey == 'mortgage'} ? 'onloan-selected' : ''">
@@ -85,7 +85,7 @@
 
 						<button type="button"
 							th:classappend="${categoryKey == 'credit'} ? 'active'"
-							onclick="location.href='/loan/products'">신용대출</button>
+							onclick="location.href='/loan/categories/credit'">신용대출</button>
 
 						<button type="button"
 							th:classappend="${categoryKey == 'mortgage'} ? 'active'"
@@ -181,9 +181,7 @@
 
 								<!-- 카테고리별 상세 페이지 이동 -->
 								<a class="onloan-product-name"
-									th:href="${categoryKey == 'credit'}
-                                   ? @{/loan/products/{id}(id=${p.id})}
-                                   : @{/loan/categories/{category}/{id}(category=${categoryKey},id=${p.id})}"
+									th:href= "@{/loan/categories/{category}/{id}(category=${categoryKey},id=${p.id})}"
 									th:text="${p.name}"> ONBANK 대출상품 </a>
 
 								<p th:text="${p.subtitle}">상품 설명</p>
@@ -197,9 +195,7 @@
 							<div class="onloan-product-actions">
 
 								<a class="onloan-outline"
-									th:href="${categoryKey == 'credit'}
-                                   ? @{/loan/products/{id}(id=${p.id})}
-                                   : @{/loan/categories/{category}/{id}(category=${categoryKey},id=${p.id})}">
+									th:href= "@{/loan/categories/{category}/{id}(category=${categoryKey},id=${p.id})}">
 									상품 자세히 </a>
 
 								<button class="onloan-iconbtn" type="button" title="관심상품"
