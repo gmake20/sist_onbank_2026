@@ -131,6 +131,8 @@
                th:href="@{/mybank/accounts/{id}/deposit(id=${account.accountId})}">입금</a>
             <a class="btn-outline" th:if="${account.canWithdraw()}"
                th:href="@{/mybank/accounts/{id}/withdraw(id=${account.accountId})}">출금</a>
+            <a class="btn-outline" th:if="${account.canWithdraw()}"
+               th:href="@{/mybank/transfer(from=${account.accountId})}">이체</a>
         </div>
     </main>
 

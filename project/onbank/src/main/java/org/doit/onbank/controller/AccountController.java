@@ -4,25 +4,21 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+	// 예전 목업 주소 → 실제 기능 화면으로 이동 (예전 링크가 깨지지 않도록 남겨 둠)
+	// 실제 화면 : account/controller/AccountPageController, TransferPageController
 	@Controller
 	@RequestMapping("/account")
 	public class AccountController {
 
-	    // 사용자가 웹 브라우저에서 /account/list 주소로 접속(GET 요청)하면 이 메서드가 실행됨
+	    // /account/list → 내 계좌 목록
 	    @GetMapping("/list")
 	    public String accountList() {
-	        
-	        // src/main/resources/templates/ 폴더 아래에 있는
-	        // account/list.html 파일을 찾아서 화면에 렌더링하라는 의미입니다. (확장자 .html은 생략)
-	        return "account/list"; 
+	        return "redirect:/mybank/accounts";
 	    }
-	    
+
+	    // /account/transfer → 이체 화면
 	    @GetMapping("/transfer")
 	    public String transfer() {
-	    	
-	    	// src/main/resources/templates/ 폴더 아래에 있는
-	    	// account/list.html 파일을 찾아서 화면에 렌더링하라는 의미입니다. (확장자 .html은 생략)
-	    	return "account/transfer"; 
+	    	return "redirect:/mybank/transfer";
 	    }
 	}
-

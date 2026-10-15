@@ -174,4 +174,73 @@ class AccountTests {
 
 		assertThat(account.getTodayTransferAmount()).isEqualTo(500_000L);
 	}
+
+	// ---------- 이체 ----------
+
+	@Test
+	void transferOutDecreasesBalanceAndAddsTodayTransferAmount() {
+		Account account = Account.builder()
+				.accountStatus(AccountStatus.ACTIVE)
+				.balance(100_000L)
+				.todayTransferAmount(20_000L)
+				.lastTransactionAt(now.minusHours(1))	// 오늘 이미 2만 원 이체
+				.build();
+
+		account.transferOut(30_000L, now);
+
+		assertThat(account.getBalance()).isEqualTo(70_000L);
+		assertThat(account.getTodayTransferAmount()).isEqualTo(50_000L);
+	}
+
+	// 날짜가 바뀌면 어제 누적 금액은 버리고 오늘 이체분부터 다시 센다
+	@Test
+	void transferOutStartsFromZeroOnNewDay() {
+		Account account = Account.builder()
+				.accountStatus(AccountStatus.ACTIVE)
+				.balance(100_000L)
+				.todayTransferAmount(900_000L)
+				.lastTransactionAt(now.minusDays(1))
+				.build();
+
+		account.transferOut(30_000L, now);
+
+		assertThat(account.getTodayTransferAmount()).isEqualTo(30_000L);
+	}
+
+	@Test
+	void transferOutRejectedWhenFrozenAndNothingChanges() {
+		Account account = Account.builder()
+				.accountStatus(AccountStatus.FROZEN)
+				.balance(100_000L)
+				.todayTransferAmount(0L)
+				.build();
+
+		assertThatThrownBy(() -> account.transferOut(30_000L, now))
+				.isInstanceOf(IllegalStateException.class);
+		assertThat(account.getBalance()).isEqualTo(100_000L);
+		assertThat(account.getTodayTransferAmount()).isZero();
+	}
+
+	@Test
+	void transferInAllowedWhenFrozen() {
+		Account account = account(AccountStatus.FROZEN, 0L);
+
+		account.transferIn(30_000L, now);
+
+		assertThat(account.getBalance()).isEqualTo(30_000L);
+	}
+
+	@Test
+	void todayTransferAmountOnReturnsZeroForOtherDay() {
+		Account account = Account.builder()
+				.accountStatus(AccountStatus.ACTIVE)
+				.balance(0L)
+				.todayTransferAmount(500_000L)
+				.lastTransactionAt(now.minusDays(1))
+				.build();
+
+		assertThat(account.getTodayTransferAmountOn(now.toLocalDate())).isZero();
+		assertThat(account.getTodayTransferAmountOn(now.minusDays(1).toLocalDate())).isEqualTo(500_000L);
+		assertThat(account.getTodayTransferAmount()).isEqualTo(500_000L);	// 조회만 하고 값은 바꾸지 않음
+	}
 }

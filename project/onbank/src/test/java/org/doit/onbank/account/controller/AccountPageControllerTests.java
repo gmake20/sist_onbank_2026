@@ -26,6 +26,7 @@ import java.util.NoSuchElementException;
 import org.doit.onbank.account.dto.TransactionReceipt;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionStatus;
 import org.doit.onbank.account.entity.TransactionType;
@@ -126,21 +127,42 @@ class AccountPageControllerTests {
 		mockMvc.perform(get("/mybank/accounts").with(user(me)))
 				.andExpect(status().isOk())
 				.andExpect(content().string(allOf(
+						containsString("전계좌조회"),
 						containsString("TEST-0001"),
 						containsString("1,235,567원"),	// 1,234,567 + 1,000
-						containsString("정상"),
-						containsString("거래정지"),
+						containsString("거래정지"),		// 정상이 아닌 상태만 최종거래일 아래에 표시
 						containsString("해지"),
-						containsString("/mybank/accounts/1/withdraw"))));
+						containsString("/mybank/accounts/1/withdraw"),
+						containsString("/mybank/transfer?from=1"))));
 	}
 
+	// 예금·적금 계좌가 없으면 영역은 그대로 두고 "보유중인 상품이 없습니다." 표시
 	@Test
 	void listShowsEmptyMessage() throws Exception {
 		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of());
 
 		mockMvc.perform(get("/mybank/accounts").with(user(me)))
 				.andExpect(status().isOk())
-				.andExpect(content().string(containsString("보유 중인 계좌가 없습니다.")));
+				.andExpect(content().string(allOf(
+						containsString("보유중인 계좌가 없습니다."),
+						containsString("예금/신탁"),
+						containsString("적금"),
+						containsString("보유중인 상품이 없습니다."))));
+	}
+
+	@Test
+	void listSeparatesDepositAndSavings() throws Exception {
+		Account deposit = Account.builder().memberId(MEMBER_ID).accountNumber("DEP-0001")
+				.accountType(AccountType.DEPOSIT).accountStatus(AccountStatus.ACTIVE).balance(2_000L).build();
+		ReflectionTestUtils.setField(deposit, "accountId", 2L);
+		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account, deposit));
+
+		mockMvc.perform(get("/mybank/accounts").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("1,234,567원"),	// 입출금 총잔액에 예금은 포함하지 않음
+						containsString("DEP-0001"),
+						containsString("2,000원"))));
 	}
 
 	// ---------- 거래내역 ----------

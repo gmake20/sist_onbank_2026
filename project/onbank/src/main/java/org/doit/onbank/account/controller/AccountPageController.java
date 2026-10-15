@@ -1,5 +1,6 @@
 package org.doit.onbank.account.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -9,6 +10,7 @@ import org.doit.onbank.account.dto.TransactionReceipt;
 import org.doit.onbank.account.dto.WithdrawForm;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionType;
 import org.doit.onbank.account.service.AccountService;
@@ -58,17 +60,38 @@ public class AccountPageController {
 
 	// ---------- 계좌 목록 ----------
 
+	// 전계좌조회 : 입출금 / 예금 / 적금 영역으로 나눠서 보여 준다
 	@GetMapping
 	public String list(@AuthenticationPrincipal LoginMember me, Model model) {
 		List<Account> accounts = accountService.getMyAccounts(me.getMemberId());
-		long totalBalance = accounts.stream()
-				.filter(account -> !AccountStatus.CLOSED.equals(account.getAccountStatus()))	// 해지 계좌는 합계에서 제외
+		// account_type 이 비어 있는 계좌(테스트 계좌 등)는 입출금으로 본다
+		List<Account> checking = accounts.stream()
+				.filter(account -> account.getAccountType() == null
+						|| AccountType.CHECKING.equals(account.getAccountType()))
+				.toList();
+		List<Account> deposits = ofType(accounts, AccountType.DEPOSIT);
+		List<Account> savings = ofType(accounts, AccountType.SAVINGS);
+
+		model.addAttribute("checkingAccounts", checking);
+		model.addAttribute("depositAccounts", deposits);
+		model.addAttribute("savingsAccounts", savings);
+		model.addAttribute("checkingTotal", totalBalance(checking));
+		model.addAttribute("depositTotal", totalBalance(deposits));
+		model.addAttribute("savingsTotal", totalBalance(savings));
+		model.addAttribute("now", LocalDateTime.now());
+		return "account/list";
+	}
+
+	private List<Account> ofType(List<Account> accounts, String accountType) {
+		return accounts.stream().filter(account -> accountType.equals(account.getAccountType())).toList();
+	}
+
+	// 해지 계좌는 합계에서 제외
+	private long totalBalance(List<Account> accounts) {
+		return accounts.stream()
+				.filter(account -> !AccountStatus.CLOSED.equals(account.getAccountStatus()))
 				.mapToLong(account -> account.getBalance() == null ? 0L : account.getBalance())
 				.sum();
-
-		model.addAttribute("accounts", accounts);
-		model.addAttribute("totalBalance", totalBalance);
-		return "account/my-accounts";
 	}
 
 	// ---------- 거래내역 ----------
