@@ -23,8 +23,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				// 로그인한 고객만
 				.requestMatchers("/mybank/**").hasRole("USER")
-				.requestMatchers("/loan/apply", "/loan/apply/**")
-				.authenticated()
+				.requestMatchers("/loan/apply", "/loan/apply/**").authenticated()
 				// TODO 다른 팀원 화면(/account/** 등)이 로그인 사용자 기준으로 바뀌면 여기에 추가
 				//      최종적으로는 공개 URL만 permitAll, 나머지는 hasRole("USER")
 				.anyRequest().permitAll())
