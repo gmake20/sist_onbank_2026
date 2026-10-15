@@ -24,7 +24,7 @@ import lombok.ToString;
 @ToString(exclude = "passwordHash")
 public class Account {
 
-	public static final int MAX_PASSWORD_FAIL_COUNT = 5;	// SQL CHECK(password_fail_count BETWEEN 0 AND 5)
+	public static final int MAX_PASSWORD_FAIL_COUNT = 5;
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)	// AUTO_INCREMENT
@@ -43,7 +43,7 @@ public class Account {
 	private Long balance;			// 현재 잔액
 
 	@Column(length = 20)
-	private String accountStatus;		// 계좌 상태 (정상, 정지, 해지 등)
+	private String accountStatus;		// 계좌 상태 (AccountStatus 상수)
 
 	@Column(length = 255)
 	private String passwordHash;		// 계좌 비밀번호 (해시)
@@ -114,6 +114,47 @@ public class Account {
 			this.todayTransferAmount = 0L;
 		}
 		this.lastTransactionAt = now;
+	}
+
+	// 입금: 정상(ACTIVE)·동결(FROZEN) 계좌만 가능
+	public void deposit(long amount, LocalDateTime now) {
+		validateAmount(amount);
+		if (!canDeposit()) {
+			throw new IllegalStateException("입금할 수 없는 계좌 상태입니다: " + accountStatus);
+		}
+		touchTransaction(now);
+		this.balance += amount;
+	}
+
+	// 출금: 정상(ACTIVE) 계좌만 가능, 비밀번호 오류 5회면 불가, 잔액 부족이면 불가
+	// 현금 출금은 이체 한도와 별개이므로 todayTransferAmount 에 누적하지 않는다
+	public void withdraw(long amount, LocalDateTime now) {
+		validateAmount(amount);
+		if (!canWithdraw()) {
+			throw new IllegalStateException("출금할 수 없는 계좌 상태입니다: " + accountStatus);
+		}
+		if (isPasswordFailLimitReached()) {
+			throw new IllegalStateException("계좌 비밀번호 오류 " + MAX_PASSWORD_FAIL_COUNT + "회로 출금할 수 없습니다.");
+		}
+		if (balance < amount) {
+			throw new IllegalStateException("잔액이 부족합니다.");
+		}
+		touchTransaction(now);
+		this.balance -= amount;
+	}
+
+	public boolean canDeposit() {
+		return AccountStatus.ACTIVE.equals(accountStatus) || AccountStatus.FROZEN.equals(accountStatus);
+	}
+
+	public boolean canWithdraw() {
+		return AccountStatus.ACTIVE.equals(accountStatus);
+	}
+
+	private void validateAmount(long amount) {
+		if (amount <= 0) {
+			throw new IllegalArgumentException("금액은 0보다 커야 합니다.");
+		}
 	}
 
 	// 비밀번호 오류 1회 증가
