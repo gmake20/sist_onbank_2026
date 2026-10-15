@@ -434,3 +434,77 @@
 .btn-submit:hover {
     background-color: #002244;
 }
+
+/* =========================================
+   [입출금] my-accounts / detail / deposit / withdraw
+   ========================================= */
+
+/* a 태그로 만든 버튼도 button 과 같은 모양으로 */
+a.btn-sm, a.btn-outline {
+    display: inline-block;
+    text-decoration: none;
+}
+
+/* 계좌 상태 표시 */
+.status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    background-color: #eef2f7;
+    color: #003366;
+}
+
+.status-badge.status-pending {
+    background-color: #fff6e0;
+    color: #a06a00;
+}
+
+.status-badge.status-frozen {
+    background-color: #fdeceb;
+    color: #d9534f;
+}
+
+.status-badge.status-closed {
+    background-color: #f0f0f0;
+    color: #888;
+}
+
+/* 오류 안내 */
+.alert {
+    padding: 14px 18px;
+    margin-bottom: 25px;
+    font-size: 14px;
+}
+
+.alert-error {
+    border: 1px solid #f1c4c2;
+    background-color: #fdf3f2;
+    color: #d9534f;
+}
+
+.field-error {
+    margin: 6px 0 0 0;
+    font-size: 13px;
+    color: #d9534f;
+}
+
+/* 입출금 완료 영수증 */
+.receipt-box {
+    border: 1px solid #003366;
+    padding: 20px;
+    margin-bottom: 40px;
+}
+
+.receipt-title {
+    display: block;
+    font-size: 18px;
+    color: #003366;
+    margin-bottom: 15px;
+}
+
+.btn-submit:disabled {
+    background-color: #8a9bb0;
+    cursor: default;
+}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>입금 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">입금 <span class="sub-text">(ATM 입금 모의 거래)</span></h2>
+
+        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+        <!-- th:action 을 쓰면 CSRF 토큰이 자동으로 들어간다 -->
+        <form class="js-once-form" method="post" th:object="${form}"
+              th:action="@{/mybank/accounts/{id}/deposit(id=${account.accountId})}">
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>입금계좌정보</h3>
+                </div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>입금계좌번호</th>
+                            <td th:text="${account.accountNumber}">1002-862-000000</td>
+                        </tr>
+                        <tr>
+                            <th>현재 잔액</th>
+                            <td th:text="|${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}원|">0원</td>
+                        </tr>
+                        <tr>
+                            <th>입금금액</th>
+                            <td>
+                                <div class="amount-input-wrap">
+                                    <input type="number" min="1" class="form-input amount-input js-amount"
+                                           th:field="*{amount}" placeholder="0">
+                                    <span class="unit">원</span>
+                                </div>
+                                <div class="amount-shortcut">
+                                    <button type="button" data-add="1000000">100만</button>
+                                    <button type="button" data-add="500000">50만</button>
+                                    <button type="button" data-add="100000">10만</button>
+                                    <button type="button" data-add="50000">5만</button>
+                                    <button type="button" data-add="10000">1만</button>
+                                    <button type="button" class="btn-dark" data-clear>정정</button>
+                                </div>
+                                <p class="field-error" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>통장표시내용</th>
+                            <td>
+                                <input type="text" class="form-input" style="width: 300px;" maxlength="20"
+                                       th:field="*{content}" placeholder="최대 20자">
+                                <span class="sub-text">(생략 시 "입금" 표시)</span>
+                                <p class="field-error" th:if="${#fields.hasErrors('content')}" th:errors="*{content}"></p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="submit-action">
+                <a class="btn-outline" th:href="@{/mybank/accounts/{id}(id=${account.accountId})}">취소</a>
+                <button type="submit" class="btn-submit">입금</button>
+            </div>
+        </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>
+</body>
+</html>

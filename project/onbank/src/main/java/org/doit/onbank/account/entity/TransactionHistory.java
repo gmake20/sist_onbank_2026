@@ -30,7 +30,7 @@ public class TransactionHistory {
 	private Long accountId;					// 대상 계좌 ID (account 참조)
 
 	@Column(length = 30)
-	private String transactionType;			// 거래 유형 (입금, 출금, 이체 등)
+	private String transactionType;			// 거래 유형 (TransactionType 상수)
 
 	private Long transactionAmount;	// 거래 금액
 
@@ -42,7 +42,7 @@ public class TransactionHistory {
 	private LocalDateTime transactionAt;	// 거래 일시
 
 	@Column(length = 20)
-	private String transactionStatus;		// 거래 상태 (성공, 실패 등)
+	private String transactionStatus;		// 거래 상태 (TransactionStatus 상수)
 
 	private Integer paymentRound;			// 납입 회차 (예적금/대출인 경우)
 

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>거래내역 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">거래내역조회</h2>
+
+        <!-- 입출금 완료 영수증 (리다이렉트 직후 한 번만 보임) -->
+        <div class="receipt-box" th:if="${receipt}">
+            <strong class="receipt-title"
+                    th:text="|${typeNames[receipt.transactionType()]}이 완료되었습니다.|">입금이 완료되었습니다.</strong>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>거래금액</th>
+                        <td th:text="|${#numbers.formatInteger(receipt.amount(), 1, 'COMMA')}원|">10,000원</td>
+                    </tr>
+                    <tr>
+                        <th>거래 후 잔액</th>
+                        <td th:text="|${#numbers.formatInteger(receipt.balanceAfter(), 1, 'COMMA')}원|">10,000원</td>
+                    </tr>
+                    <tr>
+                        <th>적요</th>
+                        <td th:text="${receipt.content()}">입금</td>
+                    </tr>
+                    <tr>
+                        <th>거래일시</th>
+                        <td th:text="${#temporals.format(receipt.transactionAt(), 'yyyy.MM.dd HH:mm:ss')}">2026.10.15 14:30:12</td>
+                    </tr>
+                    <tr>
+                        <th>거래번호</th>
+                        <td th:text="${receipt.transactionSqno()}">20261015143012-482915</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 계좌 정보 -->
+        <div class="transfer-section">
+            <div class="section-title-wrap">
+                <h3>계좌정보</h3>
+            </div>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>계좌번호</th>
+                        <td th:text="${account.accountNumber}">1002-862-000000</td>
+                    </tr>
+                    <tr>
+                        <th>상태</th>
+                        <td>
+                            <span class="status-badge"
+                                  th:classappend="${'status-' + #strings.toLowerCase(account.accountStatus)}"
+                                  th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">정상</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>잔액</th>
+                        <td><strong th:text="|${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}원|">0원</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 거래내역 -->
+        <div class="account-section">
+            <div class="section-title-wrap">
+                <h3>거래내역</h3>
+            </div>
+            <table class="account-table">
+                <colgroup>
+                    <col style="width: 18%;">
+                    <col style="width: 10%;">
+                    <col style="width: 17%;">
+                    <col style="width: 13%;">
+                    <col style="width: 13%;">
+                    <col style="width: 13%;">
+                    <col style="width: 16%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>거래일시</th>
+                        <th>구분</th>
+                        <th>적요</th>
+                        <th>출금(원)</th>
+                        <th>입금(원)</th>
+                        <th>잔액(원)</th>
+                        <th>거래번호</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="history : ${histories}"
+                        th:with="isOut=${history.transactionType == 'WITHDRAWAL' or history.transactionType == 'TRANSFER_OUT'},
+                                 amount=${#numbers.formatInteger(history.transactionAmount, 1, 'COMMA')}">
+                        <td th:text="${#temporals.format(history.transactionAt, 'yyyy.MM.dd HH:mm:ss')}">2026.10.15 14:30:12</td>
+                        <td th:text="${typeNames[history.transactionType] ?: history.transactionType}">입금</td>
+                        <td th:text="${history.transactionContent}">입금</td>
+                        <td class="balance text-red" th:text="${isOut} ? ${amount} : ''"></td>
+                        <td class="balance text-blue" th:text="${isOut} ? '' : ${amount}">10,000</td>
+                        <td class="balance" th:text="${#numbers.formatInteger(history.balanceAfterTransaction, 1, 'COMMA')}">10,000</td>
+                        <td class="sub-text" th:text="${history.transactionSqno}">20261015143012-482915</td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(histories)}">
+                        <td colspan="7" class="empty-row">
+                            <p>거래내역이 없습니다.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bottom-actions">
+            <a class="btn-outline" th:href="@{/mybank/accounts}">계좌목록</a>
+            <a class="btn-outline" th:if="${account.canDeposit()}"
+               th:href="@{/mybank/accounts/{id}/deposit(id=${account.accountId})}">입금</a>
+            <a class="btn-outline" th:if="${account.canWithdraw()}"
+               th:href="@{/mybank/accounts/{id}/withdraw(id=${account.accountId})}">출금</a>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+</body>
+</html>
