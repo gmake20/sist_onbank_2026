@@ -41,9 +41,9 @@ public class LoanApplyController {
             Authentication authentication,
             Model model
     ) {
-
-        if (username(authentication) == null) {
-            return "redirect:/login";
+        
+        if (authentication == null ) {
+        	return "redirect:/login";
         }
 
         model.addAttribute(
@@ -68,12 +68,11 @@ public class LoanApplyController {
             Authentication authentication,
             Model model
     ) {
+    	 if (authentication == null ) {
+          	return "redirect:/login";
+          }
 
-        String username = username(authentication);
-
-        if (username == null) {
-            return "redirect:/login";
-        }
+        String username = authentication.getName();
 
         if (form.getProductId() == null) {
             bindingResult.rejectValue(
@@ -121,11 +120,11 @@ public class LoanApplyController {
             Model model
     ) {
 
-        String username = username(authentication);
-
-        if (username == null) {
-            return "redirect:/login";
+        if (authentication == null ) {
+        	return "redirect:/login";
         }
+        
+        String username = authentication.getName();
 
         var application =
                 applicationService.findMine(id, username);
