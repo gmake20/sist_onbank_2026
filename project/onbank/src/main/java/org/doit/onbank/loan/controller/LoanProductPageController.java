@@ -29,9 +29,8 @@ public class LoanProductPageController {
 
     private final LoanProductService loanProductService;
 
-    // 상품 등록 화면
-    @GetMapping("/new")
-    public String registerPage(Model model) {
+    @GetMapping("/register")
+    public String registerForm(Model model) {
 
         model.addAttribute(
                 "loanProductForm",
@@ -41,32 +40,32 @@ public class LoanProductPageController {
         return "loan/product-register";
     }
 
-    // 상품 등록 처리
-    @PostMapping
+    // 대출 상품 등록 처리
+    @PostMapping("/register")
     public String register(
-            @Valid @ModelAttribute("loanProductForm")
-            LoanProductForm form,
+            @Valid LoanProductForm form,
             BindingResult bindingResult,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes
+    ) {
 
         if (bindingResult.hasErrors()) {
             return "loan/product-register";
         }
 
-        Long productId = loanProductService.register(form);
+        // 카테고리 검증
+        loanProductService.validateCategory(form.getCategory());
 
+        // 상품 저장
+        // 실제 서비스의 등록 메서드로 변경
+        loanProductService.register(form);
+
+        // 등록 완료 메시지
         redirectAttributes.addFlashAttribute(
                 "message",
                 "대출 상품이 등록되었습니다."
         );
 
-        String category = form.getCategory();
-
-        if ("credit".equals(category)) {
-            return "redirect:/loan/products/" + productId;
-        }
-
-        return "redirect:/loan/categories/"
-                + category + "/" + productId;
+        // 등록된 카테고리 목록으로 이동
+        return "redirect:/loan/categories/" + form.getCategory();
     }
 }
