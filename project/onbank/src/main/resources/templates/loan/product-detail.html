@@ -79,11 +79,17 @@
 							<div>
 								<span class="onloan-symbol orange">↗</span>
 								<div>
-									<small>한도 (예시)</small><b th:text="${product.limit}">최대 1억원</b>
+									<small>최고</small><b th:text="${product.limit}">최대 1억원</b>
 								</div>
 							</div>
 						</div>
 						<div class="onloan-detail-actions">
+						 <!-- 대출 신청하기 -->
+						    <a class="onloan-btn loan-apply-btn"
+						       th:href="@{/loan/apply(productId=${product.id})}">
+						        대출 신청하기
+						        <span aria-hidden="true">→</span>
+						    </a>
 							<a class="onloan-btn ghost" th:href="@{/loan/categories/credit}">목록보기</a><a
 								class="onloan-btn primary" href="#interest-calculator">대출 이자
 								계산하기</a>

@@ -2007,3 +2007,133 @@ to {
 	}
 }
 
+
+/* 상품 상세 버튼 영역 */
+.onloan .onloan-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+/* 버튼 공통 크기 */
+.onloan .onloan-detail-actions .onloan-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-height: 48px;
+    padding: 0 22px;
+    box-sizing: border-box;
+
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: 8px;
+}
+
+/* 대출 신청하기 버튼 */
+.onloan .onloan-detail-actions .loan-apply-btn {
+    background-color: #ffcc00;
+    color: #222;
+    border: 1px solid #ffcc00;
+
+    transition: background-color 0.2s,
+                transform 0.2s;
+}
+
+.onloan .onloan-detail-actions .loan-apply-btn:hover {
+    background-color: #f0bc00;
+    border-color: #f0bc00;
+    transform: translateY(-2px);
+}
+
+/* 모바일 */
+@media (max-width: 640px) {
+    .onloan .onloan-detail-actions {
+        flex-direction: column;
+    }
+
+    .onloan .onloan-detail-actions .onloan-btn {
+        width: 100%;
+    }
+}
+
+
+/* 대출 카테고리 탭 7개 정렬 */
+.onloan .onloan-category {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    width: 100%;
+    margin: 28px 0 32px;
+    border-top: 1px solid #e4e7ec;
+    border-left: 1px solid #e4e7ec;
+    box-sizing: border-box;
+}
+
+/* 카테고리 버튼 공통 */
+.onloan .onloan-category > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 0;
+    min-height: 62px;
+    padding: 12px 10px;
+
+    background: #f8f9fb;
+    border: 0;
+    border-right: 1px solid #e4e7ec;
+    border-bottom: 1px solid #e4e7ec;
+
+    color: #505763;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+    word-break: keep-all;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+/* 선택된 카테고리 */
+.onloan .onloan-category > button.active {
+    background: #fff7d6;
+    color: #222;
+    font-weight: 800;
+    box-shadow: inset 0 3px 0 #ffcc00;
+}
+
+/* 마우스 호버 */
+.onloan .onloan-category > button:not(.active):hover {
+    background: #eef3ff;
+    color: #315ec7;
+}
+
+/* 태블릿 */
+@media (max-width: 900px) {
+    .onloan .onloan-category {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* 모바일 */
+@media (max-width: 600px) {
+    .onloan .onloan-category {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .onloan .onloan-category > button {
+        min-height: 58px;
+        padding: 10px 6px;
+        font-size: 12px;
+    }
+}
+
+
