@@ -35,6 +35,28 @@
 					<p>필수 항목을 입력해주세요.</p>
 				</div>
 
+
+				<!-- 대출 카테고리 -->
+				<div class="form-group">
+
+					<label for="category"> 대출 카테고리 <em>*</em>
+					</label> <select id="category" th:field="*{category}" required>
+
+						<option value="">대출 종류를 선택하세요</option>
+						<option value="credit">신용대출</option>
+						<option value="mortgage">담보대출</option>
+						<option value="jeonse">전월세/반환보증</option>
+						<option value="auto">자동차대출</option>
+						<option value="group">집단중도금/이주비대출</option>
+						<option value="housing">주택도시기금대출</option>
+						<option value="business">개인사업자대출</option>
+
+					</select> <small class="field-error"
+						th:if="${#fields.hasErrors('category')}" th:errors="*{category}">
+					</small>
+
+				</div>
+
 				<!-- 상품명 -->
 				<div class="form-group">
 					<label for="name">상품명 <em>*</em></label> <input type="text"

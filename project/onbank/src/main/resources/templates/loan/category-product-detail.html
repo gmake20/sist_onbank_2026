@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title th:text="${categoryName} + ' - ONBANK'">대출 상품 - ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}">
+<link rel="stylesheet" th:href="@{/css/loan/loan-categories.css}">
+<script th:src="@{/js/loan-categories.js}" defer></script>
+</head>
+<body>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+	<div class="onloan">
+		<nav class="onloan-subnav">
+			<div class="onloan-container onloan-subitems">
+				<a href="#">예금</a><a href="#">펀드</a><a class="current"
+					th:href="@{/loan/products}">대출</a><a href="#">신탁</a><a href="#">ISA</a><a
+					href="#">보험/공제</a><a href="#">골드</a><a href="#">외화예금</a>
+			</div>
+		</nav>
+		<div class="onloan-container">
+			<p class="onloan-crumb">
+				개인뱅킹 〉 금융상품 〉 대출 〉 대출상품/신청 〉 <b th:text="${categoryName}">담보대출</b>
+			</p>
+			<div class="onloan-grid">
+				<aside class="onloan-sidebar">
+					<h2>대출</h2>
+					<div class="onloan-sidebox">
+						<div class="onloan-sidehead">
+							대출상품/신청 <span>⌄</span>
+						</div>
+						<a th:href="@{/loan/products}" href="/loan/products">신용대출</a><a
+							th:href="@{/loan/categories/mortgage}"
+							th:classappend="${category == 'mortgage'} ? 'onloan-selected' : ''">담보대출</a><a
+							th:href="@{/loan/categories/jeonse}"
+							th:classappend="${category == 'jeonse'} ? 'onloan-selected' : ''">전월세/반환보증</a><a
+							th:href="@{/loan/categories/auto}"
+							th:classappend="${category == 'auto'} ? 'onloan-selected' : ''">자동차대출</a><a
+							th:href="@{/loan/categories/group}"
+							th:classappend="${category == 'group'} ? 'onloan-selected' : ''">집단중도금/이주비대출</a><a
+							th:href="@{/loan/categories/housing}"
+							th:classappend="${category == 'housing'} ? 'onloan-selected' : ''">주택도시기금대출</a><a
+							th:href="@{/loan/categories/business}"
+							th:classappend="${category == 'business'} ? 'onloan-selected' : ''">개인사업자대출</a>
+					</div>
+					<div class="onloan-side-extra">
+						<a href="#">대출진행현황</a><a href="#">대출관리</a><a href="#">대출 가이드</a>
+					</div>
+					<div class="onloan-help">🔒 &nbsp;인증센터</div>
+					<div class="onloan-help">☎ &nbsp;신규상담</div>
+				</aside>
+				<main class="onloan-main">
+					<div class="onloan-heading">
+						<span class="onloan-eyebrow">ONBANK LOAN DETAIL</span>
+						<h1 th:text="${categoryName}">담보대출</h1>
+						<p>상품의 주요 내용을 확인해 보세요.</p>
+					</div>
+					<section class="onloan-detail-hero">
+						<span class="onloan-pill" th:text="${product.tag}">상품유형</span>
+						<p class="onloan-detail-subtitle" th:text="${product.subtitle}">소개</p>
+						<h2 th:text="${product.name}">상품명</h2>
+						<div class="catalog-meta">
+							<div>
+								<small>대출 대상</small><strong th:text="${product.target}">개인</strong>
+							</div>
+							<div>
+								<small>대출 한도</small><strong th:text="${product.limit}">심사
+									후 결정</strong>
+							</div>
+							<div>
+								<small>상환방법</small><strong th:text="${product.method}">상품별
+									안내</strong>
+							</div>
+						</div>
+						<div class="onloan-detail-actions">
+							<a class="onloan-btn ghost"
+								th:href="@{/loan/categories/{category}(category=${category})}">목록보기</a><a
+								class="onloan-btn primary" th:href="@{/loan}">대출 계산기</a>
+						</div>
+						<p class="onloan-detail-disclaimer">※ 본 상품은 시연용 예시입니다. 실제 상품
+							금리와 세부 조건은 제공되지 않았습니다.</p>
+					</section>
+					<section class="catalog-details">
+						<h3>상품 안내</h3>
+						<p th:text="${product.description}">상품 안내</p>
+					</section>
+					<section class="catalog-details">
+						<h3>이용 및 신청 안내</h3>
+						<p>대출 가능 여부·금리·한도는 심사에 따라 달라질 수 있습니다. 대출계약 전 상품설명서와 약관을 확인하세요.</p>
+					</section>
+					<section class="catalog-details">
+						<h3>유의사항</h3>
+						<p>예상 상환금액은 참고용입니다. 실제 적용금리, 수수료 및 상환방식에 따라 달라질 수 있습니다.</p>
+					</section>
+				</main>
+			</div>
+		</div>
+	</div>
+	<div th:replace="~{fragments/footer :: footerFragment}"></div>
+</body>
+</html>

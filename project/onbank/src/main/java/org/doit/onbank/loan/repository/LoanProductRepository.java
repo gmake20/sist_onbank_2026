@@ -8,11 +8,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface LoanProductRepository
         extends JpaRepository<LoanProduct, Long> {
 
-    // 전체 상품 최신순 조회
-    List<LoanProduct> findAllByOrderByIdDesc();
+	List<LoanProduct> findByCategoryOrderByIdDesc(
+            String category
+    );
 
-    // 상품명 검색
-    List<LoanProduct> findByNameContainingIgnoreCaseOrderByIdDesc(
-            String keyword
+    // 카테고리 + 상품명 검색
+    List<LoanProduct> findByCategoryAndNameContainingIgnoreCaseOrderByIdDesc(
+            String category,
+            String name
     );
 }
