@@ -1,9 +1,8 @@
 -- ============================================================
--- 모의 인터넷뱅킹 관리자(백오피스) 파트 DDL (MySQL 8.0.16+ 기준, 초안 v0.7)
+-- 모의 인터넷뱅킹 관리자(백오피스) 파트 DDL (MySQL 8.0.16+ 기준, 초안 v0.8)
 -- 소유: admin, admin_log, fds_detection, fds_handling_history, admin_notification, admin_login_log
 -- admin = 백오피스 시스템 관리자 / employee = 은행 업무 직원 (별개 테이블, 둘 다 관리자 콘솔 /admin/** 로그인 가능)
--- 실행 순서: 팀원2 DDL의 `account`, `account_transfer`, `transaction_history` 테이블이 먼저 생성되고,
---            PK를 거는 ALTER TABLE까지 실행되어 있어야 FK가 걸립니다.
+-- 실행 순서: 팀원2 DDL의 `account`, `transaction_history` 테이블(PK 포함)이 먼저 생성되어 있어야 FK가 걸립니다.
 -- 이름 규칙: 테이블·컬럼은 소문자(팀원1·팀원2와 같음). FK 컬럼명은 참조하는 컬럼명과 같게 쓰고,
 --            역할 구분이 필요하면 앞에 붙인다 (예: assigned_admin_id, 팀원1의 reviewed_employee_id와 같은 방식)
 -- v0.3: ROLE을 SUPER_ADMIN/OPERATOR/SERVICE로 분리(기본값 없음), ACCOUNT FK 활성화
@@ -17,6 +16,9 @@
 --         컬럼명 TRANSFER_ID -> account_transfer_id, ASSIGNED_TO -> assigned_admin_id
 --       - fds_detection: 출금도 탐지하도록 transaction_history_id 추가.
 --         account_transfer_id / transaction_history_id 둘 다 NULL 허용, 둘 중 하나는 반드시 있어야 함 (CK_FDS_DET_SOURCE)
+-- v0.8: fds_detection 탐지 근거를 transaction_history_id 하나로 단순화 (NOT NULL)
+--       이체도 transaction_history에 출금 행이 남으므로(팀원2 설계) 이체·출금 모두 이 컬럼으로 기록.
+--       account_transfer_id 컬럼·FK_FDS_DET_TRANSFER·IDX_FDS_DET_TRANSFER·CK_FDS_DET_SOURCE 삭제
 -- ============================================================
 
 -- 재실행용 삭제 (자식 -> 부모 순서)
@@ -54,8 +56,8 @@ CREATE TABLE admin_log
     log_id       BIGINT       NOT NULL AUTO_INCREMENT,
     actor_type   VARCHAR(10)  NOT NULL COMMENT 'ADMIN / EMPLOYEE (작업한 사람이 속한 테이블)',
     actor_id     BIGINT       NOT NULL COMMENT 'admin_id 또는 employee_id. 두 테이블을 가리키므로 FK 없음',
-    action_type  VARCHAR(50)  NOT NULL COMMENT '예: ACCOUNT_FREEZE',
-    target_type  VARCHAR(30)  NOT NULL COMMENT 'MEMBER / ACCOUNT / PRODUCT / CARD ...',
+    action_type  VARCHAR(50)  NOT NULL COMMENT '대상_동작 형식 (예: ACCOUNT_FREEZE).',
+    target_type  VARCHAR(30)  NOT NULL COMMENT '바꾼 행이 있는 테이블 (ACCOUNT / ADMIN / EMPLOYEE / PRODUCT / LOAN / FDS_DETECTION / MEMBER / CARD ...)',
     target_id    VARCHAR(50)  NOT NULL COMMENT '대상이 여러 테이블이라 FK 없음',
     before_value VARCHAR(500) NULL,
     after_value  VARCHAR(500) NULL,
@@ -70,13 +72,12 @@ CREATE TABLE admin_log
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='관리자 활동 로그';
 
--- 3. 이상거래 탐지 (이체 + 출금)
+-- 3. 이상거래 탐지 (이체 + 출금, 근거는 transaction_history의 출금 행)
 CREATE TABLE fds_detection
 (
     detection_id           BIGINT       NOT NULL AUTO_INCREMENT,
     account_id             BIGINT       NOT NULL COMMENT '대상 계좌 (출금 계좌)',
-    account_transfer_id    BIGINT       NULL COMMENT '탐지 근거가 된 이체. 이체가 아닌 출금이면 NULL',
-    transaction_history_id BIGINT       NULL COMMENT '탐지 근거가 된 거래내역(출금). 이체 건이면 NULL일 수 있음',
+    transaction_history_id BIGINT       NOT NULL COMMENT '탐지 근거가 된 거래내역의 출금 행 (이체도 출금 행으로 기록됨)',
     rule_code              VARCHAR(30)  NOT NULL COMMENT '탐지 규칙 구분',
     detail                 VARCHAR(500) NULL COMMENT '판정 근거(횟수, 금액 등)',
     status                 VARCHAR(20)  NOT NULL DEFAULT 'UNCHECKED',
@@ -88,15 +89,12 @@ CREATE TABLE fds_detection
     KEY IDX_FDS_DET_STATUS (status, detected_at),
     KEY IDX_FDS_DET_ASSIGNED (assigned_admin_id),
     KEY IDX_FDS_DET_ACCOUNT (account_id),
-    KEY IDX_FDS_DET_TRANSFER (account_transfer_id),
     KEY IDX_FDS_DET_HISTORY (transaction_history_id),
     CONSTRAINT FK_FDS_DET_ADMIN FOREIGN KEY (assigned_admin_id) REFERENCES admin (admin_id),
     CONSTRAINT FK_FDS_DET_ACCOUNT FOREIGN KEY (account_id) REFERENCES account (account_id),
-    CONSTRAINT FK_FDS_DET_TRANSFER FOREIGN KEY (account_transfer_id) REFERENCES account_transfer (account_transfer_id),
     CONSTRAINT FK_FDS_DET_HISTORY FOREIGN KEY (transaction_history_id) REFERENCES transaction_history (transaction_history_id),
     CONSTRAINT CK_FDS_DET_STATUS CHECK (status IN
-                                        ('UNCHECKED', 'ASSIGNED', 'CONTACTING', 'NORMAL_CONFIRMED', 'FRAUD_ACTION')),
-    CONSTRAINT CK_FDS_DET_SOURCE CHECK (account_transfer_id IS NOT NULL OR transaction_history_id IS NOT NULL)
+                                        ('UNCHECKED', 'ASSIGNED', 'CONTACTING', 'NORMAL_CONFIRMED', 'FRAUD_ACTION'))
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='이상거래 탐지';
 
