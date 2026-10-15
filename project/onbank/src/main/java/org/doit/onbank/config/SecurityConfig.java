@@ -1,14 +1,32 @@
 package org.doit.onbank.config;
 
+import java.util.LinkedHashMap;
+
+import org.doit.onbank.admin.security.AdminDetailsService;
+import org.doit.onbank.employee.security.EmployeeDetailsService;
+import org.doit.onbank.member.security.MemberDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
+import org.springframework.security.web.access.DelegatingAccessDeniedHandler;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
-// 고객 로그인 최소 버전 (docs/auth.md 6장 1~3단계)
-// 다음 단계 : 로그인 성공/실패 핸들러(5회 잠금, login_log), 세션 타임아웃, 중복 로그인 제한, 직원(/admin) 로그인
+// 필터 체인 3개 : 관리자(/admin/**) → 직원(/employee/**) → 고객(나머지) 순서로 검사 (README 8-1장)
+// - 체인마다 사용할 UserDetailsService를 직접 지정한다. 3개가 Bean으로 등록되어 있어 자동 선택되지 않음
+// - 직원·관리자는 로그인 정보를 세션에 다른 이름으로 저장한다 → 고객 로그인으로 직원 화면에 들어갈 수 없고,
+//   같은 브라우저에서 고객과 직원으로 함께 로그인해도 섞이지 않음
+// 다음 단계 : 로그인 성공/실패 핸들러(5회 잠금, 로그인 이력), 임시 비밀번호 변경 강제, 세션 타임아웃, 중복 로그인 제한
 @Configuration
 public class SecurityConfig {
 
@@ -17,9 +35,81 @@ public class SecurityConfig {
 		return new BCryptPasswordEncoder();
 	}
 
+	// 직원 권한 : MANAGER는 STAFF 권한을 포함
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	static RoleHierarchy roleHierarchy() {
+		return RoleHierarchyImpl.fromHierarchy("ROLE_MANAGER > ROLE_STAFF");
+	}
+
+	// 관리자 영역 (admin 테이블)
+	@Bean
+	@Order(1)
+	SecurityFilterChain adminFilterChain(HttpSecurity http, AdminDetailsService adminDetailsService) throws Exception {
 		http
+			.securityMatcher("/admin/**")
+			.userDetailsService(adminDetailsService)
+			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_ADMIN")))
+			.requestCache(cache -> cache.requestCache(requestCache("SPRING_SECURITY_SAVED_REQUEST_ADMIN")))
+			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/admin/login")))
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/admin/login").permitAll()
+				// TODO 역할별 세부 권한은 팀원4가 정하면 추가 (예: 공지사항 관리)
+				.anyRequest().hasAnyRole("SUPER_ADMIN", "OPERATOR", "SERVICE"))
+			.formLogin(form -> form
+				.loginPage("/admin/login")
+				.loginProcessingUrl("/admin/login")
+				.usernameParameter("loginId")
+				.passwordParameter("password")
+				.defaultSuccessUrl("/admin")
+				.failureUrl("/admin/login?error")
+				.permitAll())
+			.logout(logout -> logout
+				.logoutUrl("/admin/logout")
+				.logoutSuccessUrl("/admin/login?logout")
+				.invalidateHttpSession(true)
+				.deleteCookies("JSESSIONID"));
+
+		return http.build();
+	}
+
+	// 직원 영역 (employee 테이블)
+	@Bean
+	@Order(2)
+	SecurityFilterChain employeeFilterChain(HttpSecurity http, EmployeeDetailsService employeeDetailsService) throws Exception {
+		http
+			.securityMatcher("/employee/**")
+			.userDetailsService(employeeDetailsService)
+			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_EMPLOYEE")))
+			.requestCache(cache -> cache.requestCache(requestCache("SPRING_SECURITY_SAVED_REQUEST_EMPLOYEE")))
+			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/employee/login")))
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers("/employee/login").permitAll()
+				// TODO 승인 업무 URL이 정해지면 hasRole("MANAGER")로 추가 (계좌 동결, 이체한도 증액, 대출 심사, 상품 관리)
+				.anyRequest().hasRole("STAFF"))
+			.formLogin(form -> form
+				.loginPage("/employee/login")
+				.loginProcessingUrl("/employee/login")
+				.usernameParameter("employeeNo")
+				.passwordParameter("password")
+				.defaultSuccessUrl("/employee")
+				.failureUrl("/employee/login?error")
+				.permitAll())
+			.logout(logout -> logout
+				.logoutUrl("/employee/logout")
+				.logoutSuccessUrl("/employee/login?logout")
+				.invalidateHttpSession(true)
+				.deleteCookies("JSESSIONID"));
+
+		return http.build();
+	}
+
+	// 고객 영역 (members 테이블) : 위 두 영역이 아닌 나머지 전부
+	@Bean
+	@Order(3)
+	SecurityFilterChain memberFilterChain(HttpSecurity http, MemberDetailsService memberDetailsService) throws Exception {
+		http
+			.userDetailsService(memberDetailsService)
+			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/login")))
 			.authorizeHttpRequests(auth -> auth
 				// 로그인한 고객만
 				.requestMatchers("/mybank/**").hasRole("USER")
@@ -43,5 +133,30 @@ public class SecurityConfig {
 		// CSRF는 끄지 않는다. th:action 을 쓰면 폼에 토큰이 자동으로 들어감
 
 		return http.build();
+	}
+
+	// 403 처리
+	// - CSRF 토큰이 만료·불일치한 경우 (로그인 화면을 띄워 둔 채 서버가 재시작되거나 세션이 끝난 뒤 제출)
+	//   → 403 오류 화면 대신 그 영역의 로그인 화면으로 보내고 "다시 시도" 안내 (?expired)
+	// - 그 외 권한 부족 → 기본 403 응답 (403 화면은 공통 오류 화면에서 처리)
+	private static AccessDeniedHandler accessDeniedHandler(String loginPage) {
+		LinkedHashMap<Class<? extends AccessDeniedException>, AccessDeniedHandler> handlers = new LinkedHashMap<>();
+		handlers.put(CsrfException.class,
+				(request, response, exception) -> response.sendRedirect(request.getContextPath() + loginPage + "?expired"));
+		return new DelegatingAccessDeniedHandler(handlers, new AccessDeniedHandlerImpl());
+	}
+
+	// 로그인 정보를 세션의 지정한 이름으로 저장
+	private static HttpSessionSecurityContextRepository contextRepository(String sessionKey) {
+		HttpSessionSecurityContextRepository repository = new HttpSessionSecurityContextRepository();
+		repository.setSpringSecurityContextKey(sessionKey);
+		return repository;
+	}
+
+	// 로그인 전에 보려던 주소를 세션의 지정한 이름으로 저장 (다른 영역의 주소로 이동하지 않도록)
+	private static HttpSessionRequestCache requestCache(String sessionKey) {
+		HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+		requestCache.setSessionAttrName(sessionKey);
+		return requestCache;
 	}
 }

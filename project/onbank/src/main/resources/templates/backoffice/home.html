@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- 직원(/employee), 관리자(/admin) 공용 임시 홈. 대시보드는 팀원4가 이 자리에 만든다 -->
+<head>
+    <meta charset="UTF-8">
+    <title th:text="|ONBANK ${area}|">ONBANK</title>
+    <style>
+        body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #f7f5ef; color: #14213d; }
+        header { display: flex; justify-content: space-between; align-items: center;
+                 padding: 0 40px; height: 64px; background: #0b1d3a; color: #fff; }
+        header .logo { font-size: 22px; font-weight: 700; }
+        header .logo span { color: #d4af37; }
+        header form { display: flex; align-items: center; gap: 12px; margin: 0; }
+        header button { background: none; border: 1px solid #d4af37; padding: 6px 16px;
+                        border-radius: 16px; color: #d4af37; cursor: pointer; font: inherit; }
+        main { padding: 40px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">ON<span>BANK</span> <small th:text="${area}"></small></div>
+        <!-- 로그아웃은 POST 폼으로 (CSRF 보호) -->
+        <form th:action="@{${logoutUrl}}" method="post">
+            <span><strong th:text="${me.name}"></strong>님 (<span th:text="${roleName}"></span>)</span>
+            <button type="submit">로그아웃</button>
+        </form>
+    </header>
+    <main>
+        <h2 th:text="|${area} 홈|"></h2>
+        <p>업무 화면은 준비 중입니다.</p>
+    </main>
+</body>
+</html>

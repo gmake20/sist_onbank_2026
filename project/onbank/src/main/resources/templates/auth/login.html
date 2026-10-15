@@ -25,6 +25,7 @@
         <form th:action="@{/login}" method="post">
             <!-- 아이디가 없는지, 비밀번호가 틀렸는지 구분하지 않고 같은 문구로 안내 -->
             <p class="login-error" th:if="${param.error}">아이디 또는 비밀번호가 올바르지 않습니다.</p>
+            <p class="login-error" th:if="${param.expired}">보안을 위해 화면이 만료되었습니다. 다시 로그인해 주세요.</p>
 
             <input type="text" name="loginId" placeholder="아이디" required autofocus>
             <input type="password" name="password" placeholder="비밀번호" required>
