@@ -1,15 +1,17 @@
--- =====================================================================
--- 팀원2 담당 테이블 DDL (MySQL 8.0 이상)
--- 담당: account, transaction_history, account_transfer, account_favorite, asset_report, financial_institution_code
---
--- 기준: 팀원2 데이터 사전 + 아래 변경
---   - 금액은 모두 BIGINT(원 단위) ↔ 엔티티 Long
---   - 이자율은 DECIMAL(7,4) ↔ 엔티티 BigDecimal
---   - account.password_fail_count 추가 (연속 비밀번호 오류 횟수)
---
--- 엔티티: project/onbank/src/main/java/org/doit/onbank/account/entity
--- JPA는 ddl-auto=validate 이므로 컬럼을 바꾸면 엔티티도 함께 바꾼다
--- =====================================================================
+-- ============================================================
+-- 팀원2 계좌/이체 파트 DDL (MySQL 8.0 이상)
+-- 소유: financial_institution_code, account, transaction_history, account_transfer, account_favorite, asset_report
+-- 컬럼 설명: docs/schema-team2-dictionary.md (테이블을 바꾸면 이 파일 + 데이터 사전 + 엔티티를 함께 고친다)
+-- 테이블 변경: 이 파일 수정 + 맨 아래 "변경 이력"에 ALTER 문 추가 → 공용 DB에 ALTER 실행 → 엔티티 수정
+-- 실행 순서: 01_auth_ddl.sql → 이 파일 → 02_admin_ddl.sql
+--            (02_admin_ddl.sql 의 FK가 account, account_transfer, transaction_history 를 참조하므로 이 파일을 먼저 실행)
+-- 이름 규칙: 테이블·컬럼은 소문자 (팀원1·팀원4와 같음)
+-- 금액은 BIGINT(원 단위) ↔ 엔티티 Long, 이자율은 DECIMAL(7,4) ↔ BigDecimal
+-- ============================================================
+
+-- 재실행용 삭제 (공용 DB에서는 팀 공지 후에만! 02_admin_ddl.sql 의 FK가 있으면 그 테이블을 먼저 삭제)
+-- DROP TABLE IF EXISTS asset_report, account_favorite, account_transfer, transaction_history,
+--                      account, financial_institution_code;
 
 SET NAMES utf8mb4;
 
@@ -52,7 +54,7 @@ CREATE TABLE account (
     today_transfer_amount   BIGINT                   COMMENT '당일 누적 이체 금액 (한도 체크용)',
     CONSTRAINT pk_account PRIMARY KEY (account_id),
     CONSTRAINT uk_account_number UNIQUE (account_number)
-)ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '계좌';
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '계좌';
 
 
 -- ---------------------------------------------------------------------
@@ -125,13 +127,6 @@ CREATE TABLE asset_report (
     standard_year_month             CHAR(6)                  COMMENT '기준 년월 (예: 202610)',
     CONSTRAINT pk_asset_report PRIMARY KEY (asset_report_id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '자산 리포트';
-
-
--- =====================================================================
--- 전체 삭제 (공용 DB에서는 팀 공지 후에만 실행! 데이터가 모두 사라짐)
--- =====================================================================
--- DROP TABLE IF EXISTS asset_report, account_favorite, account_transfer, transaction_history,
---                      account, financial_institution_code;
 
 
 -- =====================================================================

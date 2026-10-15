@@ -16,6 +16,9 @@
     <main class="account-container">
         <h2 class="page-title">전계좌조회</h2>
 
+        <!-- 없는 계좌·남의 계좌로 접근했을 때 -->
+        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
         <!-- 메인 탭 -->
         <ul class="main-tabs">
             <li class="active"><a href="#">ONBANK</a></li>
@@ -54,11 +57,11 @@
             </div>
             <div class="section-header">
                 <div class="left-area">
-                    <span class="total-balance">총잔액 : <strong>0원</strong></span>
-                    <button class="btn-import">➕ 다른은행에서 가져오기</button>
+                    <span class="total-balance">총잔액 : <strong th:text="|${#numbers.formatInteger(checkingTotal, 1, 'COMMA')}원|">0원</strong></span>
+                    <button type="button" class="btn-import">➕ 다른은행에서 가져오기</button>
                 </div>
                 <div class="right-area">
-                    <span class="last-login">최근접속일시 : 2024.12.14 01:31:56 | 조회기준일시 : 2026.10.01 23:03:52</span>
+                    <span class="last-login" th:text="|조회기준일시 : ${#temporals.format(now, 'yyyy.MM.dd HH:mm:ss')}|">조회기준일시 : 2026.10.01 23:03:52</span>
                 </div>
             </div>
             <table class="account-table">
@@ -79,20 +82,32 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
+                    <tr th:each="account : ${checkingAccounts}">
                         <td>
                             ON 통장
                         </td>
-                        <td>1002-862-******</td>
+                        <td th:text="${account.accountNumber}">1002-862-******</td>
                         <td>
-                            2026.10.01<br>
-                            <span class="sub-text">한도제한계좌</span>
+                            <th:block th:text="${account.lastTransactionAt != null} ? ${#temporals.format(account.lastTransactionAt, 'yyyy.MM.dd')} : '-'">2026.10.01</th:block>
+                            <th:block th:if="${account.accountStatus != 'ACTIVE'}"><br>
+                            <span class="sub-text" th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">한도제한계좌</span>
+                            </th:block>
                         </td>
-                        <td class="balance">0</td>
+                        <td class="balance" th:text="${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}">0</td>
                         <td class="actions">
-                            <button class="btn-sm">조회</button>
-                            <button class="btn-sm">이체</button>
-                            <button class="btn-sm">계좌관리</button>
+                            <a class="btn-sm" th:href="@{/mybank/accounts/{id}(id=${account.accountId})}">조회</a>
+                            <a class="btn-sm" th:if="${account.canWithdraw()}"
+                               th:href="@{/mybank/transfer(from=${account.accountId})}">이체</a>
+                            <a class="btn-sm" th:if="${account.canDeposit()}"
+                               th:href="@{/mybank/accounts/{id}/deposit(id=${account.accountId})}">입금</a>
+                            <a class="btn-sm" th:if="${account.canWithdraw()}"
+                               th:href="@{/mybank/accounts/{id}/withdraw(id=${account.accountId})}">출금</a>
+                            <button type="button" class="btn-sm">계좌관리</button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(checkingAccounts)}">
+                        <td colspan="5" class="empty-row">
+                            <p>보유중인 계좌가 없습니다.</p>
                         </td>
                     </tr>
                 </tbody>
@@ -106,10 +121,10 @@
             </div>
             <div class="section-header">
                 <div class="left-area">
-                    <span class="total-balance">총잔액 : <strong>0원</strong></span>
+                    <span class="total-balance">총잔액 : <strong th:text="|${#numbers.formatInteger(depositTotal, 1, 'COMMA')}원|">0원</strong></span>
                 </div>
                 <div class="right-area">
-                    <span class="last-login">최근접속일시 : 2024.12.14 01:31:56 | 조회기준일시 : 2026.10.01 23:03:52</span>
+                    <span class="last-login" th:text="|조회기준일시 : ${#temporals.format(now, 'yyyy.MM.dd HH:mm:ss')}|">조회기준일시 : 2026.10.01 23:03:52</span>
                 </div>
             </div>
             <table class="account-table">
@@ -130,15 +145,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>청년 주택드림 청약통장</td>
-                        <td>1073-719-******</td>
-                        <td>2026.10.01</td>
-                        <td class="balance">0</td>
+                    <tr th:each="account : ${depositAccounts}">
+                        <td>예금</td>
+                        <td th:text="${account.accountNumber}">1073-719-******</td>
+                        <td>
+                            <th:block th:text="${account.lastTransactionAt != null} ? ${#temporals.format(account.lastTransactionAt, 'yyyy.MM.dd')} : '-'">2026.10.01</th:block>
+                            <th:block th:if="${account.accountStatus != 'ACTIVE'}"><br>
+                            <span class="sub-text" th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">정상</span>
+                            </th:block>
+                        </td>
+                        <td class="balance" th:text="${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}">0</td>
                         <td class="actions">
-                            <button class="btn-sm">조회</button>
-                            <button class="btn-sm">입금</button>
-                            <button class="btn-sm">계좌관리</button>
+                            <a class="btn-sm" th:href="@{/mybank/accounts/{id}(id=${account.accountId})}">조회</a>
+                            <a class="btn-sm" th:if="${account.canDeposit()}"
+                               th:href="@{/mybank/accounts/{id}/deposit(id=${account.accountId})}">입금</a>
+                            <button type="button" class="btn-sm">계좌관리</button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(depositAccounts)}">
+                        <td colspan="5" class="empty-row">
+                            <p>보유중인 상품이 없습니다.</p>
+                            <button type="button" class="btn-join">가입하기</button>
                         </td>
                     </tr>
                 </tbody>
@@ -152,10 +179,10 @@
             </div>
             <div class="section-header">
                 <div class="left-area">
-                    <span class="total-balance">총잔액 : <strong class="text-blue">0원</strong></span>
+                    <span class="total-balance">총잔액 : <strong class="text-blue" th:text="|${#numbers.formatInteger(savingsTotal, 1, 'COMMA')}원|">0원</strong></span>
                 </div>
                 <div class="right-area">
-                    <span class="last-login">최근접속일시 : 2024.12.14 01:31:56 | 조회기준일시 : 2026.10.01 23:03:52</span>
+                    <span class="last-login" th:text="|조회기준일시 : ${#temporals.format(now, 'yyyy.MM.dd HH:mm:ss')}|">조회기준일시 : 2026.10.01 23:03:52</span>
                 </div>
             </div>
             <table class="account-table">
@@ -176,11 +203,28 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
+                    <tr th:each="account : ${savingsAccounts}">
+                        <td>적금</td>
+                        <td th:text="${account.accountNumber}">1073-719-******</td>
+                        <td>
+                            <th:block th:text="${account.lastTransactionAt != null} ? ${#temporals.format(account.lastTransactionAt, 'yyyy.MM.dd')} : '-'">2026.10.01</th:block>
+                            <th:block th:if="${account.accountStatus != 'ACTIVE'}"><br>
+                            <span class="sub-text" th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">정상</span>
+                            </th:block>
+                        </td>
+                        <td class="balance" th:text="${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}">0</td>
+                        <td class="actions">
+                            <a class="btn-sm" th:href="@{/mybank/accounts/{id}(id=${account.accountId})}">조회</a>
+                            <a class="btn-sm" th:if="${account.canDeposit()}"
+                               th:href="@{/mybank/accounts/{id}/deposit(id=${account.accountId})}">입금</a>
+                            <button type="button" class="btn-sm">계좌관리</button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(savingsAccounts)}">
                         <td colspan="5" class="empty-row">
                             <p>보유중인 상품이 없습니다.</p>
                             <p class="sub-desc">매달 차곡차곡 쌓이는 재미, 적금 가입하고 소소한 재미를 즐겨보세요.</p>
-                            <button class="btn-join">가입하기</button>
+                            <button type="button" class="btn-join">가입하기</button>
                         </td>
                     </tr>
                 </tbody>
@@ -189,9 +233,9 @@
 
         <!-- 하단 공통 버튼 영역 -->
         <div class="bottom-actions">
-            <button class="btn-outline">계좌정렬순서변경</button>
-            <button class="btn-outline">엑셀저장</button>
-            <button class="btn-outline">인쇄</button>
+            <button type="button" class="btn-outline">계좌정렬순서변경</button>
+            <button type="button" class="btn-outline">엑셀저장</button>
+            <button type="button" class="btn-outline">인쇄</button>
         </div>
     </main>
 

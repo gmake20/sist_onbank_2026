@@ -18,23 +18,31 @@
         <div class="page-header-flex">
             <h2 class="page-title" style="margin-bottom: 0; border: none;">즉시이체/예약이체</h2>
             <div class="step-indicator">
-                <span class="step active"><span class="num">1</span> 정보입력</span>
-                <span class="step"><span class="num">2</span></span>
-                <span class="step"><span class="num">3</span></span>
+                <span class="step active js-step" data-label="정보입력"><span class="num">1</span> 정보입력</span>
+                <span class="step js-step" data-label="확인"><span class="num">2</span></span>
+                <span class="step js-step" data-label="이체완료"><span class="num">3</span></span>
             </div>
         </div>
 
         <!-- 메인 탭 -->
         <ul class="main-tabs" style="margin-bottom: 30px;">
             <li class="active"><a href="#">ONBANK</a></li>
-            <li><a href="#">다른금융</a></li>
+            <li><a href="#" title="준비 중입니다">다른금융</a></li>
         </ul>
+
+        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+        <div class="alert alert-error" th:if="${#lists.isEmpty(accounts)}">
+            이체할 수 있는 계좌가 없습니다. (정상 상태인 본인 계좌만 출금계좌로 선택할 수 있습니다)
+        </div>
+
+        <form id="transferForm" class="js-once-form" method="post" th:object="${form}" th:action="@{/mybank/transfer}"
+              th:attr="data-recipient-url=@{/mybank/transfer/recipient},data-limit-url=@{/mybank/transfer/limit}">
 
         <!-- 1. 출금계좌정보 -->
         <div class="transfer-section">
             <div class="section-title-wrap">
                 <h3>출금계좌정보</h3>
-                <button class="btn-import text-blue">⭐ 즐겨찾는이체정보</button>
+                <button type="button" class="btn-import text-blue">⭐ 즐겨찾는이체정보</button>
             </div>
             <table class="transfer-form-table">
                 <colgroup>
@@ -45,49 +53,63 @@
                     <tr>
                         <th>출금계좌번호</th>
                         <td>
-                            <select class="form-select">
-                                <option>ON 통장 (1002-862-******)</option>
+                            <select class="form-select js-from-account" th:field="*{fromAccountId}">
+                                <option th:each="account : ${accounts}"
+                                        th:value="${account.accountId}"
+                                        th:attr="data-balance=${account.balance ?: 0},data-fail-count=${account.passwordFailCount}"
+                                        th:text="|ON 통장 (${account.accountNumber})|">ON 통장 (1002-862-******)</option>
                             </select>
-                            <button class="btn-sm btn-outline">잔액조회</button>
+                            <button type="button" class="btn-sm btn-outline js-show-balance">잔액조회</button>
+                            <span class="sub-text js-balance-text"></span>
+                            <p class="field-error" th:if="${#fields.hasErrors('fromAccountId')}" th:errors="*{fromAccountId}"></p>
                         </td>
                     </tr>
                     <tr>
                         <th>계좌비밀번호</th>
                         <td>
-                            <input type="password" class="form-input pw-input" maxlength="4">
+                            <!-- 비밀번호는 th:field 를 쓰지 않는다 (오류 후 다시 그릴 때 값이 남지 않도록) -->
+                            <input type="password" class="form-input pw-input js-password" name="password"
+                                   maxlength="4" inputmode="numeric" autocomplete="off">
                             <label class="checkbox-label"><input type="checkbox"> 마우스로 입력</label>
                             <span class="btn-group-right">
-                                <button class="btn-sm">비밀번호오류횟수조회</button>
-                                <button class="btn-sm">수수료면제횟수조회</button>
+                                <button type="button" class="btn-sm js-show-fail-count">비밀번호오류횟수조회</button>
+                                <button type="button" class="btn-sm">수수료면제횟수조회</button>
                             </span>
+                            <span class="sub-text js-fail-count-text"></span>
+                            <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
                         </td>
                     </tr>
                     <tr>
                         <th>이체금액</th>
                         <td>
                             <div class="amount-input-wrap">
-                                <input type="text" class="form-input amount-input" placeholder="0">
+                                <input type="number" min="1" class="form-input amount-input js-amount"
+                                       th:field="*{amount}" placeholder="0">
                                 <span class="unit">원</span>
-                                <button class="btn-sm btn-outline">이체한도조회</button>
+                                <button type="button" class="btn-sm btn-outline js-show-limit">이체한도조회</button>
                             </div>
                             <div class="amount-shortcut">
-                                <button type="button">100만</button>
-                                <button type="button">50만</button>
-                                <button type="button">10만</button>
-                                <button type="button">5만</button>
-                                <button type="button">3만</button>
-                                <button type="button">1만</button>
-                                <button type="button">전액</button>
-                                <button type="button" class="btn-dark">정정</button>
+                                <button type="button" data-add="1000000">100만</button>
+                                <button type="button" data-add="500000">50만</button>
+                                <button type="button" data-add="100000">10만</button>
+                                <button type="button" data-add="50000">5만</button>
+                                <button type="button" data-add="30000">3만</button>
+                                <button type="button" data-add="10000">1만</button>
+                                <button type="button" class="js-all-amount" data-all="0">전액</button>
+                                <button type="button" class="btn-dark" data-clear>정정</button>
                             </div>
+                            <p class="sub-text js-limit-text"></p>
+                            <p class="field-error" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></p>
                         </td>
                     </tr>
                     <tr>
                         <th>보내는분통장표시내용</th>
                         <td>
-                            <input type="text" class="form-input" style="width: 300px;" placeholder="최대 8자리">
-                            <button class="btn-sm">자주쓰는 문구</button>
+                            <input type="text" class="form-input" style="width: 300px;" maxlength="8"
+                                   th:field="*{senderMemo}" placeholder="최대 8자리">
+                            <button type="button" class="btn-sm">자주쓰는 문구</button>
                             <span class="sub-text">(생략시 입금통장 예금주명 표시)</span>
+                            <p class="field-error" th:if="${#fields.hasErrors('senderMemo')}" th:errors="*{senderMemo}"></p>
                         </td>
                     </tr>
                 </tbody>
@@ -109,33 +131,38 @@
                         <th>입금은행<br>입금계좌번호</th>
                         <td>
                             <div class="btn-group-top">
-                                <button class="btn-sm">자주쓰는 입금계좌</button>
-                                <button class="btn-sm">최근입금계좌</button>
-                                <button class="btn-sm">본인계좌</button>
+                                <button type="button" class="btn-sm">자주쓰는 입금계좌</button>
+                                <button type="button" class="btn-sm">최근입금계좌</button>
+                                <button type="button" class="btn-sm">본인계좌</button>
                             </div>
                             <div class="input-flex" style="margin-top: 10px;">
+                                <!-- 지금은 당행(ONBANK) 이체만 가능 -->
                                 <select class="form-select" style="width: 150px;">
-                                    <option>ONBANK</option>
-                                    <option>국민은행</option>
-                                    <option>신한은행</option>
+                                    <option selected>ONBANK</option>
+                                    <option disabled>국민은행 (준비중)</option>
+                                    <option disabled>신한은행 (준비중)</option>
                                 </select>
-                                <input type="text" class="form-input" style="width: 300px;" placeholder="- 없이 숫자만 입력">
+                                <input type="text" class="form-input js-to-account" style="width: 300px;" maxlength="30"
+                                       th:field="*{toAccountNumber}" placeholder="입금계좌번호 입력">
                             </div>
+                            <p class="field-error" th:if="${#fields.hasErrors('toAccountNumber')}" th:errors="*{toAccountNumber}"></p>
                         </td>
                     </tr>
                     <tr>
                         <th>받는분통장표시내용</th>
                         <td>
-                            <input type="text" class="form-input" style="width: 300px;" placeholder="최대 10자리">
-                            <button class="btn-sm">자주쓰는 문구</button>
+                            <input type="text" class="form-input" style="width: 300px;" maxlength="10"
+                                   th:field="*{receiverMemo}" placeholder="최대 10자리">
+                            <button type="button" class="btn-sm">자주쓰는 문구</button>
                             <span class="sub-text">(생략시 출금통장 예금주명 표시)</span>
+                            <p class="field-error" th:if="${#fields.hasErrors('receiverMemo')}" th:errors="*{receiverMemo}"></p>
                         </td>
                     </tr>
                     <tr>
                         <th>이체실행일자</th>
                         <td>
-                            <strong style="margin-right: 15px;">2026년 10월 12일</strong>
-                            <button class="btn-sm btn-outline">예약이체일지정</button>
+                            <strong style="margin-right: 15px;" th:text="${#temporals.format(today, 'yyyy년 MM월 dd일')}">2026년 10월 12일</strong>
+                            <button type="button" class="btn-sm btn-outline">예약이체일지정</button>
                         </td>
                     </tr>
                 </tbody>
@@ -149,15 +176,43 @@
                 <span class="arrow">∨</span>
             </div>
             <div class="accordion-content warning-text">
-                <p>· 입금은행 장애일 경우 해당 은행으로 문의 주시거나, 장애 상태가 해제된 후 거래 하시기 바랍니다. <button class="btn-sm">장애은행조회</button></p>
+                <p>· 입금은행 장애일 경우 해당 은행으로 문의 주시거나, 장애 상태가 해제된 후 거래 하시기 바랍니다. <button type="button" class="btn-sm">장애은행조회</button></p>
                 <p class="text-red">· 경찰청, 검찰청, 국세청 등 기관원을 사칭하거나, 대출실행을 목적으로 송금 또는 금융정보를 요구받았으면, 보이스피싱 금융사기일 가능성이 높습니다.</p>
             </div>
         </div>
 
-        <!-- 하단 확인 버튼 -->
-        <div class="submit-action">
-            <button class="btn-submit">확인</button>
+        <!-- 하단 확인 버튼 : 받는 분 확인 후 아래 확인 영역을 연다 -->
+        <div class="submit-action js-input-action">
+            <button type="button" class="btn-submit js-confirm">확인</button>
         </div>
+        <p class="field-error js-confirm-error" style="text-align: center;"></p>
+
+        <!-- 2단계 : 이체 정보 확인 (확인 버튼을 누르면 보임) -->
+        <div class="transfer-section transfer-confirm js-confirm-box" hidden>
+            <div class="section-title-wrap">
+                <h3>이체정보 확인</h3>
+            </div>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr><th>출금계좌번호</th><td class="js-confirm-from"></td></tr>
+                    <tr><th>입금은행</th><td>ONBANK</td></tr>
+                    <tr><th>입금계좌번호</th><td class="js-confirm-to"></td></tr>
+                    <tr><th>받는 분</th><td><strong class="js-confirm-name"></strong></td></tr>
+                    <tr><th>이체금액</th><td><strong class="text-blue js-confirm-amount"></strong></td></tr>
+                </tbody>
+            </table>
+            <p class="sub-text">받는 분 이름을 확인한 뒤 [이체실행]을 누르세요. 이체 후에는 취소할 수 없습니다.</p>
+            <div class="submit-action">
+                <button type="button" class="btn-outline js-edit">수정</button>
+                <button type="submit" class="btn-submit">이체실행</button>
+            </div>
+        </div>
+
+        </form>
 
         <!-- 4. 알아두세요 (안내사항) -->
         <div class="notice-section">
@@ -184,5 +239,7 @@
     <!-- 푸터 영역 -->
     <div th:replace="~{fragments/footer :: footerFragment}"></div>
 
+    <script th:src="@{/js/account.js}"></script>
+    <script th:src="@{/js/transfer.js}"></script>
 </body>
 </html>
