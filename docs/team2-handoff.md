@@ -137,6 +137,8 @@
 
 ## 6. 주의할 점 (작업하다 알게 된 것)
 
+- **팀2 DDL은 `project/onbank/src/main/resources/db/03_account_ddl.sql` 하나다** (팀원 형식: 01 팀1, 02 팀4). `docs/schema-team2-mysql.sql`은 10-16에 삭제했다. 테이블을 바꾸면 이 파일(맨 아래 변경 이력에 ALTER 기록) + 데이터 사전 + 엔티티를 함께 고친다
+- **실행 순서는 01 → 03 → 02.** 번호는 03이지만 팀4 `02_admin_ddl.sql`의 FK가 팀2 테이블을 참조하므로 02보다 먼저 실행해야 한다
 - **비밀번호 확인은 계좌 잠금보다 먼저.** 순서가 바뀌면 이체·출금 트랜잭션이 잡은 잠금을 REQUIRES_NEW 트랜잭션이 기다리며 멈춘다
 - **`AccountPasswordVerifier.verify()`는 비밀번호가 틀리면 예외 대신 `false`.** 안에서 예외를 던지면 증가한 오류 횟수가 롤백된다
 - **`ddl-auto=validate`는 모든 팀의 엔티티를 검사한다.** 다른 팀 테이블 하나만 어긋나도 서버 전체가 뜨지 않는다
@@ -178,4 +180,4 @@
 | 팀3 | 예금·적금 가입 시 계좌 생성 메서드, 대출금 입금(`AccountService.deposit()`) | 남음 |
 | 팀4 | 동결·해제·잠금 해제 화면에서 호출할 메서드 | 계좌 개설 작업 때 만듦 |
 | 팀4 | 이체 완료 이벤트 클래스 이름과 필드 (`AccountTransferService` 8번 자리) | 남음 |
-| 팀4 | `02_admin_ddl.sql`이 `ACCOUNT`, `TRANSFER (transfer_id)`를 참조. 실제는 `account`, `account_transfer (account_transfer_id)` | 확인 필요 (main에서 수정됐는지) |
+| 팀4 | `02_admin_ddl.sql` 참조 테이블 이름 | 해결됨 (v0.7에서 `account`, `account_transfer`, `transaction_history`로 수정) |

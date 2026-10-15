@@ -18,7 +18,7 @@
 
 | 파일 | 상태 |
 |---|---|
-| [schema-team2-mysql.sql](schema-team2-mysql.sql) | 커밋·main 머지 완료. 공용 DB(cafe24)에 테이블 생성 완료 |
+| [03_account_ddl.sql](../project/onbank/src/main/resources/db/03_account_ddl.sql) | 팀2 DDL (2026-10-16에 docs/schema-team2-mysql.sql 에서 옮김). 공용 DB(cafe24)에 테이블 생성 완료 |
 | [schema-team2-dictionary.md](schema-team2-dictionary.md) | SQL과 같게 정리 완료 |
 | 엔티티 6개 (`org.doit.onbank.account.entity`) | 커밋·main 머지 완료. 공용 DB에서 `ddl-auto=validate` 통과 확인 |
 | [schema-team1-mysql.sql](schema-team1-mysql.sql) | members에 `daily_transfer_limit`, `once_transfer_limit` 추가. 공용 DB에 ALTER 완료, 팀1과 협의 완료 |
