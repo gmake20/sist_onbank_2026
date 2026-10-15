@@ -19,6 +19,9 @@ public class LoanProduct {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "LOAN_PRODUCT_ID")
     private Long id;
+    
+    @Column(name = "CATEGORY", nullable = false, length = 30)
+    private String category;
 
     @Column(name = "PRODUCT_NAME", nullable = false, length = 100)
     private String name;
