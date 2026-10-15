@@ -3,42 +3,82 @@
 > Claude에게 이어서 작업을 요청할 때 이 파일을 먼저 읽게 하세요.
 > 예: "docs/team2-progress.md 읽고 이어서 작업하자"
 
-마지막 정리: 2026-10-14
+마지막 정리: 2026-10-15
 
 ---
 
 ## 1. 내 역할
 
 - 팀원2. 담당: 계좌, 입출금, 이체, 거래내역, 자산관리 (기획서 [README.md](README.md) 12장)
-- 현재 목표: **계좌 이체·출금 기능 구현**. 그 전에 테이블을 확정해야 함
+- 현재 목표: **계좌 입출금 기능 마무리 → 이체 기능 구현**. 테이블과 엔티티는 확정·반영 완료
+- 세션 인수인계: [team2-handoff.md](team2-handoff.md) (최근 작업 상태, 다음에 할 일, 주의할 점)
 - 처리 규칙의 기준은 기획서 11-1장 (비밀번호 검증 → 비관적 락 → 검증 → 잔액 갱신 → 원장 기록 → 커밋 후 이벤트)
 
 ## 2. 내 파일
 
 | 파일 | 상태 |
 |---|---|
-| [schema-team2-mysql.sql](schema-team2-mysql.sql) | 수정 완료, **아직 커밋·DB 실행 안 함** |
-| [schema-team2-dictionary.md](schema-team2-dictionary.md) | SQL과 같게 수정 완료 |
-| [schema-team1-mysql.sql](schema-team1-mysql.sql) | members에 `daily_transfer_limit`, `once_transfer_limit` 내가 추가함 (커밋 안 함) |
+| [schema-team2-mysql.sql](schema-team2-mysql.sql) | 커밋·main 머지 완료. 공용 DB(cafe24)에 테이블 생성 완료 |
+| [schema-team2-dictionary.md](schema-team2-dictionary.md) | SQL과 같게 정리 완료 |
+| 엔티티 6개 (`org.doit.onbank.account.entity`) | 커밋·main 머지 완료. 공용 DB에서 `ddl-auto=validate` 통과 확인 |
+| [schema-team1-mysql.sql](schema-team1-mysql.sql) | members에 `daily_transfer_limit`, `once_transfer_limit` 추가. 공용 DB에 ALTER 완료, 팀1과 협의 완료 |
+| [data-team2-mysql.sql](data-team2-mysql.sql) | 화면 확인용 테스트 계좌 3개 (`TEST-0001`~`0003`, 계좌 비밀번호 1234). 삭제 SQL 포함 |
+| 입출금 코드 (`org.doit.onbank.account` 아래 `entity / repository / service / controller / dto`) | 2026-10-15 작성. `account` 브랜치에 커밋·푸시 완료 (main 머지 전) |
+| 입출금 화면 (`templates/account/my-accounts, detail, deposit, withdraw.html`, `static/js/account.js`, `account.css` 하단) | 2026-10-15 작성. `account` 브랜치에 커밋·푸시 완료 (main 머지 전) |
+| 테스트 (`src/test/java/org/doit/onbank/account/`) | 44개 통과. `account` 브랜치에 커밋·푸시 완료 (main 머지 전) |
 
 담당 테이블 6개: `financial_institution_code`, `account`, `account_transfer`, `transaction_history`, `account_favorite`, `asset_report`
 
+엔티티 6개: `FinancialInstitution`, `Account`, `AccountTransfer`, `TransactionHistory`, `AccountFavorite`, `AssetReport`
+
 ## 3. 확정한 결정 사항
 
-1. **이체한도는 회원 단위**: 계좌가 아니라 `members.daily_transfer_limit`, `members.once_transfer_limit`에 둔다.
-2. **당일 누적 이체 금액은 컬럼으로 두지 않음**: `today_transfer_amount`를 삭제했다. 그 회원의 모든 계좌에서 오늘 나간 `COMPLETED` 이체 합계를 `account_transfer`에서 계산한다.
-3. **금액은 모두 BIGINT(원 단위)**: 팀1·팀3과 통일. 엔티티는 `Long`. 이자율은 팀3과 같은 `DECIMAL(7,4)`.
-4. **계좌 개설일은 account에 둔다**: `signup_date`를 `opened_date DATE NOT NULL`로 바꿨다. 모든 계좌에 공통이다.
-5. **예적금·대출 계약 컬럼 10개는 당분간 유지**: `expired_date`, `interest_rate`, `signup_period`, `monthly_payment`, `loan_amount`, `loan_balance`, `payment_day`, `repayment_method`, `current_payment_round`, `total_payment_rounds`. 팀3 테이블과 정보가 겹치지만 팀3과 협의한 뒤 정리한다. 대응표는 데이터 사전 1장에 있다.
-6. **팀3 파일은 건드리지 않는다**: `PRODUCT_SUBSCRIPTION.SUBSCRIBED_AT`은 개설일과 같은 정보지만 그대로 둔다. `LOAN.STARTED_AT`은 대출 실행일이라 다른 정보다.
+1. **테이블 기준은 팀원2 데이터 사전 원본**: 원본에 없는 컬럼은 추가하지 않는다. 유일한 예외는 `account.password_fail_count`(`INT NOT NULL DEFAULT 0`).
+2. **다른 팀 파일은 수정하지 않는다** (팀1/3/4).
+3. **이체한도는 회원 단위**: `members.daily_transfer_limit`, `members.once_transfer_limit`에 둔다.
+4. **당일 누적 이체 금액은 `account.today_transfer_amount`에 둔다**: 한도 비교는 계좌별로 한다. 그 계좌의 `today_transfer_amount`(누적)에 이번 금액을 더해 `members.daily_transfer_limit`(개인 한도 명시)를 넘는지 확인한다. 날짜가 바뀌면 `Account.touchTransaction(now)`에서 0으로 초기화한다.
+   - `members` 한도 컬럼: 개인의 한도를 **명시**하는 값
+   - `account.today_transfer_amount`: 그 계좌에서 오늘 이체한 금액이 **누적**되는 값
+5. **금액은 모두 BIGINT(원 단위)** ↔ 엔티티 `Long`. 이자율은 `DECIMAL(7,4)` ↔ `BigDecimal`.
+6. **가입일은 `signup_date` 그대로** 사용한다.
+7. **예적금·대출 계약 컬럼 10개는 삭제하지 않고 팀2에서 독립적으로 사용**: `expired_date`, `interest_rate`, `signup_period`, `monthly_payment`, `loan_amount`, `loan_balance`, `payment_day`, `repayment_method`, `current_payment_round`, `total_payment_rounds`. 팀3과 겹치는 대응표는 데이터 사전 1장에 있다.
+8. **유형·상태 컬럼은 `String`**: enum을 쓰지 않는다. 확정된 값은 상수 클래스(`AccountStatus`, `TransactionType`, `TransactionStatus`)로 참조해 오타를 막는다. `account_type`, `transfer_type` 값은 아직 미정.
+9. **다른 테이블 참조는 연관관계 없이 `Long` ID 필드**로 둔다.
+10. **제약 조건은 최소한만**: 모든 테이블 PK, `account.member_id NOT NULL`, `account.password_fail_count NOT NULL DEFAULT 0`, `account.account_number UNIQUE`. FK, CHECK, 인덱스는 두지 않는다.
+11. **DB 운영**: `ddl-auto=validate`라 서버는 테이블을 검사만 한다. 테이블 생성·변경은 워크벤치에서 SQL을 직접 실행한다. 컬럼을 바꾸면 SQL 변경 이력에 ALTER를 기록하고 엔티티도 함께 바꾼다.
+12. **예약이체·정기이체는 팀3 담당**: 팀2는 입금·출금·이체 메서드를 제공하고, 팀3이 그 메서드를 호출해 구현한다.
+13. **계좌 상태 `account_status` 4개** (2026-10-15 확정)
 
-## 4. SQL에 반영한 변경 (원본 대비)
+    | 값 | 뜻 | 입금 | 출금 |
+    |---|---|---|---|
+    | `ACTIVE` | 정상 | ○ | ○ (비밀번호 오류 5회면 ✕) |
+    | `PENDING` | 개설대기 (본인확인 심사 중) | ✕ | ✕ |
+    | `FROZEN` | 동결 (관리자 정지, 해제 가능) | ○ | ✕ |
+    | `CLOSED` | 해지 (개설 반려 포함, 되돌리지 않음) | ✕ | ✕ |
 
-- `account`: `password_fail_count` 추가(5회면 LOCKED), `uk_account_number`, `fk_account_member`, 유형 CHECK(`CHECKING/DEPOSIT/SAVINGS/LOAN`), 상태 CHECK(`PENDING/ACTIVE/FROZEN/LOCKED/CLOSED/REJECTED`), `balance >= 0`
-- `account_transfer`: `to_account_id`(당행이면 값 있음, 타행 NULL) 추가, `transfer_status`(`COMPLETED/SCHEDULED/FAILED/CANCELLED`) 추가, `UNIQUE(transaction_sqno)`, 자기 계좌 이체 금지 CHECK, 인덱스 `(account_id, transfer_at)`
-- `transaction_history`: `account_transfer_id`, `counterpart_account_number`, `counterpart_name` 추가, `UNIQUE(account_id, transaction_sqno)`, 인덱스 `(account_id, transaction_at)`
-- 생성 순서: `financial_institution_code` → `account` → `account_transfer` → `transaction_history` → `account_favorite` → `asset_report`
-- 금액 컬럼 DECIMAL을 BIGINT로 변경, DROP 블록과 변경 이력 섹션 추가
+    - 기획서의 `LOCKED`는 상태로 두지 않고 `password_fail_count >= 5`로 판단한다. 관리자 잠금 해제는 `resetPasswordFailCount()`
+    - 기획서의 `REJECTED`는 `CLOSED`로 대신한다
+    - 해지와 동결을 나눈 이유: 해지는 되돌릴 수 없고 잔액이 0이며 입금도 막는다. 동결은 해제할 수 있고 잔액이 남아 있으며 입금은 허용한다
+    - 개설 승인(`PENDING → ACTIVE`), 동결·해제, 해지 메서드는 팀2가 만들고 관리자 쪽(팀1 심사, 팀4 화면)이 호출한다
+14. **거래 유형 `transaction_type`**: `DEPOSIT` 입금 / `WITHDRAWAL` 출금 / `TRANSFER_OUT` 이체 보냄 / `TRANSFER_IN` 이체 받음
+15. **거래 상태 `transaction_status`**: 지금은 `COMPLETED` 하나. 실패한 거래는 롤백되어 행이 남지 않는다. 거래 취소 기능이 생기면 값을 추가한다
+16. **거래 번호 `transaction_sqno`**: `yyyyMMddHHmmss-난수6자리` (예: `20261015143012-482915`). 두 번 클릭으로 인한 중복 처리는 이 번호가 아니라 버튼 중복 클릭 방지 + PRG 패턴으로 막는다
+17. **현금 출금은 이체 한도와 별개**: `today_transfer_amount`에는 이체(`TRANSFER_OUT`)만 누적한다. 입금·출금은 `touchTransaction`으로 날짜만 갱신한다
+
+## 4. Account 엔티티 메서드
+
+| 메서드 | 동작 |
+|---|---|
+| `touchTransaction(now)` | 모든 거래에서 호출. 최종 거래일과 날짜가 다르면 `today_transfer_amount`를 0으로 초기화한 뒤 `last_transaction_at` 갱신. 입금만 있던 날에도 날짜가 갱신되므로 어제 이체액이 합산되지 않음 |
+| `increasePasswordFailCount()` | 비밀번호 오류 시 1 증가 (최대 5) |
+| `resetPasswordFailCount()` | 비밀번호 성공 시 0으로 초기화 |
+| `isPasswordFailLimitReached()` | 5회 도달 여부 |
+| `deposit(amount, now)` | 입금. 금액 > 0, `ACTIVE`·`FROZEN`만 허용. `touchTransaction` 후 잔액 증가 |
+| `withdraw(amount, now)` | 출금. 금액 > 0, `ACTIVE`만, 비밀번호 오류 5회면 불가, 잔액 부족이면 불가. `touchTransaction` 후 잔액 감소. `today_transfer_amount`에는 누적하지 않음 |
+| `canDeposit()` / `canWithdraw()` | 상태로 입금·출금 가능 여부 확인 |
+
+- 5회 도달 시 계좌 상태는 바꾸지 않는다. `withdraw()`가 오류 횟수로 직접 막는다.
+- 규칙에 어긋나면 금액 오류는 `IllegalArgumentException`, 상태·잔액 오류는 `IllegalStateException`을 던진다.
 
 ## 5. 할 일 (순서대로)
 
@@ -46,33 +86,52 @@
   - members 한도 컬럼 2개에 `NOT NULL DEFAULT` 추가 (예: 1일 5,000,000 / 1회 1,000,000) + `CHECK (once_transfer_limit <= daily_transfer_limit)`
   - `transfer_limit_request`가 아직 **계좌 기준**(`account_id NOT NULL`, 계좌당 대기 1건)이다. 한도가 회원 기준이 됐으므로 회원 기준으로 바꿔야 한다. 그러면 `fk_tlr_account` ALTER도 필요 없어진다
   - 공용 DB에 members가 이미 있으면 변경 이력에 `ALTER TABLE members ADD COLUMN ...` 기록
-- [ ] **팀3과 협의**: 계약 컬럼 10개, `SUBSCRIBED_AT` 정리 방법. 대출 계좌를 따로 만들지도 정하기 (`LOAN`에는 대출 계좌를 가리키는 컬럼이 없음. `REPAYMENT_ACCOUNT_ID`는 상환금을 빼 갈 입출금 계좌)
-- [ ] **팀3에 알리기**: [onbank_loan.sql](../project/onbank/src/main/resources/db/onbank_loan.sql)의 테이블 이름이 대문자(`LOAN`)라 리눅스(AWS) MySQL에서는 엔티티의 `@Table(name="loan")`과 맞지 않음
-- [ ] **로컬 MySQL에서 실행 확인**: 팀1 DDL → 팀2 DDL 순서. ⚠️ `application-local.properties`는 **팀 공용 DB(cafe24)** 를 가리키므로 테스트용으로 쓰지 말 것
-- [ ] 시드 데이터 `data-team2-mysql.sql` 작성: 금융기관 코드(우리 은행 OnBank 포함) + 테스트 회원 계좌 2~3개(비밀번호는 BCrypt)
-- [ ] PR 리뷰를 받은 뒤 공용 DB에 실행
-- [ ] **엔티티 작성**: `Account` → `AccountTransfer` → `TransactionHistory`. `ddl-auto=validate`가 통과하는지 확인
-- [ ] **출금·이체 서비스 구현** (아래 6장)
+
+**지금: 계좌 입출금 기능 (계좌 개설 기능 없이 먼저 구현)**
+- [x] 0단계: 상태·유형 값 확정 (3장 13~17번)
+- [x] 1단계: `Account.deposit()`, `withdraw()` 추가, 상수 클래스 3개 추가
+- [x] 2단계: Repository 작성: `AccountRepository`(비관적 락 조회 포함), `TransactionHistoryRepository`
+- [x] 3단계: `AccountService.deposit()`, `withdraw()` + `AccountPasswordVerifier`(REQUIRES_NEW) + `TransactionSqnoGenerator`
+- [x] 4단계-1: 단위 테스트 (DB 없이 실행, 29개 통과). `AccountTests`, `AccountServiceTests`, `AccountPasswordVerifierTests`, `TransactionSqnoGeneratorTests`
+- [ ] 4단계-2: DB 통합 테스트. 단위 테스트로 확인할 수 없는 실제 잠금(FOR UPDATE), REQUIRES_NEW 커밋, SQL 확인. **방법 결정 필요** (아래 참고)
+  - 출금은 롤백 방식(`@Transactional` 테스트)으로 테스트할 수 없다. 비밀번호 확인(REQUIRES_NEW)이 별도 DB 연결을 쓰는데, 커밋되지 않은 테스트 계좌 행의 잠금을 기다리다 실패한다 (MySQL 기본 50초)
+  - ① 입금만 롤백 테스트 + 출금은 화면 확인으로 대신 (제안) / ② 출금까지 커밋 테스트 후 코드에서 삭제
+- [x] 5단계: Controller·화면 코드 작성. `/mybank/accounts` 목록, `/{id}` 거래내역, `/{id}/deposit`, `/{id}/withdraw`. 화면 테스트(`AccountPageControllerTests`, DB 없이 15개) 통과
+- [x] 서버 실행 확인 (2026-10-15): `contextLoads` 통과. 팀3 `loan_repayment_schedule` 문제는 해결됨
+- [ ] 5단계 확인: 브라우저에서 실제 화면 확인. 테스트 계좌는 [data-team2-mysql.sql](data-team2-mysql.sql)로 넣음 (계좌 비밀번호 1234, 계좌번호 `TEST-`로 시작)
+- 기존 목업 `AccountController`(`/account/list`, `/account/transfer`)와 `list.html`, `transfer.html`은 그대로 둠. 새 화면이 확인되면 정리 여부를 정한다
+
+**그 다음**
+- [ ] **1일 한도 값을 읽는 방법 정하기**: `members` 컬럼을 `Member` 엔티티 필드로 읽을지, 별도 쿼리로 읽을지. 현재 `Member` 엔티티에는 두 컬럼이 없음 (팀1 파일이라 직접 수정하지 않음)
+- [ ] `account_type`, `transfer_type` 값 정하기
+- [ ] 계좌 개설, 상태 변경 메서드(승인·동결·해제·해지)
+- [ ] **이체 Service 구현** (아래 6장). `AccountTransferRepository` 포함
+- [ ] 이체 Controller·화면 구현 (목업 `transfer.html` 디자인 활용)
+- [ ] 시드 데이터 `data-team2-mysql.sql`에 금융기관 코드(우리 은행 OnBank 포함) 추가. 테스트 계좌 3개는 작성 완료
 - [ ] 동시 이체 테스트 작성
+
+**구현할 때 지킬 것**
+- 계좌를 개설할 때 `balance`, `today_transfer_amount`를 0으로 넣는다 (NULL이면 계산 오류)
+- `transaction_at`, `transfer_at`, `favorite_created_at`은 코드에서 직접 값을 넣는다 (DB DEFAULT 없음)
+- `transaction_sqno` 중복 방지는 코드에서 처리한다 (UNIQUE 없음)
 
 ## 6. 이체·출금 구현 설계 (합의된 방향)
 
 패키지: `org.doit.onbank.account` 아래에 `entity / repository / service / controller / dto / exception`
 
-- **잔액은 `AccountService.debit()`, `credit()` 두 메서드에서만 바꾼다.** 둘 다 잔액 갱신과 `transaction_history` INSERT를 같이 한다. 팀3의 대출금 입금도 이 메서드를 재사용한다.
-- **계좌 비밀번호 검증은 별도 Bean(`AccountPasswordVerifier`)에서 `REQUIRES_NEW`로** 한다. 같은 클래스 안에서 자기 메서드를 호출하면 프록시를 거치지 않아 `REQUIRES_NEW`가 무시된다.
+- **잔액은 `AccountService`의 메서드에서만 바꾼다.** 지금은 `deposit()`, `withdraw()`가 구현되어 있고, 잔액 갱신(엔티티 메서드 안에서 `touchTransaction(now)` 호출)과 `transaction_history` INSERT를 같은 트랜잭션에서 한다. 이체도 같은 엔티티 메서드를 재사용하고 거래 유형만 `TRANSFER_OUT`/`TRANSFER_IN`으로 기록한다. 팀3의 대출금 입금도 `deposit()`을 재사용한다.
+- **계좌 비밀번호 검증은 별도 Bean(`AccountPasswordVerifier`)에서 `REQUIRES_NEW`로** 한다. 이체가 롤백돼도 `password_fail_count`가 남게 하기 위해서다. 같은 클래스 안에서 자기 메서드를 호출하면 프록시를 거치지 않아 `REQUIRES_NEW`가 무시된다.
 - **이체 순서**
   1. 입력 검증 (금액 > 0, 출금계좌 ≠ 입금계좌, 출금계좌가 내 계좌인지, 1회 한도)
   2. 계좌 비밀번호 검증 (REQUIRES_NEW)
   3. OTP 검증: `otpService.verify(memberId, otpCode)` (팀1 제공 예정. 나오기 전까지는 stub으로)
-  4. **`members` 행을 먼저 `FOR UPDATE`로 잠금** (회원 단위 1일 한도의 동시성 보장)
-  5. 계좌 2개를 **ID 오름차순으로** `PESSIMISTIC_WRITE` 잠금 (데드락 방지)
-  6. 상태 검사: 출금은 ACTIVE만 허용, 입금은 ACTIVE/FROZEN/LOCKED 허용
-  7. 잔액 검사, 1일 한도 검사 (오늘 COMPLETED 이체 합계 + 이번 금액 ≤ 1일 한도)
-  8. debit/credit → `transaction_history` 2행 + `account_transfer` 1행
-  9. 커밋 후 이벤트 발행 (`@TransactionalEventListener(AFTER_COMMIT)`, 팀4 알림용)
+  4. 계좌 2개를 **ID 오름차순으로** `PESSIMISTIC_WRITE` 잠금 (데드락 방지)
+  5. 상태 검사: 출금 계좌는 `ACTIVE`, 입금 계좌는 `ACTIVE`·`FROZEN` (`Account.withdraw()`, `deposit()` 안에서 확인)
+  6. 잔액 검사, 1일 한도 검사: `touchTransaction(now)` 후 출금 계좌의 `today_transfer_amount + 이번 금액 ≤ members.daily_transfer_limit`
+  7. debit/credit → `transaction_history` 2행 + `account_transfer` 1행, 출금 계좌 `today_transfer_amount` 누적
+  8. 커밋 후 이벤트 발행 (`@TransactionalEventListener(AFTER_COMMIT)`, 팀4 알림용)
 - **출금**은 ATM 출금 mock으로 처리한다. 계좌 비밀번호만 요구하고(OTP 없음) 계좌 1개만 잠근다.
-- **엔티티 주의**: `transaction_at`, `transfer_at`은 DB DEFAULT가 동작하지 않으므로(Hibernate가 NULL을 넣음) 엔티티에서 직접 값을 넣는다. 로그인 회원은 `@AuthenticationPrincipal LoginMember me`로 받는다.
+- **로그인 회원**은 `@AuthenticationPrincipal LoginMember me`로 받는다.
 - **화면 흐름**: 입력 → 확인(fetch로 계좌주 이름 확인) → 비밀번호와 OTP 입력 → 결과/영수증. 버튼 중복 클릭 방지와 PRG 패턴 적용
 - **타행 이체**는 심화 기능. 핵심 기능은 당행 이체만 구현한다.
 
@@ -80,4 +139,6 @@
 
 - 팀1: OTP를 등록하지 않은 회원의 이체 정책 (전부 막을지, 소액만 허용할지)
 - 팀3: 대출금 입금 메서드 시그니처. 예: `accountService.deposit(accountId, amount, "대출금 입금")`
+- 팀3: 예약이체·정기이체에서 호출할 이체 메서드 시그니처
+- 팀4: 동결·해제 화면에서 호출할 메서드 (`FROZEN` 상태 사용)
 - 팀4: 이체 완료 이벤트 클래스 이름과 필드

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>출금 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">출금 <span class="sub-text">(ATM 출금 모의 거래)</span></h2>
+
+        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+        <form class="js-once-form" method="post" th:object="${form}"
+              th:action="@{/mybank/accounts/{id}/withdraw(id=${account.accountId})}">
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>출금계좌정보</h3>
+                </div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>출금계좌번호</th>
+                            <td th:text="${account.accountNumber}">1002-862-000000</td>
+                        </tr>
+                        <tr>
+                            <th>출금가능금액</th>
+                            <td th:text="|${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}원|">0원</td>
+                        </tr>
+                        <tr>
+                            <th>계좌비밀번호</th>
+                            <td>
+                                <!-- 비밀번호는 th:field 를 쓰지 않는다 (오류 후 다시 그릴 때 값이 남지 않도록) -->
+                                <input type="password" class="form-input pw-input" name="password"
+                                       maxlength="4" inputmode="numeric" autocomplete="off">
+                                <span class="sub-text"
+                                      th:if="${account.passwordFailCount > 0}"
+                                      th:classappend="${account.passwordFailLimitReached} ? 'text-red'"
+                                      th:text="|비밀번호 오류 ${account.passwordFailCount}회 (5회 오류 시 출금 제한)|">비밀번호 오류 1회</span>
+                                <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>출금금액</th>
+                            <td>
+                                <div class="amount-input-wrap">
+                                    <input type="number" min="1" class="form-input amount-input js-amount"
+                                           th:field="*{amount}" placeholder="0">
+                                    <span class="unit">원</span>
+                                </div>
+                                <div class="amount-shortcut">
+                                    <button type="button" data-add="1000000">100만</button>
+                                    <button type="button" data-add="500000">50만</button>
+                                    <button type="button" data-add="100000">10만</button>
+                                    <button type="button" data-add="50000">5만</button>
+                                    <button type="button" data-add="10000">1만</button>
+                                    <button type="button" th:attr="data-all=${account.balance ?: 0}">전액</button>
+                                    <button type="button" class="btn-dark" data-clear>정정</button>
+                                </div>
+                                <p class="field-error" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>통장표시내용</th>
+                            <td>
+                                <input type="text" class="form-input" style="width: 300px;" maxlength="20"
+                                       th:field="*{content}" placeholder="최대 20자">
+                                <span class="sub-text">(생략 시 "출금" 표시)</span>
+                                <p class="field-error" th:if="${#fields.hasErrors('content')}" th:errors="*{content}"></p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="notice-section">
+                <div class="notice-header">📄 알아두세요!</div>
+                <div class="notice-content">
+                    <ul>
+                        <li>현금 출금은 이체 한도와 별개로 처리됩니다.</li>
+                        <li>계좌 비밀번호를 5회 잘못 입력하면 출금이 제한되며, 관리자 확인 후 해제할 수 있습니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="submit-action">
+                <a class="btn-outline" th:href="@{/mybank/accounts/{id}(id=${account.accountId})}">취소</a>
+                <button type="submit" class="btn-submit">출금</button>
+            </div>
+        </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>
+</body>
+</html>
