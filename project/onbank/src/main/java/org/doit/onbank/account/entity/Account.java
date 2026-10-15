@@ -143,6 +143,28 @@ public class Account {
 		this.balance -= amount;
 	}
 
+	// 이체 출금: 출금(withdraw)과 같은 검사를 한 뒤 당일 누적 이체 금액에 더한다
+	// 1일 한도 검사는 회원 한도가 필요하므로 Service 에서 이 메서드를 부르기 전에 한다
+	public void transferOut(long amount, LocalDateTime now) {
+		withdraw(amount, now);	// 안에서 touchTransaction(now) → 날짜가 바뀌었으면 누적 금액이 0으로 초기화됨
+		this.todayTransferAmount = (todayTransferAmount == null ? 0L : todayTransferAmount) + amount;
+	}
+
+	// 이체 입금: 입금(deposit)과 같다. 받는 쪽은 한도와 무관
+	public void transferIn(long amount, LocalDateTime now) {
+		deposit(amount, now);
+	}
+
+	// 해당 날짜에 이 계좌에서 이체한 금액 (값을 바꾸지 않고 조회만)
+	// 최종 거래일이 그 날짜가 아니면 저장된 누적 금액은 지난 날짜 것이므로 0
+	public long getTodayTransferAmountOn(LocalDate date) {
+		if (lastTransactionAt == null || !lastTransactionAt.toLocalDate().equals(date)
+				|| todayTransferAmount == null) {
+			return 0L;
+		}
+		return todayTransferAmount;
+	}
+
 	public boolean canDeposit() {
 		return AccountStatus.ACTIVE.equals(accountStatus) || AccountStatus.FROZEN.equals(accountStatus);
 	}

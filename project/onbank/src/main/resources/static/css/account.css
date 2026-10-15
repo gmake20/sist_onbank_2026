@@ -436,7 +436,7 @@
 }
 
 /* =========================================
-   [입출금] my-accounts / detail / deposit / withdraw
+   [입출금] list / detail / deposit / withdraw
    ========================================= */
 
 /* a 태그로 만든 버튼도 button 과 같은 모양으로 */
@@ -507,4 +507,20 @@ a.btn-sm, a.btn-outline {
 .btn-submit:disabled {
     background-color: #8a9bb0;
     cursor: default;
+}
+
+/* 이체 : 확인 단계 영역 (hidden 속성이 display 규칙에 덮이지 않도록) */
+.transfer-confirm {
+    border-top: 2px solid #003366;
+    padding-top: 20px;
+}
+
+.transfer-confirm[hidden],
+.js-input-action[hidden] {
+    display: none;
+}
+
+a.btn-submit {
+    display: inline-block;
+    text-decoration: none;
 }

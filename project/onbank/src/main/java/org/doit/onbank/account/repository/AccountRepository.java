@@ -24,4 +24,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
 	// 계좌 목록 : 회원의 계좌를 개설 순서대로
 	List<Account> findByMemberIdOrderByAccountIdAsc(Long memberId);
+
+	// 이체한도 : members 의 한도 컬럼 2개만 조회 (팀원1 테이블, Member 엔티티에 필드가 없어 SQL 로 직접 읽음)
+	@Query(value = "select daily_transfer_limit as dailyTransferLimit, once_transfer_limit as onceTransferLimit"
+			+ " from members where member_id = :memberId", nativeQuery = true)
+	Optional<MemberTransferLimit> findTransferLimit(@Param("memberId") Long memberId);
 }

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>이체 완료 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <div class="page-header-flex">
+            <h2 class="page-title" style="margin-bottom: 0; border: none;">즉시이체/예약이체</h2>
+            <div class="step-indicator">
+                <span class="step"><span class="num">1</span></span>
+                <span class="step"><span class="num">2</span></span>
+                <span class="step active"><span class="num">3</span> 이체완료</span>
+            </div>
+        </div>
+
+        <!-- 이체 영수증 (리다이렉트 직후 한 번만 보임) -->
+        <div class="receipt-box" th:object="${receipt}">
+            <strong class="receipt-title">이체가 완료되었습니다.</strong>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>출금계좌번호</th>
+                        <td th:text="${receipt.fromAccountNumber()}">TEST-0001</td>
+                    </tr>
+                    <tr>
+                        <th>입금은행 / 계좌번호</th>
+                        <td th:text="|ONBANK ${receipt.toAccountNumber()}|">ONBANK TEST-0002</td>
+                    </tr>
+                    <tr>
+                        <th>받는 분</th>
+                        <td th:text="${receipt.recipientName()}">홍*동</td>
+                    </tr>
+                    <tr>
+                        <th>이체금액</th>
+                        <td><strong th:text="|${#numbers.formatInteger(receipt.amount(), 1, 'COMMA')}원|">10,000원</strong></td>
+                    </tr>
+                    <tr>
+                        <th>출금 후 잔액</th>
+                        <td th:text="|${#numbers.formatInteger(receipt.balanceAfter(), 1, 'COMMA')}원|">90,000원</td>
+                    </tr>
+                    <tr>
+                        <th>내 통장 표시</th>
+                        <td th:text="${receipt.senderMemo()}">홍길동</td>
+                    </tr>
+                    <tr>
+                        <th>받는 분 통장 표시</th>
+                        <td th:text="${receipt.receiverMemo()}">테스트</td>
+                    </tr>
+                    <tr>
+                        <th>이체일시</th>
+                        <td th:text="${#temporals.format(receipt.transferAt(), 'yyyy.MM.dd HH:mm:ss')}">2026.10.15 14:30:12</td>
+                    </tr>
+                    <tr>
+                        <th>거래번호</th>
+                        <td th:text="${receipt.transactionSqno()}">20261015143012-482915</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="submit-action">
+            <a class="btn-outline" th:href="@{/mybank/accounts}">내 계좌</a>
+            <a class="btn-submit" th:href="@{/mybank/transfer}">추가 이체</a>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+</body>
+</html>
