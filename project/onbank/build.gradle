@@ -31,7 +31,9 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-	
+	// 관리자 화면 공통 레이아웃 (layout: decoration)
+	implementation 'nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect'
+
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 	// Spring Security (로그인/로그아웃, 권한)
