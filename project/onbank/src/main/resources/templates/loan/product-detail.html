@@ -15,13 +15,13 @@
 		<nav class="onloan-subnav">
 			<div class="onloan-container onloan-subitems">
 				<a href="#">예금</a><a href="#">펀드</a><a class="current"
-					th:href="@{/loan/products}">대출</a><a href="#">신탁</a><a href="#">ISA</a><a
+					th:href="@{/loan/categories/credit}">대출</a><a href="#">신탁</a><a href="#">ISA</a><a
 					href="#">보험/공제</a><a href="#">골드</a><a href="#">외화예금</a>
 			</div>
 		</nav>
 		<div class="onloan-container">
 			<p class="onloan-crumb">
-				개인뱅킹 〉 금융상품 〉 대출 〉 <a th:href="@{/loan/products}">신용대출</a> 〉 <b>상품상세</b>
+				개인뱅킹 〉 금융상품 〉 대출 〉 <a th:href="@{/loan/categories/credit}">신용대출</a> 〉 <b>상품상세</b>
 			</p>
 			<div class="onloan-grid">
 				<aside class="onloan-sidebar">
@@ -30,10 +30,23 @@
 						<div class="onloan-sidehead">
 							대출상품/신청 <span>⌄</span>
 						</div>
-						<a class="onloan-selected" th:href="@{/loan/products}">신용대출</a><a
-							href="#">담보대출</a><a href="#">전월세/반환보증</a><a href="#">자동차대출</a><a
-							href="#">주택도시기금대출</a>
-					</div>
+							<a th:href="@{/loan/categories/credit}"
+								th:classappend="${categoryKey == 'credit'} ? 'onloan-selected' : ''">
+								신용대출 </a> <a th:href="@{/loan/categories/mortgage}"
+								th:classappend="${categoryKey == 'mortgage'} ? 'onloan-selected' : ''">
+								담보대출 </a> <a th:href="@{/loan/categories/jeonse}"
+								th:classappend="${categoryKey == 'jeonse'} ? 'onloan-selected' : ''">
+								전월세/반환보증 </a> <a th:href="@{/loan/categories/auto}"
+								th:classappend="${categoryKey == 'auto'} ? 'onloan-selected' : ''">
+								자동차대출 </a> <a th:href="@{/loan/categories/group}"
+								th:classappend="${categoryKey == 'group'} ? 'onloan-selected' : ''">
+								집단중도금/이주비대출 </a> <a th:href="@{/loan/categories/housing}"
+								th:classappend="${categoryKey == 'housing'} ? 'onloan-selected' : ''">
+								주택도시기금대출 </a> <a th:href="@{/loan/categories/business}"
+								th:classappend="${categoryKey == 'business'} ? 'onloan-selected' : ''">
+								개인사업자대출 </a>
+						</div>
+
 					<div class="onloan-side-extra">
 						<a href="#">대출진행현황</a><a href="#">대출관리</a><a href="#">대출 가이드</a>
 					</div>
@@ -66,12 +79,18 @@
 							<div>
 								<span class="onloan-symbol orange">↗</span>
 								<div>
-									<small>한도 (예시)</small><b th:text="${product.limit}">최대 1억원</b>
+									<small>최고</small><b th:text="${product.limit}">최대 1억원</b>
 								</div>
 							</div>
 						</div>
 						<div class="onloan-detail-actions">
-							<a class="onloan-btn ghost" th:href="@{/loan/products}">목록보기</a><a
+						 <!-- 대출 신청하기 -->
+						    <a class="onloan-btn loan-apply-btn"
+						       th:href="@{/loan/apply(productId=${product.id})}">
+						        대출 신청하기
+						        <span aria-hidden="true">→</span>
+						    </a>
+							<a class="onloan-btn ghost" th:href="@{/loan/categories/credit}">목록보기</a><a
 								class="onloan-btn primary" href="#interest-calculator">대출 이자
 								계산하기</a>
 						</div>
@@ -373,7 +392,7 @@
 						</div>
 
 						<div class="loan-detail-bottom-actions">
-							<a th:href="@{/loan/products}" class="onloan-btn ghost">목록</a>
+							<a th:href="@{/loan/categories/credit}" class="onloan-btn ghost">목록</a>
 							<button type="button" class="onloan-btn ghost"
 								onclick="window.print()">인쇄</button>
 						</div>

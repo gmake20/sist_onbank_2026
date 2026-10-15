@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>대출 신청 완료 - ONBANK</title>
+
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet"
+          th:href="@{/css/loan/loan-apply.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+<main class="loan-apply-page">
+
+    <div class="loan-apply-container loan-complete">
+
+        <div class="complete-icon">✓</div>
+
+        <h1>대출 신청이 접수되었습니다.</h1>
+
+        <p>
+            대출 신청이 정상 접수되었습니다.
+            현재 심사대기 상태입니다.
+        </p>
+
+        <div class="complete-details">
+            <div>
+                <span>신청번호</span>
+                <strong th:text="${application.id}">-</strong>
+            </div>
+
+            <div>
+                <span>상품명</span>
+                <strong th:text="${application.product.name}">
+                    -
+                </strong>
+            </div>
+
+            <div>
+                <span>신청금액</span>
+                <strong
+                    th:text="${#numbers.formatDecimal(
+                        application.requestedAmount, 1, 'COMMA', 0, 'POINT'
+                    )} + '원'">
+                    -
+                </strong>
+            </div>
+
+            <div>
+                <span>신청기간</span>
+                <strong
+                    th:text="${application.requestedMonths} + '개월'">
+                    -
+                </strong>
+            </div>
+
+            <div>
+                <span>심사상태</span>
+                <strong>심사대기</strong>
+            </div>
+        </div>
+
+        <a th:href="@{/loan/products}"
+           class="loan-submit loan-back-link">
+            대출 상품 목록으로
+        </a>
+
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+</body>
+</html>

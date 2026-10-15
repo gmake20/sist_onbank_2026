@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>대출 신청 - ONBANK</title>
+
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet"
+          th:href="@{/css/loan/loan-apply.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+<main class="loan-apply-page">
+    <div class="loan-apply-container">
+
+        <header class="loan-apply-heading">
+            <span>ONBANK LOAN APPLICATION</span>
+            <h1>대출 신청</h1>
+            <p>신청하실 대출 조건을 확인해 주세요.</p>
+        </header>
+
+        <section class="loan-selected-product">
+            <small>선택한 대출상품</small>
+            <h2 th:text="${product.name}">상품명</h2>
+            <p th:text="${product.subtitle}">상품 설명</p>
+
+            <div class="loan-product-summary">
+                <div>
+                    <span>대출 대상</span>
+                    <strong th:text="${product.target}">-</strong>
+                </div>
+                <div>
+                    <span>대출 한도</span>
+                    <strong th:text="${product.limit}">-</strong>
+                </div>
+                <div>
+                    <span>안내 연 이자율</span>
+                    <strong th:text="${product.annualInterestRate != null
+                        ? product.annualInterestRate + '%'
+                        : '별도 안내'}">-</strong>
+                </div>
+            </div>
+        </section>
+
+        <form th:action="@{/loan/apply}"
+              th:object="${loanApplicationForm}"
+              method="post"
+              class="loan-apply-form">
+
+            <input type="hidden"
+                   th:field="*{productId}">
+
+            <input type="hidden"
+                   th:if="${_csrf != null}"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <h2>신청 조건 입력</h2>
+
+            <div class="loan-form-group">
+                <label for="requestedAmount">
+                    신청 금액 (원)
+                </label>
+
+                <input id="requestedAmount"
+                       type="number"
+                       th:field="*{requestedAmount}"
+                       min="10000"
+                       step="10000"
+                       placeholder="신청 금액을 입력하세요"
+                       required>
+
+                <small class="loan-error"
+                       th:if="${#fields.hasErrors('requestedAmount')}"
+                       th:errors="*{requestedAmount}">
+                </small>
+            </div>
+
+            <div class="loan-form-group">
+                <label for="requestedMonths">
+                    대출 기간 (개월)
+                </label>
+
+                <input id="requestedMonths"
+                       type="number"
+                       th:field="*{requestedMonths}"
+                       min="1"
+                       th:attr="max=${product.maxTermMonths != null
+                           ? product.maxTermMonths : 600}"
+                       placeholder="대출 기간을 입력하세요"
+                       required>
+
+                <small class="loan-error"
+                       th:if="${#fields.hasErrors('requestedMonths')}"
+                       th:errors="*{requestedMonths}">
+                </small>
+            </div>
+
+            <div class="loan-agreement">
+                <h2>약관 동의</h2>
+
+                <label class="loan-checkbox">
+                    <input type="checkbox"
+                           th:field="*{agreedToTerms}"
+                           required>
+
+                    <span>
+                        [필수] 대출 신청에 관한 약관 및
+                        개인정보 처리 안내를 확인하고 동의합니다.
+                    </span>
+                </label>
+
+                <small class="loan-error"
+                       th:if="${#fields.hasErrors('agreedToTerms')}"
+                       th:errors="*{agreedToTerms}">
+                </small>
+
+                <p class="loan-note">
+                    실제 서비스에서는 신청 동의 전에
+                    적용 약관과 개인정보 처리 안내 전문을
+                    확인할 수 있어야 합니다.
+                </p>
+            </div>
+
+            <div class="loan-apply-actions">
+                <a class="loan-cancel"
+                   th:href="@{/loan/categories/{category}/{id}(
+                        category=${product.category},
+                        id=${product.id}
+                   )}">
+                    취소
+                </a>
+
+                <button class="loan-submit" type="submit">
+                    대출 신청 접수하기
+                </button>
+            </div>
+
+        </form>
+
+        <p class="loan-notice">
+            ※ 신청 접수는 대출 승인이 아닙니다.
+            대출 가능 여부와 최종 조건은 심사 후 결정됩니다.
+        </p>
+
+    </div>
+</main>
+
+<div th:replace="~{fragments/footer :: footerFragment}"></div>
+</body>
+</html>

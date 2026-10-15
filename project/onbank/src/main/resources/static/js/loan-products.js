@@ -30,9 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     button.textContent = selected ? '★' : '☆';
     button.setAttribute('aria-label', selected ? '관심상품 해제' : '관심상품 추가');
   }));
-  document.querySelectorAll('.onloan-category button').forEach(btn => btn.addEventListener('click', () => {
-    if (!btn.classList.contains('active')) alert('해당 상품 분류는 아직 준비 중입니다.');
-  }));
+  
 });
 
 // ONBANK 대출 상품 상세 탭
@@ -76,4 +74,100 @@ if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initLoanProductTabs);
 } else {
     initLoanProductTabs();
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("filterForm");
+    const productList = document.getElementById("productList");
+    const countElement = document.getElementById("visibleCount");
+    const sortElement = document.getElementById("productSort");
+
+    // 상품 목록 페이지에서만 실행
+    if (!form || !productList) return;
+
+    const products = Array.from(
+        productList.querySelectorAll(".onloan-product")
+    );
+
+    function filterProducts() {
+
+        const keyword = document.getElementById("productSearch")
+            .value.trim().toLowerCase();
+
+        const customer = form.querySelector(
+            'input[name="customer"]:checked'
+        ).value;
+
+        let count = 0;
+
+        products.forEach(product => {
+
+            const name = (product.dataset.name || "").toLowerCase();
+            const target = product.dataset.target || "";
+
+            const nameMatch = name.includes(keyword);
+
+            const customerMatch =
+                customer === "all" || target.includes(customer);
+
+            const visible = nameMatch && customerMatch;
+
+            product.hidden = !visible;
+
+            if (visible) count++;
+        });
+
+        countElement.textContent = count;
+
+        const emptyMessage =
+            document.getElementById("emptyProducts");
+
+        if (emptyMessage) {
+            emptyMessage.hidden = count !== 0;
+        }
+    }
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        filterProducts();
+    });
+
+    form.addEventListener("reset", function () {
+        setTimeout(filterProducts, 0);
+    });
+
+    // 상품명 정렬
+    if (sortElement) {
+        sortElement.addEventListener("change", function () {
+
+            const sorted = [...products];
+
+            if (this.value === "name") {
+                sorted.sort((a, b) =>
+                    (a.dataset.name || "").localeCompare(
+                        b.dataset.name || "", "ko"
+                    )
+                );
+            }
+
+            sorted.forEach(product => {
+                productList.appendChild(product);
+            });
+        });
+    }
+
+    filterProducts();
+});
+
+function getProductDetailUrl(product) {
+
+    const category = product.category || currentCategory;
+
+    if (category === "credit") {
+        return `/loan/products/${encodeURIComponent(product.id)}`;
+    }
+
+    return `/loan/categories/${encodeURIComponent(category)}/${encodeURIComponent(product.id)}`;
 }

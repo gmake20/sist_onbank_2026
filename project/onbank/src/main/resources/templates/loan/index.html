@@ -37,30 +37,47 @@
 				<span class="hero-link-note">대출상품 안내 예시</span>
 				<div class="hero-dots">‹ • ● • Ⅱ ›</div>
 			</div>
+
 			<div class="hero-shortcuts">
 
-				<div onclick="location.href='/loan/products'"
+				<!-- 신용대출 -->
+				<div onclick="location.href='/loan/categories/credit'"
 					style="cursor: pointer;">
 					<span>♙</span> 신용대출
 				</div>
 
-				<div>
-					<span>▤</span>담보대출
+				<!-- 담보대출 -->
+				<div onclick="location.href='/loan/categories/mortgage'"
+					style="cursor: pointer;">
+					<span>▤</span> 담보대출
 				</div>
-				<div>
-					<span>⌂</span>전월세/반환보증
+
+				<!-- 전월세/반환보증 -->
+				<div onclick="location.href='/loan/categories/jeonse'"
+					style="cursor: pointer;">
+					<span>⌂</span> 전월세/반환보증
 				</div>
-				<div>
-					<span>♧</span>자동차대출
+
+				<!-- 자동차대출 -->
+				<div onclick="location.href='/loan/categories/auto'"
+					style="cursor: pointer;">
+					<span>♧</span> 자동차대출
 				</div>
-				<div>
-					<span>⌂</span>집단중도금/<br>이주비대출
+
+				<!-- 집단중도금/이주비대출 -->
+				<div onclick="location.href='/loan/categories/group'"
+					style="cursor: pointer;">
+					<span>⌂</span> 집단중도금/<br>이주비대출
 				</div>
-				<div>
-					<span>▥</span>주택도시기금대출
+
+				<!-- 주택도시기금대출 -->
+				<div onclick="location.href='/loan/categories/housing'"
+					style="cursor: pointer;">
+					<span>▥</span> 주택도시기금대출
 				</div>
 
 			</div>
+
 		</section>
 		<div class="loan-search-bar">
 			<div class="content-width search-inner">
