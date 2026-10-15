@@ -4,18 +4,18 @@
 --   공용 DB에는 한 번만 실행 (다시 실행하면 UNIQUE 제약 때문에 실패함)
 --
 -- 고객 계정 (/login)
---   user1  / User1234!   : 본인확인 완료 → 2주차부터 계좌/이체 개발에 사용
---   user2  / User1234!   : 본인확인 전  → 첫 계좌 개설(본인확인 신청) 흐름 테스트
---   user3  / User1234!   : 본인확인 심사중 → 직원 심사 화면 테스트
+--   user1  / user1234!   : 본인확인 완료 → 2주차부터 계좌/이체 개발에 사용
+--   user2  / user1234!   : 본인확인 전  → 첫 계좌 개설(본인확인 신청) 흐름 테스트
+--   user3  / user1234!   : 본인확인 심사중 → 직원 심사 화면 테스트
 --     ※ user3의 개설대기(PENDING) 계좌는 팀원2의 account 시드에서 함께 만들어야 함
 --
--- 직원 계정 (/employee/login) - 비밀번호 모두 Staff1234!, 개발 편의상 비밀번호 변경 강제 해제
+-- 직원 계정 (/employee/login) - 비밀번호 모두 staff1234!, 개발 편의상 비밀번호 변경 강제 해제
 --   E0001 : MANAGER      (본점)     - 승인 업무
 --   E0002 : MANAGER      (강남지점) - 승인 업무 (동결, 한도, 대출, 상품, 카드)
 --   E0003 : STAFF        (강남지점) - 조회, 본인확인 심사, 고객센터
 --   ※ 시스템 관리자 계정은 팀원4의 ADMIN 테이블 시드에서 만든다
 --
--- 비밀번호 해시는 Spring Security 7.1.1 BCrypt로 일치 확인함 (2026-10-12)
+-- 비밀번호 해시는 Spring Security 7.1.1 BCrypt로 일치 확인함 (2026-10-15)
 -- =====================================================================
 
 SET NAMES utf8mb4;
@@ -75,42 +75,42 @@ CROSS JOIN (SELECT 'WITHDRAW' AS code UNION ALL
 WHERE b.name = '모의은행 잠실 ATM';
 
 -- ---------------------------------------------------------------------
--- employee (비밀번호: Staff1234!)
+-- employee (비밀번호: staff1234!)
 -- ---------------------------------------------------------------------
 INSERT INTO employee (employee_no, password, name, email, phone, branch_id, position,
                       role, status, temp_pw_yn, hired_at)
-SELECT 'E0001', '$2a$10$tjbLDI3KlIrVr/Flis8YAeMfn7vJRFIPin7Gdl6anU3okK/SmnUau',
+SELECT 'E0001', '$2a$10$NrocrI952ApEg11Q5hQngOxt22AMTPKRk2nQrIsK.gAytIzKqIlzu',
        '최본점', 'e0001@mockbank.local', '0215880100', branch_id, '차장',
        'MANAGER', 'ACTIVE', 'N', DATE '2015-03-02'
 FROM branch WHERE name = '모의은행 본점';
 
 INSERT INTO employee (employee_no, password, name, email, phone, branch_id, position,
                       role, status, temp_pw_yn, hired_at)
-SELECT 'E0002', '$2a$10$tjbLDI3KlIrVr/Flis8YAeMfn7vJRFIPin7Gdl6anU3okK/SmnUau',
+SELECT 'E0002', '$2a$10$NrocrI952ApEg11Q5hQngOxt22AMTPKRk2nQrIsK.gAytIzKqIlzu',
        '정책임', 'e0002@mockbank.local', '0215880201', branch_id, '과장',
        'MANAGER', 'ACTIVE', 'N', DATE '2017-07-03'
 FROM branch WHERE name = '모의은행 강남지점';
 
 INSERT INTO employee (employee_no, password, name, email, phone, branch_id, position,
                       role, status, temp_pw_yn, hired_at)
-SELECT 'E0003', '$2a$10$tjbLDI3KlIrVr/Flis8YAeMfn7vJRFIPin7Gdl6anU3okK/SmnUau',
+SELECT 'E0003', '$2a$10$NrocrI952ApEg11Q5hQngOxt22AMTPKRk2nQrIsK.gAytIzKqIlzu',
        '한창구', 'e0003@mockbank.local', '0215880202', branch_id, '대리',
        'STAFF', 'ACTIVE', 'N', DATE '2021-01-04'
 FROM branch WHERE name = '모의은행 강남지점';
 
 -- ---------------------------------------------------------------------
--- members (비밀번호: User1234!)
+-- members (비밀번호: user1234!)
 --   가입일을 과거로 두어 "가입 → 본인확인 신청 → 심사" 순서가 맞도록 함
 -- ---------------------------------------------------------------------
 INSERT INTO members (login_id, password, name, email, phone, birth_date,
                      status, verification_status, terms_agreed_at, marketing_agree_yn, created_at) VALUES
-('user1', '$2a$10$n3/sWtwUkO4SdI0SMtxz7.EFq5ajWIuzj8xS9Cm0YjWUXxlUzzIai',
+('user1', '$2a$10$eJgr1iXLv5X33QVETePSGO2cklXGiBaQeqNjkXNMfeGlcMTcWII.K',
  '김테스트', 'user1@mockbank.local', '01011111111', DATE '1995-03-15',
  'ACTIVE', 'VERIFIED', NOW(6) - INTERVAL 30 DAY, 'Y', NOW(6) - INTERVAL 30 DAY),
-('user2', '$2a$10$n3/sWtwUkO4SdI0SMtxz7.EFq5ajWIuzj8xS9Cm0YjWUXxlUzzIai',
+('user2', '$2a$10$eJgr1iXLv5X33QVETePSGO2cklXGiBaQeqNjkXNMfeGlcMTcWII.K',
  '이신규', 'user2@mockbank.local', '01022222222', DATE '1998-07-20',
  'ACTIVE', 'NONE',     NOW(6) - INTERVAL 3 DAY,  'N', NOW(6) - INTERVAL 3 DAY),
-('user3', '$2a$10$n3/sWtwUkO4SdI0SMtxz7.EFq5ajWIuzj8xS9Cm0YjWUXxlUzzIai',
+('user3', '$2a$10$eJgr1iXLv5X33QVETePSGO2cklXGiBaQeqNjkXNMfeGlcMTcWII.K',
  '박심사', 'user3@mockbank.local', '01033333333', DATE '2000-11-02',
  'ACTIVE', 'PENDING',  NOW(6) - INTERVAL 1 DAY,  'N', NOW(6) - INTERVAL 1 DAY);
 
@@ -134,3 +134,15 @@ SELECT member_id, 'DRIVER_LICENSE', DATE '2021-02-01', '샘플은행', '333-***-
 FROM members WHERE login_id = 'user3';
 
 COMMIT;
+
+
+-- =====================================================================
+-- 변경 이력 (공용 DB에 이미 시드가 들어가 있으면 아래 UPDATE만 실행)
+-- =====================================================================
+-- [2026-10-15] 고객 user1~3 비밀번호 User1234! → user1234!
+-- UPDATE members SET password = '$2a$10$eJgr1iXLv5X33QVETePSGO2cklXGiBaQeqNjkXNMfeGlcMTcWII.K'
+--  WHERE login_id IN ('user1', 'user2', 'user3');
+
+-- [2026-10-15] 직원 E0001~E0003 비밀번호 Staff1234! → staff1234!
+-- UPDATE employee SET password = '$2a$10$NrocrI952ApEg11Q5hQngOxt22AMTPKRk2nQrIsK.gAytIzKqIlzu'
+--  WHERE employee_no IN ('E0001', 'E0002', 'E0003');

@@ -35,10 +35,17 @@ public class SecurityConfig {
 		return new BCryptPasswordEncoder();
 	}
 
-	// 직원 권한 : MANAGER는 STAFF 권한을 포함
+	// 권한 계층 : 위 권한이 아래 권한을 포함한다 (hasRole 검사, @PreAuthorize 모두 적용)
+	// - 직원   : MANAGER(책임자) > STAFF(일반 직원)
+	// - 관리자 : SUPER_ADMIN(총괄) > OPERATOR(운영), SERVICE(고객지원)
+	//           OPERATOR와 SERVICE는 서로 포함하지 않음 (운영 관리자는 공지 관리 불가, 고객지원 관리자는 회원·계좌 조회 불가)
+	// 직원과 관리자 권한 이름이 겹치지 않으므로 계층 하나에 함께 둔다
 	@Bean
 	static RoleHierarchy roleHierarchy() {
-		return RoleHierarchyImpl.fromHierarchy("ROLE_MANAGER > ROLE_STAFF");
+		return RoleHierarchyImpl.withDefaultRolePrefix()
+				.role("MANAGER").implies("STAFF")
+				.role("SUPER_ADMIN").implies("OPERATOR", "SERVICE")
+				.build();
 	}
 
 	// 관리자 영역 (admin 테이블)
