@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>회원가입 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <style>
+        .signup-wrap { max-width: 440px; margin: 60px auto; padding: 40px; border: 1px solid #e5e5e5; border-radius: 12px; }
+        .signup-wrap h2 { margin: 0 0 24px; color: #0b1d3a; text-align: center; }
+        .signup-wrap label { display: block; margin-bottom: 6px; font-size: 14px; color: #333; }
+        .signup-wrap input[type=text], .signup-wrap input[type=password],
+        .signup-wrap input[type=email], .signup-wrap input[type=tel], .signup-wrap input[type=date] {
+            width: 100%; box-sizing: border-box; padding: 12px;
+            border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        .signup-wrap .field { margin-bottom: 16px; }
+        .signup-wrap .agree { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+        .signup-wrap button { width: 100%; margin-top: 12px; padding: 12px; border: 0; border-radius: 6px;
+                              background: #0b1d3a; color: #fff; font-size: 16px; cursor: pointer; }
+        .signup-error { color: #c0392b; font-size: 13px; margin: 6px 0 0; }
+        .signup-global-error { color: #c0392b; font-size: 14px; margin: 0 0 16px; }
+        .signup-link { margin-top: 16px; text-align: center; font-size: 14px; }
+        .signup-wrap .inline { display: flex; gap: 8px; align-items: center; }
+        .signup-wrap .inline input { flex: 1; min-width: 0; }
+        .signup-wrap .inline + .inline { margin-top: 8px; }
+        .signup-wrap .btn-sub { width: auto; margin-top: 0; padding: 12px 14px; font-size: 14px; white-space: nowrap;
+                                background: #fff; color: #0b1d3a; border: 1px solid #0b1d3a; }
+        .signup-wrap .btn-sub:disabled { color: #999; border-color: #ccc; cursor: default; }
+        .signup-wrap input[readonly] { background: #f3f3f3; }
+        .phone-timer { min-width: 42px; color: #c0392b; font-size: 14px; }
+        .phone-msg { font-size: 13px; margin: 6px 0 0; color: #555; }
+        .phone-msg.ok { color: #1a7f37; }
+        .phone-msg.fail { color: #c0392b; }
+    </style>
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="signup-wrap">
+        <h2>회원가입</h2>
+
+        <!-- th:action 을 써야 CSRF 토큰이 자동으로 들어감 -->
+        <form th:action="@{/signup}" th:object="${form}" method="post" novalidate>
+            <!-- 아이디·휴대폰·이메일 중복 등 서비스에서 걸린 오류 -->
+            <p class="signup-global-error" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></p>
+
+            <div class="field">
+                <label for="loginId">아이디</label>
+                <input type="text" th:field="*{loginId}" placeholder="영문 소문자·숫자 5~20자" autofocus>
+                <p class="signup-error" th:if="${#fields.hasErrors('loginId')}" th:errors="*{loginId}"></p>
+            </div>
+
+            <!-- 비밀번호는 오류로 화면이 다시 열리면 비워진다 (th:field가 type=password 값은 출력하지 않음) -->
+            <div class="field">
+                <label for="password">비밀번호</label>
+                <input type="password" th:field="*{password}" placeholder="영문·숫자·특수문자 포함 8~20자">
+                <p class="signup-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+            </div>
+
+            <div class="field">
+                <label for="passwordConfirm">비밀번호 확인</label>
+                <input type="password" th:field="*{passwordConfirm}">
+                <p class="signup-error" th:if="${#fields.hasErrors('passwordConfirm')}" th:errors="*{passwordConfirm}"></p>
+            </div>
+
+            <div class="field">
+                <label for="name">이름</label>
+                <input type="text" th:field="*{name}">
+                <p class="signup-error" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+            </div>
+
+            <div class="field">
+                <label for="birthDate">생년월일</label>
+                <input type="date" th:field="*{birthDate}">
+                <p class="signup-error" th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}"></p>
+            </div>
+
+            <!-- 휴대폰 인증 : 아래 스크립트가 /api/phone/send, /api/phone/verify 를 호출 -->
+            <!-- 인증을 마친 뒤 다른 오류로 화면이 다시 열리면 인증 완료 상태로 표시 (phoneVerified) -->
+            <!-- 인증을 쓰지 않을 때(phoneVerificationEnabled=false)는 번호 입력칸만 표시 -->
+            <div class="field" th:unless="${phoneVerificationEnabled}">
+                <label for="phone">휴대폰 번호</label>
+                <input type="tel" th:field="*{phone}" placeholder="숫자만 입력 (예: 01012345678)" maxlength="11">
+                <p class="signup-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></p>
+            </div>
+            <div class="field" th:if="${phoneVerificationEnabled}">
+                <label for="phone">휴대폰 번호</label>
+                <div class="inline">
+                    <input type="tel" th:field="*{phone}" placeholder="숫자만 입력 (예: 01012345678)" maxlength="11"
+                           th:readonly="${phoneVerified}">
+                    <button type="button" id="btnSendCode" class="btn-sub" th:data-url="@{/api/phone/send}"
+                            th:disabled="${phoneVerified}" th:text="${phoneVerified} ? '인증 완료' : '인증번호 받기'">인증번호 받기</button>
+                </div>
+                <div class="inline" id="codeRow" hidden>
+                    <input type="text" id="phoneCode" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리"
+                           autocomplete="one-time-code">
+                    <span class="phone-timer" id="phoneTimer"></span>
+                    <button type="button" id="btnVerifyCode" class="btn-sub" th:data-url="@{/api/phone/verify}">확인</button>
+                </div>
+                <p id="phoneMsg" class="phone-msg" th:classappend="${phoneVerified} ? 'ok'"
+                   th:text="${phoneVerified} ? '휴대폰 인증이 완료되었습니다.' : ''"></p>
+                <p class="signup-error" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></p>
+            </div>
+
+            <div class="field">
+                <label for="email">이메일</label>
+                <input type="email" th:field="*{email}">
+                <p class="signup-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
+            </div>
+
+            <div class="field">
+                <label class="agree"><input type="checkbox" th:field="*{termsAgreed}"> (필수) 이용약관 및 개인정보 수집·이용에 동의합니다.</label>
+                <p class="signup-error" th:if="${#fields.hasErrors('termsAgreed')}" th:errors="*{termsAgreed}"></p>
+                <label class="agree"><input type="checkbox" th:field="*{marketingAgreed}"> (선택) 마케팅 정보 수신에 동의합니다.</label>
+            </div>
+
+            <button type="submit">가입하기</button>
+        </form>
+
+        <p class="signup-link">이미 회원이신가요? <a th:href="@{/login}">로그인</a></p>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:if="${phoneVerificationEnabled}">
+    (() => {
+        const form = document.querySelector('.signup-wrap form');
+        const csrf = form.querySelector('input[name="_csrf"]').value;	// th:action 이 넣어 준 CSRF 토큰
+        const phone = document.getElementById('phone');
+        const btnSend = document.getElementById('btnSendCode');
+        const btnVerify = document.getElementById('btnVerifyCode');
+        const codeRow = document.getElementById('codeRow');
+        const code = document.getElementById('phoneCode');
+        const timer = document.getElementById('phoneTimer');
+        const msg = document.getElementById('phoneMsg');
+        let expireTimer = null;
+        let resendTimer = null;
+
+        function showMsg(text, type) {
+            msg.textContent = text;
+            msg.className = 'phone-msg' + (type ? ' ' + type : '');
+        }
+
+        // 응답 : { ok, message }. 세션이 끝나 CSRF가 맞지 않으면 로그인 화면으로 redirect 되어 JSON이 아님
+        async function post(url, params) {
+            try {
+                const res = await fetch(url, { method: 'POST', body: new URLSearchParams({ ...params, _csrf: csrf }) });
+                if (res.redirected) {
+                    return { ok: false, message: '화면이 만료되었습니다. 새로고침 후 다시 시도해 주세요.' };
+                }
+                return await res.json();
+            } catch (e) {
+                return { ok: false, message: '잠시 후 다시 시도해 주세요.' };
+            }
+        }
+
+        function mmss(sec) {
+            return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+        }
+
+        function startExpireTimer(seconds) {
+            clearInterval(expireTimer);
+            let left = seconds;
+            timer.textContent = mmss(left);
+            expireTimer = setInterval(() => {
+                left--;
+                timer.textContent = mmss(Math.max(left, 0));
+                if (left <= 0) {
+                    clearInterval(expireTimer);
+                    btnVerify.disabled = true;
+                    showMsg('인증번호가 만료되었습니다. 다시 받아 주세요.', 'fail');
+                }
+            }, 1000);
+        }
+
+        // 재발송은 일정 시간 뒤에만 (서버도 같은 규칙으로 막음)
+        function startResendTimer(seconds) {
+            clearInterval(resendTimer);
+            let left = seconds;
+            btnSend.disabled = true;
+            btnSend.textContent = '재발송 (' + left + ')';
+            resendTimer = setInterval(() => {
+                left--;
+                btnSend.textContent = '재발송 (' + left + ')';
+                if (left <= 0) {
+                    clearInterval(resendTimer);
+                    btnSend.disabled = false;
+                    btnSend.textContent = '재발송';
+                }
+            }, 1000);
+        }
+
+        function resetCodeRow() {
+            clearInterval(expireTimer);
+            clearInterval(resendTimer);
+            codeRow.hidden = true;
+            code.value = '';
+            btnSend.disabled = false;
+            btnSend.textContent = '인증번호 받기';
+            showMsg('', '');
+        }
+
+        // 숫자만 입력. 번호를 바꾸면 이전 번호로 받은 인증번호는 쓸 수 없으므로 초기화
+        phone.addEventListener('input', () => {
+            phone.value = phone.value.replace(/\D/g, '');
+            if (!codeRow.hidden) {
+                resetCodeRow();
+            }
+        });
+        code.addEventListener('input', () => {
+            code.value = code.value.replace(/\D/g, '');
+        });
+
+        btnSend.addEventListener('click', async () => {
+            btnSend.disabled = true;
+            const data = await post(btnSend.dataset.url, { phone: phone.value });
+            if (!data.ok) {
+                btnSend.disabled = false;
+                showMsg(data.message, 'fail');
+                return;
+            }
+            codeRow.hidden = false;
+            code.value = '';
+            btnVerify.disabled = false;
+            code.focus();
+            showMsg(data.message, '');
+            startExpireTimer(data.expiresIn);
+            startResendTimer(data.resendIn);
+        });
+
+        btnVerify.addEventListener('click', async () => {
+            const data = await post(btnVerify.dataset.url, { phone: phone.value, code: code.value });
+            if (!data.ok) {
+                showMsg(data.message, 'fail');
+                return;
+            }
+            // 인증 완료 : 번호를 고정하고 더 이상 발송하지 않음
+            clearInterval(expireTimer);
+            clearInterval(resendTimer);
+            codeRow.hidden = true;
+            phone.readOnly = true;
+            btnSend.disabled = true;
+            btnSend.textContent = '인증 완료';
+            showMsg(data.message, 'ok');
+        });
+
+        // 인증번호 입력칸에서 Enter를 누르면 가입 폼이 제출되지 않고 확인 버튼이 눌리도록
+        code.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                btnVerify.click();
+            }
+        });
+    })();
+    </script>
+
+</body>
+</html>

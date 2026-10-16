@@ -18,6 +18,7 @@
         </nav>
         <div class="header-login">
             <!-- 로그인하지 않은 경우 -->
+            <a href="/signup" sec:authorize="isAnonymous()" style="padding: 8px 12px; color: #d4af37;">회원가입</a>
             <a href="/login" sec:authorize="isAnonymous()" style="border: 1px solid #d4af37; padding: 8px 20px; border-radius: 20px; color: #d4af37;">로그인</a>
             <!-- 로그인한 경우 : 로그아웃은 POST 폼으로 (CSRF 보호) -->
             <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()" style="display: flex; align-items: center; gap: 12px; margin: 0;">
