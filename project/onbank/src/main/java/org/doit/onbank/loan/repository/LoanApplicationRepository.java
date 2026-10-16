@@ -35,5 +35,8 @@ public interface LoanApplicationRepository
     List<LoanApplication> findAllByMember_MemberIdOrderByCreatedAtDesc(
             Long memberId
     );
+    
+    @EntityGraph(attributePaths = {"product", "member"})
+    List<LoanApplication> findAllByOrderByCreatedAtDesc();
  
 }
