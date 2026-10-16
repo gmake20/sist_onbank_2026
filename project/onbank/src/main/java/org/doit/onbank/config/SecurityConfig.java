@@ -118,6 +118,8 @@ public class SecurityConfig {
 			.userDetailsService(memberDetailsService)
 			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/login")))
 			.authorizeHttpRequests(auth -> auth
+				// 비회원 공개 : 회원가입, 가입용 휴대폰 인증 API (아래 anyRequest를 잠가도 열려 있어야 함)
+				.requestMatchers("/signup", "/api/phone/**").permitAll()
 				// 로그인한 고객만
 				.requestMatchers("/mybank/**").hasRole("USER")
 				.requestMatchers("/loan/apply", "/loan/apply/**").authenticated()
