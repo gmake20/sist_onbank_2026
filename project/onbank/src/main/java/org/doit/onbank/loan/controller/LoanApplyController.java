@@ -4,13 +4,17 @@ package org.doit.onbank.loan.controller;
 import org.doit.onbank.loan.dto.LoanApplicationForm;
 import org.doit.onbank.loan.service.LoanApplicationService;
 import org.doit.onbank.loan.service.LoanProductService;
-
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
+import org.doit.onbank.member.security.LoginMember;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,26 +27,15 @@ public class LoanApplyController {
     private final LoanProductService loanProductService;
     private final LoanApplicationService applicationService;
 
-    private String username(Authentication authentication) {
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
-            return null;
-        }
-
-        return authentication.getName();
-    }
-
     // 대출 신청서 화면
     @GetMapping
     public String applyPage(
             @RequestParam("productId") Long productId,
-            Authentication authentication,
+            @AuthenticationPrincipal LoginMember me,
             Model model
     ) {
         
-        if (authentication == null ) {
+        if (me == null ) {
         	return "redirect:/login";
         }
 
@@ -65,14 +58,17 @@ public class LoanApplyController {
             @Valid @ModelAttribute("loanApplicationForm")
             LoanApplicationForm form,
             BindingResult bindingResult,
-            Authentication authentication,
+            @AuthenticationPrincipal LoginMember me,
             Model model
     ) {
-    	 if (authentication == null ) {
-          	return "redirect:/login";
-          }
+    	if (me == null) {
+            return "redirect:/login";
+        }
 
-        String username = authentication.getName();
+        // 2. 로그인 회원 ID
+        Long memberId = me.getMemberId();
+
+        System.out.println("로그인 회원 ID = " + memberId);
 
         if (form.getProductId() == null) {
             bindingResult.rejectValue(
@@ -107,7 +103,7 @@ public class LoanApplyController {
         }
 
         Long applicationId =
-                applicationService.apply(form, username);
+                applicationService.apply(form, memberId);
 
         return "redirect:/loan/apply/complete/" + applicationId;
     }
@@ -116,20 +112,18 @@ public class LoanApplyController {
     @GetMapping("/complete/{id}")
     public String complete(
             @PathVariable("id") Long id,
-            Authentication authentication,
+            @AuthenticationPrincipal LoginMember me,
             Model model
     ) {
 
-        if (authentication == null ) {
+        if (me == null ) {
         	return "redirect:/login";
         }
         
-        String username = authentication.getName();
-
         var application =
-                applicationService.findMine(id, username);
+                applicationService.findMine(id, me.getMemberId());
 
-        model.addAttribute("application", application);
+        model.addAttribute("loanApplication", application);
 
         return "loan/loan-apply-complete";
     }

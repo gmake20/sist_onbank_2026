@@ -1,0 +1,452 @@
+@charset "UTF-8";
+
+.loan-progress-page {
+    min-height: 80vh;
+    padding: 60px 20px 100px;
+    background: #f7f9fc;
+    color: #172b4d;
+}
+
+.progress-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.progress-heading {
+    margin-bottom: 34px;
+}
+
+.page-label {
+    display: block;
+    color: #087f8c;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+}
+
+.progress-heading h1 {
+    font-size: 30px;
+    margin: 0 0 10px;
+}
+
+.progress-heading p {
+    color: #708090;
+    margin: 0;
+}
+
+/* 요약 카드 */
+.progress-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 45px;
+}
+
+.summary-card {
+    background: #fff;
+    padding: 26px;
+    border: 1px solid #e7edf3;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.summary-card span {
+    font-size: 14px;
+    color: #6b7785;
+}
+
+.summary-card strong {
+    font-size: 30px;
+    color: #143d65;
+}
+
+/* 신청 목록 */
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-heading h2 {
+    font-size: 22px;
+    margin: 0;
+}
+
+.section-heading > span {
+    color: #708090;
+    font-size: 14px;
+}
+
+.application-card {
+    background: #fff;
+    border: 1px solid #e2e9ef;
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 20px;
+}
+
+.application-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.application-number {
+    color: #8291a3;
+    font-size: 13px;
+}
+
+.application-top h3 {
+    font-size: 21px;
+    margin: 9px 0;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-pending {
+    color: #866000;
+    background: #fff5d6;
+}
+
+.status-reviewing {
+    color: #1764ad;
+    background: #e5f2ff;
+}
+
+.status-approved {
+    color: #08785f;
+    background: #dff7ed;
+}
+
+.status-other {
+    color: #666;
+    background: #edf0f3;
+}
+
+.application-info {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 28px 0;
+    border-bottom: 1px solid #edf1f5;
+}
+
+.application-info > div,
+.approval-details > div {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.application-info span,
+.approval-details span {
+    color: #788797;
+    font-size: 13px;
+}
+
+.application-info strong,
+.approval-details strong {
+    font-size: 16px;
+}
+
+/* 단계 진행 바 */
+.application-timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 35px 20px 25px;
+}
+
+.timeline-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: #a0aab5;
+    font-size: 13px;
+    text-align: center;
+    min-width: 80px;
+}
+
+.step-circle {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #e5eaf0;
+    color: #8a97a5;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.timeline-step.completed {
+    color: #117b83;
+    font-weight: 700;
+}
+
+.timeline-step.completed .step-circle {
+    background: #11858a;
+    color: #fff;
+}
+
+.timeline-line {
+    height: 3px;
+    max-width: 150px;
+    flex: 1;
+    margin-top: 18px;
+    background: #e5eaf0;
+}
+
+.timeline-line.active {
+    background: #11858a;
+}
+
+.progress-message {
+    background: #f3f8fa;
+    border-radius: 9px;
+    padding: 15px 20px;
+    color: #415e70;
+    font-size: 14px;
+}
+
+.progress-message p {
+    margin: 0;
+}
+
+.approval-details {
+    margin-top: 22px;
+    padding: 20px;
+    background: #f1fbf7;
+    border-radius: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* 버튼 */
+.progress-bottom {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.primary-link {
+    display: inline-block;
+    background: #123e66;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    padding: 14px 26px;
+    font-weight: 600;
+}
+
+.primary-link:hover {
+    background: #0c2e4e;
+    color: #fff;
+}
+
+.empty-state {
+    background: #fff;
+    border-radius: 14px;
+    padding: 70px 20px;
+    text-align: center;
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #7c8794;
+    margin-bottom: 25px;
+}
+
+@media (max-width: 768px) {
+    .progress-heading h1 {
+        font-size: 25px;
+    }
+
+    .progress-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .application-card {
+        padding: 20px;
+    }
+
+    .application-info {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .application-timeline {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .timeline-step {
+        min-width: 65px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 400px) {
+    .application-top {
+        flex-direction: column;
+    }
+
+    .approval-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =====================================
+   7가지 대출 신청 상태
+===================================== */
+
+/* 공통 상태 배지 */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* 심사대기 */
+.status-pending {
+    background: #edf1f5;
+    color: #5d6878;
+}
+
+/* 심사중 */
+.status-reviewing {
+    background: #e5f1ff;
+    color: #1764b2;
+}
+
+/* 추가 서류 요청 */
+.status-additional_info {
+    background: #fff0d7;
+    color: #a76000;
+}
+
+/* 승인완료 */
+.status-approved {
+    background: #dff7ed;
+    color: #08785f;
+}
+
+/* 심사거절 */
+.status-rejected {
+    background: #ffe5e5;
+    color: #c0392b;
+}
+
+/* 신청취소 */
+.status-cancelled {
+    background: #edf0f3;
+    color: #687380;
+}
+
+/* 승인기간 만료 */
+.status-expired {
+    background: #e7e8ec;
+    color: #555b69;
+}
+
+/* 상태별 안내 공통 */
+.progress-message {
+    margin-top: 15px;
+    padding: 18px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.progress-message p {
+    margin: 0;
+}
+
+/* 심사대기 */
+.message-pending {
+    background: #f3f5f8;
+    color: #5d6878;
+}
+
+/* 심사중 */
+.message-reviewing {
+    background: #edf5ff;
+    color: #1764b2;
+}
+
+/* 서류보완 */
+.message-additional_info {
+    background: #fff7e9;
+    color: #996000;
+    border-left: 4px solid #eea900;
+}
+
+/* 승인완료 */
+.message-approved {
+    background: #eaf8f1;
+    color: #08785f;
+    border-left: 4px solid #17a675;
+}
+
+/* 심사거절 */
+.message-rejected {
+    background: #fff0f0;
+    color: #b83232;
+    border-left: 4px solid #dc5555;
+}
+
+/* 신청취소 */
+.message-cancelled {
+    background: #f1f3f5;
+    color: #656d79;
+}
+
+/* 기간만료 */
+.message-expired {
+    background: #f0f0f3;
+    color: #555b69;
+    border-left: 4px solid #858b99;
+}
+
+/* 중단된 신청의 진행 단계 */
+.timeline-stopped {
+    opacity: 0.75;
+}
+
+/* 요약 카드: 8개 */
+.progress-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.summary-card {
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .progress-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
