@@ -28,10 +28,10 @@ public class LoanRepaymentSchedule {
     @Column(name = "SCHEDULE_ID")
     private Long scheduleId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "LOAN_ID")
-    private Loan loan;
-
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "APPLICATION_ID", nullable = false)
+    private LoanApplication loanApplication;
+    
     @Column(name = "INSTALLMENT_NO")
     private Short installmentNo;
 

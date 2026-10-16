@@ -31,12 +31,12 @@
         <div class="complete-details">
             <div>
                 <span>신청번호</span>
-                <strong th:text="${application.id}">-</strong>
+                <strong th:text="${loanApplication.id}">-</strong>
             </div>
 
             <div>
                 <span>상품명</span>
-                <strong th:text="${application.product.name}">
+                <strong th:text="${loanApplication?.product?.name ?: '상품 정보 없음'}">>
                     -
                 </strong>
             </div>
@@ -45,7 +45,7 @@
                 <span>신청금액</span>
                 <strong
                     th:text="${#numbers.formatDecimal(
-                        application.requestedAmount, 1, 'COMMA', 0, 'POINT'
+                        loanApplication.requestedAmount, 1, 'COMMA', 0, 'POINT'
                     )} + '원'">
                     -
                 </strong>
@@ -54,7 +54,7 @@
             <div>
                 <span>신청기간</span>
                 <strong
-                    th:text="${application.requestedMonths} + '개월'">
+                    th:text="${loanApplication.requestedMonths} + '개월'">
                     -
                 </strong>
             </div>
@@ -65,7 +65,7 @@
             </div>
         </div>
 
-        <a th:href="@{/loan/products}"
+        <a th:href="@{/loan/categories/credit}"
            class="loan-submit loan-back-link">
             대출 상품 목록으로
         </a>

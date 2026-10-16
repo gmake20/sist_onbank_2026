@@ -23,16 +23,14 @@ public class LoanApplyController {
     private final LoanProductService loanProductService;
     private final LoanApplicationService applicationService;
 
-    private String username(Authentication authentication) {
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
-            return null;
-        }
-
-        return authentication.getName();
-    }
+	/*
+	 * private String username(Authentication authentication) {
+	 * 
+	 * if (authentication == null || !authentication.isAuthenticated() ||
+	 * authentication instanceof AnonymousAuthenticationToken) { return null; }
+	 * 
+	 * return authentication.getName(); }
+	 */
 
     // 대출 신청서 화면
     @GetMapping
@@ -129,7 +127,7 @@ public class LoanApplyController {
         var application =
                 applicationService.findMine(id, username);
 
-        model.addAttribute("application", application);
+        model.addAttribute("loanApplication", application);
 
         return "loan/loan-apply-complete";
     }

@@ -1,12 +1,13 @@
+
 package org.doit.onbank.loan.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 
-import org.doit.onbank.loan.dto.LoanApplyRequest;
+import org.doit.onbank.loan.dto.LoanApplicationForm;
 import org.doit.onbank.loan.dto.LoanApproveRequest;
-import org.doit.onbank.loan.dto.LoanResponse;
 import org.doit.onbank.loan.dto.ScheduleResponse;
-import org.doit.onbank.loan.security.MemberIdentity;
+import org.doit.onbank.loan.service.LoanApplicationService;
 import org.doit.onbank.loan.service.LoanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,26 +27,74 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/loans")
 public class LoanApiController {
-    private final LoanService service;
-    private final MemberIdentity memberIdentity;
 
+    private final LoanService loanService;
+    private final LoanApplicationService applicationService;
+
+    // 1. 대출 신청
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("isAuthenticated()")
-    public LoanResponse apply(@Valid @RequestBody LoanApplyRequest request) {
-        return service.apply(memberIdentity.requireMemberId(), request);
+    public Long apply(
+            @Valid @RequestBody LoanApplicationForm request,
+            Authentication authentication) {
+
+        return applicationService.apply(
+                request,
+                authentication.getName()
+        );
     }
 
-    @PostMapping("/{loanId}/approve")
+    /*
+    // 2. 대출 심사 시작
+    @PostMapping("/{applicationId}/review")
     @PreAuthorize("hasRole('ADMIN')")
-    public LoanResponse approve(@PathVariable("loanId") Long loanId, @Valid @RequestBody LoanApproveRequest request) {
-        return service.approve(loanId, memberIdentity.requireMemberId(), request);
+    public void startReview(
+            @PathVariable("applicationId") Long applicationId) {
+
+        loanService.startReview(applicationId);
     }
 
-    @GetMapping("/{loanId}/schedule")
-    @PreAuthorize("isAuthenticated()")
-    public List<ScheduleResponse> getSchedule(@PathVariable("loanId") Long loanId, Authentication authentication) {
-        boolean admin = authentication.getAuthorities().stream().anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-        return service.getSchedule(loanId, memberIdentity.requireMemberId(), admin);
+    // 3. 대출 승인
+    @PostMapping("/{applicationId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Long approve(
+            @PathVariable("applicationId") Long applicationId,
+            @Valid @RequestBody LoanApproveRequest request,
+            Authentication authentication) {
+
+        Long reviewerId = memberIdentity.requireMemberId();
+
+        // 승인 금리는 관리자 입력값 또는 심사 결과에서 확보해야 함
+        BigDecimal approvedRate = request.approvedInterestRate();
+
+        return loanService.approve(
+                applicationId,
+                reviewerId,
+                request.approvedAmount(),
+                approvedRate,
+                request.startedAt()
+        );
     }
+
+    // 4. 상환 일정 조회
+    @GetMapping("/{applicationId}/schedule")
+    @PreAuthorize("isAuthenticated()")
+    public List<ScheduleResponse> getSchedule(
+            @PathVariable("applicationId") Long applicationId,
+            Authentication authentication) {
+
+        boolean admin = authentication.getAuthorities()
+                .stream()
+                .anyMatch(a ->
+                        "ROLE_ADMIN".equals(a.getAuthority())
+                );
+
+        return loanService.getSchedule(
+                applicationId,
+                authentication.getName(),
+                admin
+        );
+    }
+    */
 }

@@ -89,7 +89,8 @@ public class LoanApplicationService {
             Long applicationId,
             String username
     ) {
-        return applicationRepository
+
+        LoanApplication application = applicationRepository
                 .findByIdAndApplicantUsername(
                         applicationId,
                         username
@@ -100,5 +101,23 @@ public class LoanApplicationService {
                         "신청 내역을 찾을 수 없습니다."
                     )
                 );
+
+        System.out.println("===== 대출 신청 조회 =====");
+        System.out.println("신청번호 = " + application.getId());
+        System.out.println("신청금액 = " + application.getRequestedAmount());
+        System.out.println("신청기간 = " + application.getRequestedMonths());
+
+        LoanProduct product = application.getProduct();
+
+        if (product == null) {
+            throw new IllegalStateException(
+                    "대출 신청에 연결된 상품 정보가 없습니다."
+            );
+        }
+
+        System.out.println("상품 ID = " + product.getId());
+        System.out.println("상품명 = " + product.getName());
+
+        return application;
     }
 }
