@@ -95,4 +95,27 @@ public class Employee extends BaseEntity {
 		this.hiredAt = hiredAt;
 		this.tempPassword = tempPassword;
 	}
+
+	// ---------- 로그인 실패 잠금 (LoginFailureHandler에서 호출) ----------
+	// 시간이 지나도 자동으로 풀리지 않는다. 관리자 화면에서 unlockLogin()으로 해제
+
+	// 비밀번호 오류 1회 기록. maxFailCount회가 되면 잠근다. 잠긴 상태면 true
+	public boolean recordLoginFailure(int maxFailCount, LocalDateTime now) {
+		loginFailCount++;
+		if (loginFailCount >= maxFailCount && loginLockedAt == null) {
+			loginLockedAt = now;
+		}
+		return loginLockedAt != null;
+	}
+
+	// 로그인 성공 : 실패 횟수 초기화
+	public void recordLoginSuccess() {
+		loginFailCount = 0;
+	}
+
+	// 잠금 해제 (관리자 파트의 계정 잠금 해제 화면에서 호출)
+	public void unlockLogin() {
+		loginFailCount = 0;
+		loginLockedAt = null;
+	}
 }
