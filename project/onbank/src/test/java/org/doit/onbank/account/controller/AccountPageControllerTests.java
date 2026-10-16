@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.doit.onbank.account.dto.TransactionReceipt;
@@ -30,10 +31,14 @@ import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionStatus;
 import org.doit.onbank.account.entity.TransactionType;
+import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
+import org.doit.onbank.admin.security.AdminDetailsService;
 import org.doit.onbank.config.SecurityConfig;
+import org.doit.onbank.employee.security.EmployeeDetailsService;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.security.LoginMember;
+import org.doit.onbank.member.security.MemberDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,9 +64,22 @@ class AccountPageControllerTests {
 	@MockitoBean
 	private AccountService accountService;
 
+	@MockitoBean
+	private AccountFavoriteService accountFavoriteService;
+
 	// OnbankApplication 의 @EnableJpaAuditing 이 JPA 설정을 찾으므로 가짜로 채운다 (이 테스트는 JPA 를 띄우지 않음)
 	@MockitoBean
 	private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+	// SecurityConfig 의 로그인 설정 3개(회원·관리자·직원 FilterChain)가 요구하는 Bean (로그인은 user(me)로 대신하므로 가짜)
+	@MockitoBean
+	private MemberDetailsService memberDetailsService;
+
+	@MockitoBean
+	private AdminDetailsService adminDetailsService;
+
+	@MockitoBean
+	private EmployeeDetailsService employeeDetailsService;
 
 	private LoginMember me;
 	private Account account;
@@ -134,6 +152,29 @@ class AccountPageControllerTests {
 						containsString("해지"),
 						containsString("/mybank/accounts/1/withdraw"),
 						containsString("/mybank/transfer?from=1"))));
+	}
+
+	// 예금명 옆 즐겨찾기 : 등록된 계좌는 ★(해제), 아니면 ☆(등록). 둘 다 처리 후 전계좌조회로 돌아온다
+	@Test
+	void listShowsFavoriteToggle() throws Exception {
+		Account other = Account.builder()
+				.memberId(MEMBER_ID)
+				.accountNumber("TEST-0003")
+				.accountStatus(AccountStatus.ACTIVE)
+				.balance(0L)
+				.todayTransferAmount(0L)
+				.build();
+		ReflectionTestUtils.setField(other, "accountId", 3L);
+		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account, other));
+		given(accountFavoriteService.getMyFavoriteIdsByNumber(MEMBER_ID)).willReturn(Map.of("TEST-0001", 5L));
+
+		mockMvc.perform(get("/mybank/accounts").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("/mybank/favorites/5/delete?returnTo=accounts"),
+						containsString("즐겨찾기 해제"),
+						containsString("name=\"recipientAccountNumber\" value=\"TEST-0003\""),
+						containsString("name=\"returnTo\" value=\"accounts\""))));
 	}
 
 	// 예금·적금 계좌가 없으면 영역은 그대로 두고 "보유중인 상품이 없습니다." 표시
@@ -297,7 +338,9 @@ class AccountPageControllerTests {
 
 	@Test
 	void postWithoutCsrfIsRejected() throws Exception {
+		// SecurityConfig : CSRF 토큰이 없거나 틀리면 403 대신 로그인 화면(?expired)으로 보낸다
 		mockMvc.perform(post("/mybank/accounts/1/deposit").with(user(me)).param("amount", "10000"))
-				.andExpect(status().isForbidden());
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/login?expired"));
 	}
 }

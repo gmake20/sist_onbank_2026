@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>즐겨찾기 관리 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">즐겨찾기 관리 <span class="sub-text">(자주 쓰는 계좌)</span></h2>
+
+        <div class="alert alert-info" th:if="${message}" th:text="${message}"></div>
+        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+        <!-- 1. 즐겨찾기 목록 -->
+        <div class="account-section">
+            <div class="section-title-wrap">
+                <h3>즐겨찾기 목록</h3>
+            </div>
+            <div class="section-header">
+                <div class="left-area">
+                    <span class="total-balance">등록 : <strong th:text="|${#lists.size(favorites)} / ${maxFavorites}개|">0 / 20개</strong></span>
+                </div>
+            </div>
+            <table class="account-table">
+                <colgroup>
+                    <col style="width: 13%;">
+                    <col style="width: 17%;">
+                    <col style="width: 9%;">
+                    <col style="width: 15%;">
+                    <col style="width: 14%;">
+                    <col style="width: 32%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>별칭</th>
+                        <th>입금은행 / 계좌번호</th>
+                        <th>예금주</th>
+                        <th>기본 출금계좌</th>
+                        <th>메모</th>
+                        <th>바로가기</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="favorite : ${favorites}">
+                        <td th:text="${favorite.favoriteAlias ?: favorite.recipientAccountName}">엄마</td>
+                        <td th:text="|ONBANK ${favorite.recipientAccountNumber}|">ONBANK 1002-123-456789</td>
+                        <td th:text="${favorite.recipientAccountName}">김*수</td>
+                        <td th:text="${accountNumbers[favorite.accountId] ?: '-'}">1002-862-000000</td>
+                        <td th:text="${favorite.memo ?: '-'}">-</td>
+                        <td class="actions">
+                            <!-- 순서 이동 : 맨 위의 ▲, 맨 아래의 ▼는 숨긴다 -->
+                            <form class="inline-form" method="post" th:unless="${favoriteStat.first}"
+                                  th:action="@{/mybank/favorites/{id}/move(id=${favorite.accountFavoriteId},direction='up')}">
+                                <button type="submit" class="btn-sm" title="위로">▲</button>
+                            </form>
+                            <form class="inline-form" method="post" th:unless="${favoriteStat.last}"
+                                  th:action="@{/mybank/favorites/{id}/move(id=${favorite.accountFavoriteId},direction='down')}">
+                                <button type="submit" class="btn-sm" title="아래로">▼</button>
+                            </form>
+                            <a class="btn-sm"
+                               th:href="@{/mybank/transfer(from=${favorite.accountId},to=${favorite.recipientAccountNumber})}">이체</a>
+                            <a class="btn-sm" th:href="@{/mybank/favorites/{id}/edit(id=${favorite.accountFavoriteId})}">수정</a>
+                            <form class="inline-form" method="post"
+                                  th:action="@{/mybank/favorites/{id}/delete(id=${favorite.accountFavoriteId})}"
+                                  onsubmit="return confirm('즐겨찾기에서 삭제할까요?');">
+                                <button type="submit" class="btn-sm">삭제</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(favorites)}">
+                        <td colspan="6" class="empty-row">
+                            <p>등록된 즐겨찾기가 없습니다.</p>
+                            <p class="sub-desc">자주 쓰는 계좌를 아래에서 등록하거나, 전계좌조회의 ☆, 이체를 마친 뒤 [즐겨찾기 추가]로 등록하세요.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. 즐겨찾기 등록 -->
+        <form class="js-once-form" method="post" th:object="${form}" th:action="@{/mybank/favorites}">
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>즐겨찾기 등록</h3>
+                </div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>기본 출금계좌</th>
+                            <td>
+                                <select class="form-select" th:field="*{accountId}">
+                                    <option th:each="account : ${accounts}"
+                                            th:value="${account.accountId}"
+                                            th:text="|ON 통장 (${account.accountNumber})|">ON 통장 (1002-862-000000)</option>
+                                </select>
+                                <span class="sub-text">즐겨찾기로 이체할 때 이 계좌가 출금계좌로 선택됩니다.</span>
+                                <p class="field-error" th:if="${#fields.hasErrors('accountId')}" th:errors="*{accountId}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>입금은행<br>입금계좌번호</th>
+                            <td>
+                                <div class="input-flex">
+                                    <!-- 지금은 당행(ONBANK)만 등록 가능 -->
+                                    <select class="form-select" style="width: 150px;">
+                                        <option selected>ONBANK</option>
+                                    </select>
+                                    <input type="text" class="form-input" style="width: 300px;" maxlength="30"
+                                           th:field="*{recipientAccountNumber}" placeholder="입금계좌번호 입력">
+                                </div>
+                                <p class="field-error" th:if="${#fields.hasErrors('recipientAccountNumber')}" th:errors="*{recipientAccountNumber}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>별칭</th>
+                            <td>
+                                <input type="text" class="form-input" style="width: 300px;" maxlength="20"
+                                       th:field="*{favoriteAlias}" placeholder="예: 엄마, 월세">
+                                <span class="sub-text">(생략 시 예금주명 표시)</span>
+                                <p class="field-error" th:if="${#fields.hasErrors('favoriteAlias')}" th:errors="*{favoriteAlias}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>메모</th>
+                            <td>
+                                <input type="text" class="form-input" style="width: 300px;" maxlength="50"
+                                       th:field="*{memo}" placeholder="최대 50자">
+                                <p class="field-error" th:if="${#fields.hasErrors('memo')}" th:errors="*{memo}"></p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="notice-section">
+                <div class="notice-header">📄 알아두세요!</div>
+                <div class="notice-content">
+                    <ul>
+                        <li>ONBANK 계좌만 등록할 수 있으며, 최대 <th:block th:text="${maxFavorites}">20</th:block>개까지 등록할 수 있습니다.</li>
+                        <li>예금주명은 개인정보 보호를 위해 일부를 가려서 저장합니다.</li>
+                        <li>본인 계좌와 다른 사람 계좌 모두 등록할 수 있습니다. 등록한 계좌는 이체 화면의 [자주쓰는 입금계좌]에서 고를 수 있습니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="submit-action">
+                <a class="btn-outline" th:href="@{/mybank/transfer}">이체하기</a>
+                <button type="submit" class="btn-submit" th:disabled="${#lists.isEmpty(accounts)}">등록</button>
+            </div>
+        </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>
+</body>
+</html>

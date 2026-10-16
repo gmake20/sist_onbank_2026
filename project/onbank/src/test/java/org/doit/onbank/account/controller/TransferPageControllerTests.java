@@ -22,17 +22,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.doit.onbank.account.dto.RecipientInfo;
 import org.doit.onbank.account.dto.TransferLimitInfo;
 import org.doit.onbank.account.dto.TransferReceipt;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.AccountFavorite;
+import org.doit.onbank.account.repository.RecentDepositAccount;
+import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
+import org.doit.onbank.admin.security.AdminDetailsService;
 import org.doit.onbank.config.SecurityConfig;
+import org.doit.onbank.employee.security.EmployeeDetailsService;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.security.LoginMember;
+import org.doit.onbank.member.security.MemberDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,9 +66,22 @@ class TransferPageControllerTests {
 	@MockitoBean
 	private AccountTransferService accountTransferService;
 
+	@MockitoBean
+	private AccountFavoriteService accountFavoriteService;
+
 	// OnbankApplication 의 @EnableJpaAuditing 이 JPA 설정을 찾으므로 가짜로 채운다
 	@MockitoBean
 	private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+	// SecurityConfig 의 로그인 설정 3개(회원·관리자·직원 FilterChain)가 요구하는 Bean (로그인은 user(me)로 대신하므로 가짜)
+	@MockitoBean
+	private MemberDetailsService memberDetailsService;
+
+	@MockitoBean
+	private AdminDetailsService adminDetailsService;
+
+	@MockitoBean
+	private EmployeeDetailsService employeeDetailsService;
 
 	private LoginMember me;
 
@@ -94,7 +114,7 @@ class TransferPageControllerTests {
 	}
 
 	private TransferReceipt receipt() {
-		return new TransferReceipt("TEST-0001", "TEST-9999", "김*수", 30_000L, 70_000L, "김철수", "테스트",
+		return new TransferReceipt(1L, "TEST-0001", "TEST-9999", "김*수", 30_000L, 70_000L, "김철수", "테스트",
 				LocalDateTime.of(2026, 10, 15, 14, 30, 12), "20261015143012-482915");
 	}
 
@@ -116,6 +136,47 @@ class TransferPageControllerTests {
 						not(containsString("ON 통장 (TEST-0002)")),
 						containsString("data-balance=\"100000\""),
 						containsString("이체실행"))));
+	}
+
+	// 입금계좌 선택 창 : 즐겨찾기(기본 출금계좌 포함), 최근입금계좌, 본인계좌(입금 가능한 계좌)
+	@Test
+	void formShowsPickerLists() throws Exception {
+		AccountFavorite favorite = AccountFavorite.builder()
+				.accountId(1L)
+				.recipientAccountNumber("TEST-7777")
+				.recipientAccountName("박*희")
+				.favoriteAlias("월세")
+				.build();
+		RecentDepositAccount recent = new RecentDepositAccount() {
+			@Override
+			public String getAccountNumber() {
+				return "TEST-8888";
+			}
+
+			@Override
+			public LocalDateTime getLastTransferAt() {
+				return LocalDateTime.of(2026, 10, 16, 9, 0);
+			}
+		};
+		given(accountFavoriteService.getMyFavorites(MEMBER_ID)).willReturn(List.of(favorite));
+		given(accountFavoriteService.getRecentDepositAccounts(MEMBER_ID)).willReturn(List.of(recent));
+
+		mockMvc.perform(get("/mybank/transfer").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("월세"),
+						containsString("data-account-number=\"TEST-7777\" data-from-id=\"1\""),
+						containsString("data-account-number=\"TEST-8888\""),
+						containsString("2026.10.16"),
+						containsString("data-account-number=\"TEST-0002\""))));	// 동결 계좌도 입금은 가능
+	}
+
+	// 즐겨찾기 관리 화면의 [이체] : 출금계좌와 입금계좌를 미리 채운다
+	@Test
+	void formPrefillsToAccount() throws Exception {
+		mockMvc.perform(get("/mybank/transfer").param("from", "1").param("to", "TEST-7777").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("value=\"TEST-7777\"")));
 	}
 
 	@Test
@@ -183,7 +244,9 @@ class TransferPageControllerTests {
 	void postWithoutCsrfIsRejected() throws Exception {
 		mockMvc.perform(post("/mybank/transfer").with(user(me))
 						.param("fromAccountId", "1"))
-				.andExpect(status().isForbidden());
+				// SecurityConfig : CSRF 토큰이 없거나 틀리면 403 대신 로그인 화면(?expired)으로 보낸다
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/login?expired"));
 	}
 
 	// ---------- 결과 ----------
@@ -195,8 +258,22 @@ class TransferPageControllerTests {
 				.andExpect(content().string(allOf(
 						containsString("이체가 완료되었습니다."),
 						containsString("김*수"),
+						containsString("즐겨찾기 추가"),
+						containsString("name=\"recipientAccountNumber\" value=\"TEST-9999\""),
 						containsString("30,000원"),
 						containsString("20261015143012-482915"))));
+	}
+
+	// 받는 분 계좌가 이미 즐겨찾기에 있으면 [즐겨찾기 추가] 대신 "등록됨"
+	@Test
+	void resultShowsAlreadyFavorite() throws Exception {
+		given(accountFavoriteService.getMyFavoriteIdsByNumber(MEMBER_ID)).willReturn(Map.of("TEST-9999", 5L));
+
+		mockMvc.perform(get("/mybank/transfer/result").with(user(me)).flashAttr("receipt", receipt()))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("★ 즐겨찾기 등록됨"),
+						not(containsString("⭐ 즐겨찾기 추가")))));
 	}
 
 	// 새로고침 등으로 영수증이 없으면 입력 화면으로

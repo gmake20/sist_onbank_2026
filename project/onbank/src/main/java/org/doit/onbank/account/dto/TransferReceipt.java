@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 // 이체 완료 후 결과 화면에 보여 줄 영수증
 // 리다이렉트(PRG) 후에도 보이도록 flash 속성(세션)에 담으므로 Serializable
 public record TransferReceipt(
+		Long fromAccountId,			// 결과 화면 [즐겨찾기 추가]에서 등록 계좌로 사용
 		String fromAccountNumber,
 		String toAccountNumber,
 		String recipientName,		// 가린 이름 (예: 홍*동)

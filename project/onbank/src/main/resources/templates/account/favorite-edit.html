@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>즐겨찾기 수정 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">즐겨찾기 수정</h2>
+
+        <form class="js-once-form" method="post" th:object="${form}"
+              th:action="@{/mybank/favorites/{id}/edit(id=${favorite.accountFavoriteId})}">
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>즐겨찾기 정보</h3>
+                </div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>입금은행 / 계좌번호</th>
+                            <td th:text="|ONBANK ${favorite.recipientAccountNumber}|">ONBANK 1002-123-456789</td>
+                        </tr>
+                        <tr>
+                            <th>예금주</th>
+                            <td th:text="${favorite.recipientAccountName}">김*수</td>
+                        </tr>
+                        <tr>
+                            <th>별칭</th>
+                            <td>
+                                <input type="text" class="form-input" style="width: 300px;" maxlength="20"
+                                       th:field="*{favoriteAlias}" placeholder="예: 엄마, 월세">
+                                <span class="sub-text">(생략 시 예금주명 표시)</span>
+                                <p class="field-error" th:if="${#fields.hasErrors('favoriteAlias')}" th:errors="*{favoriteAlias}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>메모</th>
+                            <td>
+                                <input type="text" class="form-input" style="width: 300px;" maxlength="50"
+                                       th:field="*{memo}" placeholder="최대 50자">
+                                <p class="field-error" th:if="${#fields.hasErrors('memo')}" th:errors="*{memo}"></p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="sub-text">계좌번호를 바꾸려면 삭제한 뒤 다시 등록하세요.</p>
+            </div>
+
+            <div class="submit-action">
+                <a class="btn-outline" th:href="@{/mybank/favorites}">취소</a>
+                <button type="submit" class="btn-submit">수정</button>
+            </div>
+        </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>
+</body>
+</html>

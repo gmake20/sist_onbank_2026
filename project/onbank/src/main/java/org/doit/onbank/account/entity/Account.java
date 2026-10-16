@@ -106,6 +106,65 @@ public class Account {
 		this.todayTransferAmount = todayTransferAmount;
 	}
 
+	// 계좌 개설 : 잔액·당일 이체액 0, 비밀번호 오류 0, 정상(ACTIVE) 상태로 만든다
+	// balance, today_transfer_amount 가 NULL 이면 입금·이체 계산에서 오류가 나므로 반드시 0으로 넣는다
+	public static Account open(Long memberId, String accountNumber, String accountType, String passwordHash,
+			LocalDate signupDate) {
+		return Account.builder()
+				.memberId(memberId)
+				.accountNumber(accountNumber)
+				.accountType(accountType)
+				.balance(0L)
+				.accountStatus(AccountStatus.ACTIVE)
+				.passwordHash(passwordHash)
+				.signupDate(signupDate)
+				.todayTransferAmount(0L)
+				.build();
+	}
+
+	// ---------- 상태 변경 (관리자 쪽에서 Service 를 통해 호출) ----------
+
+	// 개설 승인 : 개설대기(PENDING) → 정상(ACTIVE)
+	public void activate() {
+		requireStatus(AccountStatus.PENDING, "개설대기 계좌만 승인할 수 있습니다.");
+		this.accountStatus = AccountStatus.ACTIVE;
+	}
+
+	// 개설 반려 : 개설대기(PENDING) → 해지(CLOSED). 반려는 따로 상태를 두지 않고 해지로 처리
+	public void reject() {
+		requireStatus(AccountStatus.PENDING, "개설대기 계좌만 반려할 수 있습니다.");
+		this.accountStatus = AccountStatus.CLOSED;
+	}
+
+	// 동결 : 정상(ACTIVE) → 동결(FROZEN). 입금은 받고 출금·이체는 막는다
+	public void freeze() {
+		requireStatus(AccountStatus.ACTIVE, "정상 계좌만 거래정지할 수 있습니다.");
+		this.accountStatus = AccountStatus.FROZEN;
+	}
+
+	// 동결 해제 : 동결(FROZEN) → 정상(ACTIVE)
+	public void unfreeze() {
+		requireStatus(AccountStatus.FROZEN, "거래정지 계좌만 해제할 수 있습니다.");
+		this.accountStatus = AccountStatus.ACTIVE;
+	}
+
+	// 해지 : 정상·동결 계좌, 잔액이 0일 때만. 되돌리지 않는다
+	public void close() {
+		if (!AccountStatus.ACTIVE.equals(accountStatus) && !AccountStatus.FROZEN.equals(accountStatus)) {
+			throw new IllegalStateException("해지할 수 없는 계좌 상태입니다: " + accountStatus);
+		}
+		if (balance != null && balance != 0L) {
+			throw new IllegalStateException("잔액이 남아 있는 계좌는 해지할 수 없습니다.");
+		}
+		this.accountStatus = AccountStatus.CLOSED;
+	}
+
+	private void requireStatus(String expected, String message) {
+		if (!expected.equals(accountStatus)) {
+			throw new IllegalStateException(message + " (현재 상태: " + accountStatus + ")");
+		}
+	}
+
 	// 거래가 일어날 때마다 호출 (입금·출금·이체 공통)
 	// 최종 거래일과 오늘 날짜가 다르면 당일 누적 이체 금액을 0으로 초기화한 뒤 최종 거래 일시를 갱신한다
 	// → 날짜가 같으면 todayTransferAmount 는 항상 오늘 이체분만 담고 있다

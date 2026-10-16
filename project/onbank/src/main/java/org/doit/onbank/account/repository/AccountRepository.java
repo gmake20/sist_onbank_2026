@@ -22,6 +22,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 	// 계좌번호로 조회 (이체 받는 계좌 확인 등)
 	Optional<Account> findByAccountNumber(String accountNumber);
 
+	// 계좌 개설 : 새로 만든 계좌번호가 이미 있는지
+	boolean existsByAccountNumber(String accountNumber);
+
 	// 계좌 목록 : 회원의 계좌를 개설 순서대로
 	List<Account> findByMemberIdOrderByAccountIdAsc(Long memberId);
 

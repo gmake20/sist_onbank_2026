@@ -60,4 +60,15 @@ public class AccountFavorite {
 		this.favoriteCreatedAt = favoriteCreatedAt;
 		this.sortOrder = sortOrder;
 	}
+
+	// 별칭·메모 수정 (계좌번호와 예금주명은 바꾸지 않는다. 다른 계좌면 삭제 후 다시 등록)
+	public void update(String favoriteAlias, String memo) {
+		this.favoriteAlias = favoriteAlias;
+		this.memo = memo;
+	}
+
+	// 정렬 순서 변경 (목록 위·아래 이동)
+	public void changeSortOrder(int sortOrder) {
+		this.sortOrder = sortOrder;
+	}
 }

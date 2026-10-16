@@ -116,7 +116,7 @@ public class AccountTransferService {
 
 		// 8. 커밋 후 이벤트 발행 (팀4 알림용) : 이벤트 클래스 합의 후 추가
 
-		return new TransferReceipt(from.getAccountNumber(), to.getAccountNumber(), RecipientInfo.mask(recipientName),
+		return new TransferReceipt(from.getAccountId(), from.getAccountNumber(), to.getAccountNumber(), RecipientInfo.mask(recipientName),
 				amount, from.getBalance(), senderContent, receiverContent, now, sqno);
 	}
 
