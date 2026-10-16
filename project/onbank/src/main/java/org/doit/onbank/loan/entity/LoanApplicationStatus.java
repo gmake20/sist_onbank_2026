@@ -10,8 +10,3 @@ public enum LoanApplicationStatus {
 	   CANCELLED,          // 고객 취소
 	   EXPIRED             // 승인 유효기간 경과
 }
-
-
-/*
- 대출 신청 : 대출상품, 대출액, 대출가건 
- */

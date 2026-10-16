@@ -16,5 +16,4 @@ public class LoanController {
 		log.info("LoanController.index");
 		return "loan/index";
 	}
-
 }

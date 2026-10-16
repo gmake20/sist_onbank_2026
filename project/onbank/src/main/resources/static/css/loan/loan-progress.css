@@ -311,3 +311,142 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* =====================================
+   7가지 대출 신청 상태
+===================================== */
+
+/* 공통 상태 배지 */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* 심사대기 */
+.status-pending {
+    background: #edf1f5;
+    color: #5d6878;
+}
+
+/* 심사중 */
+.status-reviewing {
+    background: #e5f1ff;
+    color: #1764b2;
+}
+
+/* 추가 서류 요청 */
+.status-additional_info {
+    background: #fff0d7;
+    color: #a76000;
+}
+
+/* 승인완료 */
+.status-approved {
+    background: #dff7ed;
+    color: #08785f;
+}
+
+/* 심사거절 */
+.status-rejected {
+    background: #ffe5e5;
+    color: #c0392b;
+}
+
+/* 신청취소 */
+.status-cancelled {
+    background: #edf0f3;
+    color: #687380;
+}
+
+/* 승인기간 만료 */
+.status-expired {
+    background: #e7e8ec;
+    color: #555b69;
+}
+
+/* 상태별 안내 공통 */
+.progress-message {
+    margin-top: 15px;
+    padding: 18px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.progress-message p {
+    margin: 0;
+}
+
+/* 심사대기 */
+.message-pending {
+    background: #f3f5f8;
+    color: #5d6878;
+}
+
+/* 심사중 */
+.message-reviewing {
+    background: #edf5ff;
+    color: #1764b2;
+}
+
+/* 서류보완 */
+.message-additional_info {
+    background: #fff7e9;
+    color: #996000;
+    border-left: 4px solid #eea900;
+}
+
+/* 승인완료 */
+.message-approved {
+    background: #eaf8f1;
+    color: #08785f;
+    border-left: 4px solid #17a675;
+}
+
+/* 심사거절 */
+.message-rejected {
+    background: #fff0f0;
+    color: #b83232;
+    border-left: 4px solid #dc5555;
+}
+
+/* 신청취소 */
+.message-cancelled {
+    background: #f1f3f5;
+    color: #656d79;
+}
+
+/* 기간만료 */
+.message-expired {
+    background: #f0f0f3;
+    color: #555b69;
+    border-left: 4px solid #858b99;
+}
+
+/* 중단된 신청의 진행 단계 */
+.timeline-stopped {
+    opacity: 0.75;
+}
+
+/* 요약 카드: 8개 */
+.progress-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.summary-card {
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .progress-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

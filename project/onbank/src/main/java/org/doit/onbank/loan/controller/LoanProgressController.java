@@ -1,6 +1,9 @@
 package org.doit.onbank.loan.controller;
 
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 import org.doit.onbank.loan.entity.LoanApplication;
 import org.doit.onbank.loan.entity.LoanApplicationStatus;
@@ -32,33 +35,26 @@ public class LoanProgressController {
             return "redirect:/login";
         }
 
-        Long memberId = me.getMemberId();
-
         List<LoanApplication> applications =
-                applicationService.findMyApplications(memberId);
+                applicationService.findMyApplications(me.getMemberId());
 
-        long totalCount = applications.size();
+        Map<LoanApplicationStatus, Long> statusCounts =
+                new EnumMap<>(LoanApplicationStatus.class);
 
-        long pendingCount = applications.stream()
-                .filter(a -> a.getStatus() ==
-                        LoanApplicationStatus.PENDING)
-                .count();
+        Arrays.stream(LoanApplicationStatus.values())
+                .forEach(status -> statusCounts.put(status, 0L));
 
-        long reviewingCount = applications.stream()
-                .filter(a -> a.getStatus() ==
-                        LoanApplicationStatus.REVIEWING)
-                .count();
-
-        long approvedCount = applications.stream()
-                .filter(a -> a.getStatus() ==
-                        LoanApplicationStatus.APPROVED)
-                .count();
+        for (LoanApplication application : applications) {
+            statusCounts.merge(
+                    application.getStatus(),
+                    1L,
+                    Long::sum
+            );
+        }
 
         model.addAttribute("applications", applications);
-        model.addAttribute("totalCount", totalCount);
-        model.addAttribute("pendingCount", pendingCount);
-        model.addAttribute("reviewingCount", reviewingCount);
-        model.addAttribute("approvedCount", approvedCount);
+        model.addAttribute("totalCount", applications.size());
+        model.addAttribute("statusCounts", statusCounts);
 
         return "loan/loan-progress";
     }

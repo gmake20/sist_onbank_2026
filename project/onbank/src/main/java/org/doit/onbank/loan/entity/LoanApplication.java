@@ -86,6 +86,12 @@ public class LoanApplication {
 
 	@Column(name = "UPDATED_AT")
 	private LocalDateTime updatedAt;
+	
+	@Column(name = "ADDITIONAL_INFO_REASON", length = 500)
+	private String additionalInfoReason;
+
+	@Column(name = "REJECTION_REASON", length = 500)
+	private String rejectionReason;
 
 	public void approve(
 			BigDecimal amount,
@@ -160,5 +166,72 @@ public class LoanApplication {
 					);
 		}
 		this.status = LoanApplicationStatus.REVIEWING;
+	}
+	
+	// 추가 서류 요청
+	public void requestAdditionalInfo(String reason, Long reviewerId) {
+
+	    if (status != LoanApplicationStatus.REVIEWING) {
+	        throw new IllegalStateException(
+	                "심사중인 신청만 서류보완을 요청할 수 있습니다."
+	        );
+	    }
+
+	    if (reason == null || reason.isBlank()
+	            || reason.length() > 500) {
+	        throw new IllegalArgumentException(
+	                "서류보완 사유를 500자 이내로 입력하세요."
+	        );
+	    }
+
+	    if (reviewerId == null) {
+	        throw new IllegalArgumentException("심사 담당자가 없습니다.");
+	    }
+
+	    this.additionalInfoReason = reason.trim();
+	    this.reviewedBy = reviewerId;
+	    this.updatedAt = LocalDateTime.now();
+	    this.status = LoanApplicationStatus.ADDITIONAL_INFO;
+	}
+
+	// 서류 확인 후 심사 재개
+	public void resumeReview() {
+
+	    if (status != LoanApplicationStatus.ADDITIONAL_INFO) {
+	        throw new IllegalStateException(
+	                "서류보완 상태에서만 심사를 재개할 수 있습니다."
+	        );
+	    }
+
+	    this.additionalInfoReason = null;
+	    this.updatedAt = LocalDateTime.now();
+	    this.status = LoanApplicationStatus.REVIEWING;
+	}
+
+	// 대출 심사 거절
+	public void reject(String reason, Long reviewerId) {
+
+	    if (status != LoanApplicationStatus.REVIEWING) {
+	        throw new IllegalStateException(
+	                "심사중인 신청만 거절할 수 있습니다."
+	        );
+	    }
+
+	    if (reason == null || reason.isBlank()
+	            || reason.length() > 500) {
+	        throw new IllegalArgumentException(
+	                "거절 사유를 500자 이내로 입력하세요."
+	        );
+	    }
+
+	    if (reviewerId == null) {
+	        throw new IllegalArgumentException("심사 담당자가 없습니다.");
+	    }
+
+	    this.rejectionReason = reason.trim();
+	    this.reviewedBy = reviewerId;
+	    this.reviewedAt = LocalDateTime.now();
+	    this.updatedAt = LocalDateTime.now();
+	    this.status = LoanApplicationStatus.REJECTED;
 	}
 }

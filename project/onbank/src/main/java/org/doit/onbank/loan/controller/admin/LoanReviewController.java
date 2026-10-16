@@ -1,4 +1,4 @@
-package org.doit.onbank.loan.controller;
+package org.doit.onbank.loan.controller.admin;
 
 import org.doit.onbank.loan.dto.LoanReviewApproveRequest;
 import org.doit.onbank.loan.service.LoanReviewService;
@@ -40,7 +40,14 @@ public class LoanReviewController {
             Long reviewerId
     ) {
 
-        reviewService.approve(id, request, reviewerId);
+        reviewService.approve(
+                id,
+                request.approvedAmount(),
+                request.approvedInterestRate(),
+                request.repaymentMethod(),
+                request.startDate(),
+                reviewerId
+        );
 
         return ResponseEntity.ok("대출 심사가 승인되었습니다.");
     }
