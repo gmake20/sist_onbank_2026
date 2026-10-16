@@ -8,19 +8,25 @@ import org.doit.onbank.member.security.MemberDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.access.DelegatingAccessDeniedHandler;
+import org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 // 필터 체인 3개 : 관리자(/admin/**) → 직원(/employee/**) → 고객(나머지) 순서로 검사 (README 8-1장)
 // - 체인마다 사용할 UserDetailsService를 직접 지정한다. 3개가 Bean으로 등록되어 있어 자동 선택되지 않음
@@ -57,7 +63,9 @@ public class SecurityConfig {
 			.userDetailsService(adminDetailsService)
 			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_ADMIN")))
 			.requestCache(cache -> cache.requestCache(requestCache("SPRING_SECURITY_SAVED_REQUEST_ADMIN")))
-			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/admin/login")))
+			.exceptionHandling(ex -> ex
+				.accessDeniedHandler(accessDeniedHandler("/admin/login"))
+				.authenticationEntryPoint(entryPoint("/admin/login", "/admin/api/**")))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/admin/login").permitAll()
 				// TODO 역할별 세부 권한은 팀원4가 정하면 추가 (예: 공지사항 관리)
@@ -88,7 +96,9 @@ public class SecurityConfig {
 			.userDetailsService(employeeDetailsService)
 			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_EMPLOYEE")))
 			.requestCache(cache -> cache.requestCache(requestCache("SPRING_SECURITY_SAVED_REQUEST_EMPLOYEE")))
-			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/employee/login")))
+			.exceptionHandling(ex -> ex
+				.accessDeniedHandler(accessDeniedHandler("/employee/login"))
+				.authenticationEntryPoint(entryPoint("/employee/login", "/employee/api/**")))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/employee/login").permitAll()
 				// TODO 승인 업무 URL이 정해지면 hasRole("MANAGER")로 추가 (계좌 동결, 이체한도 증액, 대출 심사, 상품 관리)
@@ -153,6 +163,19 @@ public class SecurityConfig {
 		handlers.put(CsrfException.class,
 				(request, response, exception) -> response.sendRedirect(request.getContextPath() + loginPage + "?expired"));
 		return new DelegatingAccessDeniedHandler(handlers, new AccessDeniedHandlerImpl());
+	}
+
+	// 로그인하지 않은 요청 처리
+	// - API 주소(fetch) : 로그인 화면 HTML 대신 401만 돌려준다. 화면 스크립트는 401을 받으면 로그인 화면으로 이동
+	// - 그 외 화면 주소 : 그 영역의 로그인 화면으로 redirect (formLogin 기본 동작과 같음)
+	// 두 규칙을 직접 지정한다. formLogin 기본 규칙에 API 규칙만 덧붙이면 Accept 헤더에 text/html이 없는 요청이
+	// 로그인 화면이 아니라 401로 가 버린다
+	private static AuthenticationEntryPoint entryPoint(String loginPage, String apiPattern) {
+		return DelegatingAuthenticationEntryPoint.builder()
+				.addEntryPointFor(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+						PathPatternRequestMatcher.withDefaults().matcher(apiPattern))
+				.defaultEntryPoint(new LoginUrlAuthenticationEntryPoint(loginPage))
+				.build();
 	}
 
 	// 로그인 정보를 세션의 지정한 이름으로 저장
