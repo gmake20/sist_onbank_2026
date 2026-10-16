@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>계좌 개설 완료 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">계좌 개설</h2>
+
+        <!-- 개설 결과 (리다이렉트 직후 한 번만 보임) -->
+        <div class="receipt-box">
+            <strong class="receipt-title"
+                    th:text="${receipt.accountStatus() == 'PENDING'} ? '계좌 개설을 신청했습니다. (심사중)' : '계좌가 개설되었습니다.'">계좌가 개설되었습니다.</strong>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>상품명</th>
+                        <td th:text="${receipt.productName()}">ON 통장</td>
+                    </tr>
+                    <tr>
+                        <th>계좌번호</th>
+                        <td><strong th:text="${receipt.accountNumber()}">1002-482-915307</strong></td>
+                    </tr>
+                    <tr>
+                        <th>개설일</th>
+                        <td th:text="${#temporals.format(receipt.openedDate(), 'yyyy.MM.dd')}">2026.10.16</td>
+                    </tr>
+                    <tr>
+                        <th>잔액</th>
+                        <td>0원</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="submit-action">
+            <a class="btn-outline" th:href="@{/mybank/accounts}">내 계좌</a>
+            <a class="btn-submit" th:href="@{/mybank/accounts/{id}/deposit(id=${receipt.accountId()})}">입금하기</a>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+</body>
+</html>

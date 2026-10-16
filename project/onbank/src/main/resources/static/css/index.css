@@ -116,6 +116,28 @@ a { text-decoration: none; color: inherit; }
 .floating-menu a:last-child { border-right: none; }
 .floating-menu a.active { background: #0b1d3a; color: #fff; font-weight: 700; }
 .floating-menu a:hover:not(.active) { background: #f8f9fa; color: #0b1d3a; }
+/* 빠른메뉴 펼침 목록 : 퀵메뉴 마지막 칸(빠른메뉴) 바로 아래 */
+.quick-menu-panel {
+    position: absolute;
+    top: calc(100% + 45px);
+    left: calc(50% + 240px); /* 퀵메뉴 800px 중 마지막 칸(160px)의 왼쪽 끝 */
+    width: 160px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    overflow: hidden;
+    z-index: 20;
+}
+.quick-menu-panel[hidden] { display: none; }
+.quick-menu-panel a {
+    display: block;
+    padding: 14px 0;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 500;
+}
+.quick-menu-panel a + a { border-top: 1px solid #eee; } /* 항목 사이 구분선 */
+.quick-menu-panel a:hover { background: #f8f9fa; color: #0b1d3a; }
 /* 4. 금융상품 & 카드 아이콘 섹션 */
 .icon-section {
     max-width: 1000px;

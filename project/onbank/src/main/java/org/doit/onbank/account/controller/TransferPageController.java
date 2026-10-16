@@ -10,6 +10,7 @@ import org.doit.onbank.account.dto.TransferForm;
 import org.doit.onbank.account.dto.TransferLimitInfo;
 import org.doit.onbank.account.dto.TransferReceipt;
 import org.doit.onbank.account.entity.Account;
+import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
 import org.doit.onbank.member.security.LoginMember;
@@ -38,14 +39,17 @@ public class TransferPageController {
 
 	private final AccountService accountService;
 	private final AccountTransferService accountTransferService;
+	private final AccountFavoriteService accountFavoriteService;
 
 	// ---------- 1. 정보입력 ----------
 
 	@GetMapping
 	public String form(@AuthenticationPrincipal LoginMember me,
-			@RequestParam(name = "from", required = false) Long fromAccountId, Model model) {
+			@RequestParam(name = "from", required = false) Long fromAccountId,
+			@RequestParam(name = "to", required = false) String toAccountNumber, Model model) {
 		TransferForm form = new TransferForm();
 		form.setFromAccountId(fromAccountId);	// 계좌 화면에서 "이체"를 눌러 들어오면 그 계좌를 미리 선택
+		form.setToAccountNumber(toAccountNumber);	// 즐겨찾기 관리 화면에서 "이체"를 눌러 들어오면 입금계좌도 미리 입력
 		model.addAttribute("form", form);
 		return showForm(me, model);
 	}
@@ -77,10 +81,12 @@ public class TransferPageController {
 	// ---------- 3. 결과 ----------
 
 	@GetMapping("/result")
-	public String result(Model model) {
+	public String result(@AuthenticationPrincipal LoginMember me, Model model) {
 		if (!model.containsAttribute("receipt")) {	// 새로고침 등으로 영수증이 없으면 입력 화면으로
 			return "redirect:/mybank/transfer";
 		}
+		// 받는 분 계좌가 이미 즐겨찾기에 있으면 [즐겨찾기 추가] 대신 "등록됨" 표시
+		model.addAttribute("favoriteIds", accountFavoriteService.getMyFavoriteIdsByNumber(me.getMemberId()));
 		return "account/transfer-result";
 	}
 
@@ -116,11 +122,16 @@ public class TransferPageController {
 	}
 
 	// 입력 화면 그리기 : 출금 가능한 내 계좌만 선택 목록에 넣는다
+	// 입금계좌 선택 창(즐겨찾기 / 최근입금계좌 / 본인계좌)에 보여 줄 목록도 함께 넣는다
 	private String showForm(LoginMember me, Model model) {
-		List<Account> accounts = accountService.getMyAccounts(me.getMemberId()).stream()
+		List<Account> myAccounts = accountService.getMyAccounts(me.getMemberId());
+		List<Account> accounts = myAccounts.stream()
 				.filter(Account::canWithdraw)
 				.toList();
 		model.addAttribute("accounts", accounts);
+		model.addAttribute("depositableAccounts", myAccounts.stream().filter(Account::canDeposit).toList());
+		model.addAttribute("favorites", accountFavoriteService.getMyFavorites(me.getMemberId()));
+		model.addAttribute("recentAccounts", accountFavoriteService.getRecentDepositAccounts(me.getMemberId()));
 		model.addAttribute("today", LocalDate.now());
 		return "account/transfer";
 	}

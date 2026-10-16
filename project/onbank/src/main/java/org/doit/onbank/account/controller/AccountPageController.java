@@ -13,6 +13,7 @@ import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionType;
+import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.member.security.LoginMember;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -38,6 +39,7 @@ import lombok.RequiredArgsConstructor;
 public class AccountPageController {
 
 	private final AccountService accountService;
+	private final AccountFavoriteService accountFavoriteService;
 
 	// 화면에 보여 줄 한글 이름 (DB에는 영문 값 저장)
 	@ModelAttribute("statusNames")
@@ -79,6 +81,8 @@ public class AccountPageController {
 		model.addAttribute("depositTotal", totalBalance(deposits));
 		model.addAttribute("savingsTotal", totalBalance(savings));
 		model.addAttribute("now", LocalDateTime.now());
+		// 예금명 옆 ☆/★ : 계좌번호 → 즐겨찾기 ID
+		model.addAttribute("favoriteIds", accountFavoriteService.getMyFavoriteIdsByNumber(me.getMemberId()));
 		return "account/list";
 	}
 

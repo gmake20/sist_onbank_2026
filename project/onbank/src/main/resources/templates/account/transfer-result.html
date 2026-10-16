@@ -71,10 +71,21 @@
 
         <div class="submit-action">
             <a class="btn-outline" th:href="@{/mybank/accounts}">내 계좌</a>
+            <!-- 받는 분 계좌를 즐겨찾기에 등록 (이 출금계좌를 기본 출금계좌로) → 즐겨찾기 관리 화면으로 이동 -->
+            <form class="inline-form js-once-form" method="post" th:action="@{/mybank/favorites}"
+                  th:unless="${favoriteIds.containsKey(receipt.toAccountNumber())}">
+                <input type="hidden" name="accountId" th:value="${receipt.fromAccountId()}">
+                <input type="hidden" name="recipientAccountNumber" th:value="${receipt.toAccountNumber()}">
+                <button type="submit" class="btn-outline">⭐ 즐겨찾기 추가</button>
+            </form>
+            <a class="btn-outline" th:href="@{/mybank/favorites}"
+               th:if="${favoriteIds.containsKey(receipt.toAccountNumber())}">★ 즐겨찾기 등록됨</a>
             <a class="btn-submit" th:href="@{/mybank/transfer}">추가 이체</a>
         </div>
     </main>
 
     <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>	<!-- [즐겨찾기 추가] 중복 클릭 방지 -->
 </body>
 </html>

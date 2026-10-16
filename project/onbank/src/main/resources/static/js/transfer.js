@@ -142,4 +142,80 @@ document.addEventListener('DOMContentLoaded', () => {
             confirmBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
+
+    // ---------- 입금계좌 선택 창 (즐겨찾기 / 최근입금계좌 / 본인계좌) ----------
+
+    const pickerLayer = document.querySelector('.js-picker-layer');
+    let fillFrom = false;	// "즐겨찾는이체정보"로 열면 기본 출금계좌도 채운다
+    let lastOpener = null;
+
+    const openPicker = (opener) => {
+        const type = opener.dataset.picker;
+        fillFrom = opener.dataset.fillFrom === 'true';
+        lastOpener = opener;
+        pickerLayer.querySelectorAll('.js-picker-list').forEach((list) => {
+            list.hidden = list.dataset.picker !== type;
+            if (!list.hidden) {
+                pickerLayer.querySelector('.js-picker-title').textContent =
+                    fillFrom ? '즐겨찾는이체정보' : list.dataset.title;
+            }
+        });
+        if (type === 'mine') {
+            // 지금 고른 출금계좌는 본인계좌 목록에서 뺀다 (같은 계좌로는 이체할 수 없음)
+            const fromId = fromSelect ? fromSelect.value : '';
+            let visible = 0;
+            pickerLayer.querySelectorAll('.js-mine-row').forEach((row) => {
+                row.hidden = row.dataset.accountId === fromId;
+                visible += row.hidden ? 0 : 1;
+            });
+            pickerLayer.querySelector('.js-mine-empty').hidden = visible > 0;
+        }
+        pickerLayer.hidden = false;
+        pickerLayer.querySelector('.js-picker-close').focus();
+    };
+
+    const closePicker = () => {
+        pickerLayer.hidden = true;
+        if (lastOpener) {
+            lastOpener.focus();
+        }
+    };
+
+    if (pickerLayer) {
+        document.querySelectorAll('.js-open-picker').forEach((button) => {
+            button.addEventListener('click', () => openPicker(button));
+        });
+        pickerLayer.querySelector('.js-picker-close').addEventListener('click', closePicker);
+        // 바깥(어두운 배경)을 누르면 닫는다
+        pickerLayer.addEventListener('click', (event) => {
+            if (event.target === pickerLayer) {
+                closePicker();
+            }
+        });
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !pickerLayer.hidden) {
+                closePicker();
+            }
+        });
+
+        // 선택 : 입금계좌번호를 채우고 (즐겨찾는이체정보면 출금계좌도) 창을 닫는다
+        pickerLayer.querySelectorAll('.js-pick').forEach((button) => {
+            button.addEventListener('click', () => {
+                toAccountInput.value = button.dataset.accountNumber;
+                toAccountInput.dispatchEvent(new Event('input'));	// 확인 단계였다면 입력 단계로 되돌림
+
+                // 본인 계좌 즐겨찾기는 기본 출금계좌가 그 계좌 자신일 수 있다 → 같은 계좌면 출금계좌는 바꾸지 않는다
+                const fromId = button.dataset.fromId;
+                const fromOption = fromId && fromSelect
+                        ? fromSelect.querySelector('option[value="' + fromId + '"]') : null;
+                if (fillFrom && fromOption && !fromOption.textContent.includes(button.dataset.accountNumber)) {
+                    fromSelect.value = fromId;
+                    fromSelect.dispatchEvent(new Event('change'));
+                }
+                lastOpener = null;
+                pickerLayer.hidden = true;
+                amountInput.focus();
+            });
+        });
+    }
 });

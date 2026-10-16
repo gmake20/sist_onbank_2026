@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>계좌 개설 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">계좌 개설 <span class="sub-text">(입출금 계좌)</span></h2>
+
+        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+        <form class="js-once-form" method="post" th:object="${form}" th:action="@{/mybank/accounts/open}">
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>상품정보</h3>
+                </div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>상품명</th>
+                            <td th:text="${productName}">ON 통장</td>
+                        </tr>
+                        <tr>
+                            <th>상품유형</th>
+                            <td>입출금 자유 예금</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>계좌비밀번호 설정</h3>
+                </div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>계좌비밀번호</th>
+                            <td>
+                                <!-- 비밀번호는 th:field 를 쓰지 않는다 (오류 후 다시 그릴 때 값이 남지 않도록) -->
+                                <input type="password" class="form-input pw-input" name="password"
+                                       maxlength="4" inputmode="numeric" autocomplete="new-password">
+                                <span class="sub-text">숫자 4자리</span>
+                                <p class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>비밀번호 확인</th>
+                            <td>
+                                <input type="password" class="form-input pw-input" name="passwordConfirm"
+                                       maxlength="4" inputmode="numeric" autocomplete="new-password">
+                                <p class="field-error" th:if="${#fields.hasErrors('passwordConfirm')}" th:errors="*{passwordConfirm}"></p>
+                                <p class="field-error" th:if="${#fields.hasErrors('passwordMatched')}" th:errors="*{passwordMatched}"></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>약관동의</th>
+                            <td>
+                                <label>
+                                    <input type="checkbox" th:field="*{agreed}">
+                                    상품설명서와 예금거래기본약관을 확인했으며 동의합니다.
+                                </label>
+                                <p class="field-error" th:if="${#fields.hasErrors('agreed')}" th:errors="*{agreed}"></p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="notice-section">
+                <div class="notice-header">📄 알아두세요!</div>
+                <div class="notice-content">
+                    <ul>
+                        <li>계좌번호는 개설할 때 자동으로 부여됩니다.</li>
+                        <li>계좌 비밀번호는 출금·이체할 때 사용하며, 5회 잘못 입력하면 출금·이체가 제한됩니다.</li>
+                        <li>생년월일, 같은 숫자 반복(예: 1111) 등 추측하기 쉬운 비밀번호는 피해 주세요.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="submit-action">
+                <a class="btn-outline" th:href="@{/mybank/accounts}">취소</a>
+                <button type="submit" class="btn-submit">계좌 개설</button>
+            </div>
+        </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>
+</body>
+</html>

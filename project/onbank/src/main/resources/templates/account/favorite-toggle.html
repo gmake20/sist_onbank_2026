@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- 전계좌조회 : 계좌 즐겨찾기 ☆(등록) / ★(해제) 버튼
+     favoriteIds : 계좌번호 → 즐겨찾기 ID (AccountPageController 에서 넣음) -->
+<th:block th:fragment="toggle(account)">
+    <th:block th:with="favoriteId=${favoriteIds[account.accountNumber]}">
+        <form class="inline-form" method="post" th:if="${favoriteId != null}"
+              th:action="@{/mybank/favorites/{id}/delete(id=${favoriteId},returnTo='accounts')}">
+            <button type="submit" class="btn-star is-on" title="즐겨찾기 해제" aria-label="즐겨찾기 해제">★</button>
+        </form>
+        <form class="inline-form" method="post" th:if="${favoriteId == null and account.canDeposit()}"
+              th:action="@{/mybank/favorites}">
+            <input type="hidden" name="accountId" th:value="${account.accountId}">
+            <input type="hidden" name="recipientAccountNumber" th:value="${account.accountNumber}">
+            <input type="hidden" name="returnTo" value="accounts">
+            <button type="submit" class="btn-star" title="즐겨찾기 등록" aria-label="즐겨찾기 등록">☆</button>
+        </form>
+    </th:block>
+</th:block>
+
+</body>
+</html>
