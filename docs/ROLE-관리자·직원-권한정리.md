@@ -20,8 +20,8 @@
 
 | 역할 | 한글 이름 | 하는 일 | 하지 않는 일 |
 |---|---|---|---|
-| `SUPER_ADMIN` | 총괄 관리자 | 관리자 계정 발급·권한 변경·잠금 해제, 직원 계정 관리, 지점/ATM 관리, 활동 로그·로그인 이력 조회. 아래 두 역할의 업무도 모두 가능 | 대출·카드 심사 |
-| `OPERATOR` | 운영 관리자 | 이상거래(FDS) 처리, 실시간 모니터링, 회원·계좌·거래 전체 조회, 이상거래 대응 중 계좌 동결 | 계정 관리, 활동 로그, 공지 관리, 심사 |
+| `SUPER_ADMIN` | 총괄 관리자 (1명) | 관리자(OPERATOR·SERVICE)·직원 계정 생성, 권한 변경, 잠금 해제, 직원 계정 관리, 지점/ATM 관리, 활동 로그·로그인 이력 조회. 아래 두 역할의 업무도 모두 가능 | 대출·카드 심사 |
+| `OPERATOR` | 운영 관리자 | 이상거래(FDS) 처리, 실시간 모니터링, 회원·계좌·거래 전체 조회, 이상거래 대응 중 계좌 동결, **계정 잠금 해제·임시 비밀번호 재발급** (SUPER_ADMIN 계정 재발급은 제외) | 계정 생성·권한 변경, 활동 로그, 공지 관리, 심사 |
 | `SERVICE` | 고객지원 관리자 | 공지사항·FAQ 관리 | 회원·계좌·거래 조회, 이상거래, 심사 |
 
 > `SERVICE`는 원래 "상품·고객지원 관리자"였습니다. README 8-1장에서 상품 관리가 직원(MANAGER) 업무로 옮겨갔기 때문에 "고객지원 관리자"로 바꿔 적었습니다. 맡는 일이 공지·FAQ만 남아서 역할을 따로 둘지는 다시 판단해야 합니다 (6장).
@@ -53,7 +53,8 @@ O = 사용 가능, X = 사용 불가
 | 실시간 모니터링, 알림 | O | O | X |
 | 공지사항·FAQ 관리 | O | X | O |
 | 활동 로그·로그인 이력 조회 | O | X | X |
-| 관리자 계정·직원 계정·지점/ATM 관리 | O | X | X |
+| 관리자 계정·직원 계정 생성, 권한 변경, 지점/ATM 관리 | O | X | X |
+| 계정 잠금 해제·임시 비밀번호 재발급 (SUPER_ADMIN 계정 재발급은 둘 다 불가) | O | O | X |
 
 ### 3-2. 직원 `/employee/**`
 
@@ -88,7 +89,7 @@ O = 사용 가능, X = 사용 불가
 | 임시 비밀번호면 비밀번호 변경으로 강제 이동 | AUT-001 + ACT-004 | `auth.md` 3장 ⑧ "다음 단계" (`isTempPassword()`로 판단) | 강제 이동은 팀원1. **비밀번호 변경 화면은 확인 필요** (6장) |
 | 세션 타임아웃·중복 로그인 제한 | 없음 | `auth.md` 3장 ⑥ "다음 단계" (세 체인 모두) | 팀원1 |
 | 403 오류 화면 (S-03) | 관리자 파트 | `SecurityConfig` 주석: "공통 오류 화면에서 처리" | 관리자 파트 (README 12장의 공통 예외처리 담당) |
-| 잠금 해제 | 관리자 계정: ACT-003 / 회원: MEM-004 | 회원은 `Member.unlock()` 있음 | 화면은 관리자 파트, 잠금 해제 메서드는 각 엔티티 담당자 것 호출 |
+| 잠금 해제 | 관리자 계정: ACT-003 / 회원: MEM-004 | ~~회원은 `Member.unlock()` 있음~~ (2026-10-16 정정: 팀 레포 어느 브랜치에도 없음. `Member`·`Employee`·`Admin` 모두 상태를 바꾸는 메서드가 없음) | 화면은 관리자 파트, 잠금 해제 메서드는 각 엔티티 담당자 것 호출 |
 
 참고: 잠금 방식이 테이블마다 다릅니다. `admin`은 `status = 'LOCKED'` + `login_fail_count`(TINYINT)이고, `employee`·`members`는 `login_locked_at`(일시) + `login_fail_count`입니다. 핸들러를 공통으로 만들 때 이 차이를 맞춰야 합니다.
 
@@ -126,6 +127,20 @@ O = 사용 가능, X = 사용 불가
 4. **로그인 핸들러 범위**: 5회 잠금, `last_login_at` 갱신, 로그인 이력 기록을 관리자(`admin`)까지 해 주시는지. `admin_login_log` 엔티티·Repository는 누가 만들지.
 5. **비밀번호 변경 화면**: 임시 비밀번호 강제 변경 화면을 직원·관리자 공용으로 팀원1이 만드는지, 관리자 파트가 만드는지.
 6. **README 8-1장 "확정 필요" 항목**: 카드 관리, 1:1 문의 답변, 거래 관리를 직원 영역으로 하는 것에 동의합니다. 단, 전체 거래 목록은 관리자만 봅니다.
+7. **직원 계정 생성에 필요한 조회 (상의)**: 관리자 화면에서 총괄 관리자가 직원 계정을 만듭니다 (FUNC-ADM-ACT-005, 핵심, 회원가입 아님). 저장은 이미 있는 `Employee.builder()`(직원 등록용)와 `save()`를 그대로 씁니다. 다만 아래 세 가지는 팀원1 테이블을 읽어야 해서 어디에 둘지 같이 정하고 싶습니다.
+   - **사번 자동 생성**: 시드와 같은 `E` + 4자리, 가장 큰 사번 +1 (`E0003` → `E0004`). 사번이 글자라 DB가 번호를 올려 주지 않아서, 가장 큰 사번을 한 번 조회해야 합니다.
+   - **이메일 중복 확인**: `uk_employee_email` 때문에 같은 이메일이면 저장이 실패합니다. 저장 전에 확인해 "이미 등록된 이메일입니다"를 보여 주려고 합니다.
+   - **소속 지점 드롭다운**: `branch_id`가 NOT NULL + FK라 지점을 골라야 저장됩니다. 지점(BRANCH, 사용 중) 목록을 보여 줄 조회가 필요한데 `branch` 엔티티가 아직 없습니다.
+   - 위 조회를 `EmployeeRepository`(와 지점 쪽)에 넣어 주실지, 관리자 파트에 조회용으로 따로 둘지 의견 부탁드립니다.
+8. **(요청, API를 처음 만들 때) `/admin/api/**`는 로그인 안 됐을 때 401로**: 관리자 화면에서 fetch로 부르는 데이터 API는 `/admin/api/**`에 둡니다(관리자 체인 안에 들어가도록). 지금은 로그인 안 된 요청을 전부 로그인 화면으로 보내서, fetch가 JSON 대신 로그인 화면 HTML을 받게 됩니다. `SecurityConfig.java` 60줄을 아래처럼 바꾸고 import 3줄(`org.springframework.http.HttpStatus`, `org.springframework.security.web.authentication.HttpStatusEntryPoint`, `org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher`)을 추가하는 안입니다. 실행해 보지 않았으니 `BackOfficeLoginTests`에 "로그인 없이 `GET /admin/api/...` → 401" 테스트를 같이 넣어 주세요. 직원 쪽 API가 생기면 91줄에 `/employee/api/**`로 같은 설정을 넣습니다.
+   ```java
+   .exceptionHandling(ex -> ex
+       .accessDeniedHandler(accessDeniedHandler("/admin/login"))
+       .defaultAuthenticationEntryPointFor(
+               new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+               PathPatternRequestMatcher.withDefaults().matcher("/admin/api/**")))
+   ```
+   참고: CSRF 토큰이 만료되면 151줄 설정이 로그인 화면(`?expired`)으로 보내므로, fetch로 상태를 바꾸는 API(POST·PATCH)를 만들 때 이 경우도 같이 정해야 합니다.
 
 ---
 
@@ -133,10 +148,8 @@ O = 사용 가능, X = 사용 불가
 
 팀원1과 확정한 뒤 고칩니다.
 
-- DECISIONS D-02 (관리자 콘솔에 ADMIN·EMPLOYEE 둘 다 로그인, 통합 UserDetailsService) → 영역 분리로 변경
-- DECISIONS D-05 (JWT) → 팀 README 기준 세션 방식
-- 03-기능명세서 2.1 AUT-001 / 2.2 AUT-003: 로그인 구현 주체, 처리 로직
-- 04-화면목록 1장 경로(직원 화면은 `/employee/**`)와 5장 권한표
+- (2026-10-15 반영 완료) DECISIONS D-02 영역 분리, D-05 세션, 03-기능명세서 AUT-001·003, 00-개요·01·02·05·AUT 문서의 로그인·인증 방식 표현, 와이어프레임 1장 로그인 안내 문구
+- 04-화면목록 1장 경로(직원 화면은 `/employee/**`)와 5장 권한표 (메모만 추가, 표는 확정 후)
 - 01-기획서·02-요구사항정의서의 역할 설명 (`SERVICE` 이름, 상품 관리 담당)
 - 06-와이어프레임: 로그인 공용 화면, 역할별 메뉴표
 - features/AUT, LOG 문서의 `admin_login_log` 기록 주체
