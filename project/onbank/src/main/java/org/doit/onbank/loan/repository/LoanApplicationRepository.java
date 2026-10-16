@@ -1,5 +1,6 @@
 package org.doit.onbank.loan.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.doit.onbank.loan.entity.LoanApplication;
@@ -25,10 +26,14 @@ public interface LoanApplicationRepository
     );
 
     @EntityGraph(attributePaths = {"product"})
-    Optional<LoanApplication>
-        findByIdAndApplicantUsername(
-                Long id,
-                String applicantUsername
-        );
+    Optional<LoanApplication> findByIdAndMember_MemberId(
+            Long id,
+            Long memberId
+    );
+    
+    @EntityGraph(attributePaths = {"product"})
+    List<LoanApplication> findAllByMember_MemberIdOrderByCreatedAtDesc(
+            Long memberId
+    );
  
 }

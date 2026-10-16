@@ -1,19 +1,13 @@
 
 package org.doit.onbank.loan.controller;
 
-import java.math.BigDecimal;
-import java.util.List;
-
 import org.doit.onbank.loan.dto.LoanApplicationForm;
-import org.doit.onbank.loan.dto.LoanApproveRequest;
-import org.doit.onbank.loan.dto.ScheduleResponse;
 import org.doit.onbank.loan.service.LoanApplicationService;
 import org.doit.onbank.loan.service.LoanService;
+import org.doit.onbank.member.security.LoginMember;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,11 +31,11 @@ public class LoanApiController {
     @PreAuthorize("isAuthenticated()")
     public Long apply(
             @Valid @RequestBody LoanApplicationForm request,
-            Authentication authentication) {
+            @AuthenticationPrincipal LoginMember me) {
 
         return applicationService.apply(
                 request,
-                authentication.getName()
+                me.getMemberId()
         );
     }
 

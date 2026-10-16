@@ -4,7 +4,19 @@ package org.doit.onbank.loan.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import jakarta.persistence.*;
+import org.doit.onbank.member.entity.Member;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,6 +40,10 @@ public class LoanApplication {
 	@Column(name = "APPLICANT_USERNAME",
 			nullable = false, length = 150)
 	private String applicantUsername;
+	
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "MEMBER_ID", nullable = false)
+	private Member member;
 
 	@Column(name = "REQUESTED_AMOUNT",
 			nullable = false, precision = 19, scale = 0)
@@ -119,19 +135,21 @@ public class LoanApplication {
 
 
 	public LoanApplication(
-			LoanProduct product,
-			String applicantUsername,
-			BigDecimal requestedAmount,
-			Integer requestedMonths) {
+	        Member member,
+	        LoanProduct product,
+	        String applicantUsername,
+	        BigDecimal requestedAmount,
+	        Integer requestedMonths) {
 
-		this.product = product;
-		this.applicantUsername = applicantUsername;
-		this.requestedAmount = requestedAmount;
-		this.requestedMonths = requestedMonths;
+	    this.member = member;
+	    this.product = product;
+	    this.applicantUsername = applicantUsername;
+	    this.requestedAmount = requestedAmount;
+	    this.requestedMonths = requestedMonths;
 
-		this.agreedToTerms = true;
-		this.status = LoanApplicationStatus.PENDING;
-		this.createdAt = LocalDateTime.now();
+	    this.agreedToTerms = true;
+	    this.status = LoanApplicationStatus.PENDING;
+	    this.createdAt = LocalDateTime.now();
 	}
 
 	// 관리자의 심사 처리에서만 호출

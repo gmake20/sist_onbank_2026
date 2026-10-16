@@ -244,3 +244,212 @@
         padding: 22px;
     }
 }
+
+/* =========================================
+   ONBANK 대출 신청 완료 페이지
+========================================= */
+
+.loan-apply-page:has(.loan-complete) {
+    min-height: calc(100vh - 180px);
+    background: #f7f8fa;
+    padding: 55px 20px 90px;
+    box-sizing: border-box;
+}
+
+/* 완료 카드 */
+.loan-apply-container.loan-complete {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 55px 55px 48px;
+    background: #ffffff;
+    border: 1px solid #e8ebf0;
+    border-radius: 20px;
+    box-shadow: 0 12px 35px rgba(23, 43, 77, 0.045);
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* 완료 체크 아이콘 */
+.loan-complete .complete-icon {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 26px;
+    border-radius: 50%;
+    background: #fff5cc;
+    color: #cc9500;
+    font-size: 38px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 제목 */
+.loan-complete h1 {
+    margin: 0 0 14px;
+    color: #15243b;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.4;
+}
+
+/* 안내 문구 */
+.loan-complete > p {
+    margin: 0 0 35px;
+    font-size: 15px;
+    color: #66758a;
+    line-height: 1.8;
+}
+
+/* 신청 상세 정보 */
+.loan-complete .complete-details {
+    background: #fafbfd;
+    border: 1px solid #edf0f4;
+    border-radius: 14px;
+    padding: 12px 28px;
+    margin-bottom: 28px;
+    text-align: left;
+}
+
+.loan-complete .complete-details > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    min-height: 62px;
+    padding: 12px 0;
+    border-bottom: 1px solid #e8edf2;
+    box-sizing: border-box;
+}
+
+.loan-complete .complete-details > div:last-child {
+    border-bottom: none;
+}
+
+/* 정보 항목명 */
+.loan-complete .complete-details span {
+    flex-shrink: 0;
+    color: #77869a;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* 정보 값 */
+.loan-complete .complete-details strong {
+    color: #1c2b40;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+/* 마지막 행: 심사상태 */
+.loan-complete .complete-details > div:last-child strong {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 13px;
+    border-radius: 20px;
+    background: #fff1c2;
+    color: #966d00;
+    font-size: 13px;
+}
+
+/* 진행현황 버튼 */
+.loan-complete .loan-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 54px;
+    background: #ffcc00;
+    color: #17243a;
+    border: 0;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    box-sizing: border-box;
+}
+
+.loan-complete .loan-submit:hover {
+    background: #f1bd00;
+    transform: translateY(-1px);
+}
+
+/* 상품 목록 링크 */
+.loan-complete .loan-back-link:not(.loan-submit) {
+    display: inline-block;
+    margin-top: 20px;
+    color: #6b7788;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.loan-complete .loan-back-link:not(.loan-submit):hover {
+    color: #17243a;
+    text-decoration: underline;
+}
+
+/* 버튼 영역 */
+.loan-complete .complete-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+
+    .loan-apply-page:has(.loan-complete) {
+        padding: 25px 15px 55px;
+    }
+
+    .loan-apply-container.loan-complete {
+        padding: 40px 24px;
+        border-radius: 15px;
+    }
+
+    .loan-complete h1 {
+        font-size: 24px;
+    }
+
+    .loan-complete > p {
+        font-size: 14px;
+    }
+
+    .loan-complete .complete-details {
+        padding: 8px 16px;
+    }
+
+    .loan-complete .complete-details strong {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 400px) {
+
+    .loan-apply-container.loan-complete {
+        padding: 32px 18px;
+    }
+
+    .loan-complete h1 {
+        font-size: 21px;
+    }
+
+    .loan-complete .complete-details > div {
+        gap: 12px;
+    }
+
+    .loan-complete .complete-details span {
+        font-size: 12px;
+    }
+
+    .loan-complete .complete-details strong {
+        font-size: 13px;
+    }
+}
