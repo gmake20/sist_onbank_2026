@@ -9,7 +9,73 @@
 <div layout:fragment="breadcrumb">관리자 콘솔 / 시스템 / 계정 관리</div>
 <h1 layout:fragment="page-title">계정 관리</h1>
 <main layout:fragment="content">
-    <p>계정 목록은 다음 단계(ACT-002)에서 채운다.</p>
+    <!-- 탭은 주소가 다른 링크 (D-21). 직원 탭 /admin/system/employees 는 아직 없음(404) -->
+    <div class="adm-tabs" role="tablist" aria-label="계정 종류">
+        <a class="adm-tab active" role="tab" aria-selected="true" th:href="@{/admin/system/admins}">관리자</a>
+        <a class="adm-tab" role="tab" aria-selected="false" th:href="@{/admin/system/employees}">직원</a>
+    </div>
+
+    <form class="adm-search" method="get" th:action="@{/admin/system/admins}">
+        <div class="adm-field">
+            <label for="keyword">아이디 · 이름</label>
+            <input type="text" id="keyword" name="keyword" th:value="${keyword}" placeholder="아이디 또는 이름">
+        </div>
+        <div class="adm-field">
+            <label for="role">역할</label>
+            <select id="role" name="role">
+                <option value="">전체</option>
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}" th:selected="${r == role}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="status">상태</label>
+            <select id="status" name="status">
+                <option value="">전체</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == status}"></option>
+            </select>
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/system/admins}">초기화</a>
+        </div>
+    </form>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>총 <b th:text="${admins.size()}">0</b>건</span>
+            <!-- S-20 은 다음 단계 (지금은 404) -->
+            <a class="adm-btn-primary" th:href="@{/admin/system/admins/new}">+ 관리자 계정 생성</a>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>아이디</th><th>이름</th><th>역할</th><th>상태</th><th>임시 비밀번호</th><th>마지막 로그인</th><th>생성일</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${admins}">
+                    <td th:text="${a.loginId}">super01</td>
+                    <td th:text="${a.name}">이총괄</td>
+                    <td th:text="${a.role}">SUPER_ADMIN</td>
+                    <td>
+                        <span class="adm-badge" th:switch="${a.status.name()}">
+                            <th:block th:case="'ACTIVE'">ACTIVE 사용</th:block>
+                            <th:block th:case="'INACTIVE'">INACTIVE 비활성</th:block>
+                            <th:block th:case="'LOCKED'">LOCKED 잠김</th:block>
+                        </span>
+                    </td>
+                    <td th:text="${a.tempPassword} ? 'Y' : 'N'">N</td>
+                    <td th:text="${a.lastLoginAt != null} ? ${#temporals.format(a.lastLoginAt, 'yyyy-MM-dd HH:mm')} : '–'">–</td>
+                    <td th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd')}">YYYY-MM-DD</td>
+                </tr>
+                <tr th:if="${admins.isEmpty()}">
+                    <td colspan="7" class="adm-empty">조건에 맞는 계정이 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <p class="adm-note">임시 비밀번호 Y = 첫 로그인 후 비밀번호를 아직 바꾸지 않은 계정.</p>
 </main>
 </body>
 </html>
