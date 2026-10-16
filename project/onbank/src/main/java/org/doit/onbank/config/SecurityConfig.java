@@ -102,6 +102,13 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/employee/login").permitAll()
 				// TODO 승인 업무 URL이 정해지면 hasRole("MANAGER")로 추가 (계좌 동결, 이체한도 증액, 대출 심사, 상품 관리)
+				// 대출 심사 페이지 및 일반 심사 업무
+			    .requestMatchers("/employee/loans/review",
+			                     "/employee/loans/review/**")
+			        .hasAnyRole("STAFF", "MANAGER")
+			    // 직원 대출 심사 REST API
+			    .requestMatchers("/employee/api/loan-applications/**")
+			        .hasAnyRole("STAFF", "MANAGER")
 				.anyRequest().hasRole("STAFF"))
 			.formLogin(form -> form
 				.loginPage("/employee/login")
