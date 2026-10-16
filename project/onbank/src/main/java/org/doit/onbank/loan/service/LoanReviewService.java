@@ -1,13 +1,18 @@
+
 package org.doit.onbank.loan.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Set;
 
+import org.doit.onbank.employee.entity.Employee;
+import org.doit.onbank.employee.entity.EmployeeRole;
+import org.doit.onbank.employee.entity.EmployeeStatus;
+import org.doit.onbank.employee.repository.EmployeeRepository;
 import org.doit.onbank.loan.entity.LoanApplication;
-import org.doit.onbank.loan.entity.LoanApplicationStatus;
 import org.doit.onbank.loan.repository.LoanApplicationRepository;
+
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,13 +22,16 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class LoanReviewService {
 
     private final LoanApplicationRepository applicationRepository;
+    private final EmployeeRepository employeeRepository;
 
-    private LoanApplication findForUpdate(Long id) {
-        return applicationRepository.findByIdForUpdate(id)
+    // 대출 신청 조회 + 비관적 락
+    private LoanApplication findForUpdate(Long applicationId) {
+
+        return applicationRepository
+                .findByIdForUpdate(applicationId)
                 .orElseThrow(() ->
                     new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -32,86 +40,134 @@ public class LoanReviewService {
                 );
     }
 
-    // 심사 시작
+    // 직원 조회 및 권한 검증
+    private Employee requireEmployee(
+            Long employeeId,
+            boolean managerRequired) {
+
+        if (employeeId == null) {
+            throw new AccessDeniedException(
+                    "직원 인증 정보가 없습니다."
+            );
+        }
+
+        Employee employee = employeeRepository
+                .findById(employeeId)
+                .orElseThrow(() ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "직원 정보가 없습니다."
+                    )
+                );
+
+        if (employee.getStatus() != EmployeeStatus.ACTIVE) {
+            throw new AccessDeniedException(
+                    "활성 상태의 직원만 심사할 수 있습니다."
+            );
+        }
+
+        if (managerRequired
+                && employee.getRole() != EmployeeRole.MANAGER) {
+            throw new AccessDeniedException(
+                    "대출 승인 및 거절 권한이 없습니다."
+            );
+        }
+
+        return employee;
+    }
+
+    // =====================================
+    // 1. 심사 시작 - 직원
+    // =====================================
     @Transactional
-    public void startReview(Long id) {
-        LoanApplication application = findForUpdate(id);
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
+    public void startReview(Long applicationId) {
+
+        LoanApplication application =
+                findForUpdate(applicationId);
+
         application.startReview();
     }
 
-    // 추가 서류 요청
+    // =====================================
+    // 2. 추가 서류 요청 - 직원
+    // =====================================
     @Transactional
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
     public void requestAdditionalInfo(
-            Long id,
+            Long applicationId,
             String reason,
-            Long reviewerId
-    ) {
-        LoanApplication application = findForUpdate(id);
+            Long employeeId) {
 
-        application.requestAdditionalInfo(reason, reviewerId);
+        Employee employee = requireEmployee(employeeId, false);
+
+        LoanApplication application =
+                findForUpdate(applicationId);
+
+        application.requestAdditionalInfo(
+                reason,
+                employee
+        );
     }
 
-    // 서류보완 완료 확인 후 심사 재개
+    // =====================================
+    // 3. 심사 재개 - 직원
+    // =====================================
     @Transactional
-    public void resumeReview(Long id) {
-        LoanApplication application = findForUpdate(id);
+    @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
+    public void resumeReview(Long applicationId) {
+
+        LoanApplication application =
+                findForUpdate(applicationId);
 
         application.resumeReview();
     }
 
-    // 대출 거절
+    // =====================================
+    // 4. 대출 거절 - 관리자급 직원
+    // =====================================
     @Transactional
+    @PreAuthorize("hasRole('MANAGER')")
     public void reject(
-            Long id,
+            Long applicationId,
             String reason,
-            Long reviewerId
-    ) {
-        LoanApplication application = findForUpdate(id);
+            Long employeeId) {
 
-        application.reject(reason, reviewerId);
+        Employee employee = requireEmployee(employeeId, true);
+
+        LoanApplication application =
+                findForUpdate(applicationId);
+
+        application.reject(
+                reason,
+                employee
+        );
     }
 
-    // 대출 승인
+    // =====================================
+    // 5. 대출 승인 - 관리자급 직원
+    // =====================================
     @Transactional
-    public void approve(
-            Long id,
-            BigDecimal amount,
-            BigDecimal rate,
-            String repaymentMethod,
-            LocalDateTime startDate,
-            Long reviewerId
-    ) {
+    @PreAuthorize("hasRole('MANAGER')")
+    public Long approve(
+            Long applicationId,
+            Long employeeId,
+            BigDecimal approvedAmount,
+            BigDecimal approvedRate,
+            LocalDateTime startedAt) {
 
-        if (reviewerId == null) {
-            throw new IllegalArgumentException(
-                    "심사 담당자 정보가 없습니다."
-            );
-        }
+        Employee employee = requireEmployee(employeeId, true);
 
-        if (repaymentMethod == null ||
-                !Set.of("EQUAL", "PRINCIPAL", "BULLET")
-                    .contains(repaymentMethod)) {
-            throw new IllegalArgumentException(
-                    "올바른 상환 방식을 선택하세요."
-            );
-        }
-
-        LoanApplication application = findForUpdate(id);
-        
-
-		if (application.getStatus() != LoanApplicationStatus.REVIEWING) {
-		    throw new IllegalStateException(
-		            "심사중인 대출만 승인할 수 있습니다."
-		    );
-		}
-
-        application.setRepaymentMethod(repaymentMethod);
+        LoanApplication application =
+                findForUpdate(applicationId);
 
         application.approve(
-                amount,
-                rate,
-                reviewerId,
-                startDate
+                approvedAmount,
+                approvedRate,
+                employee,
+                startedAt
         );
+
+        return application.getId();
     }
 }
