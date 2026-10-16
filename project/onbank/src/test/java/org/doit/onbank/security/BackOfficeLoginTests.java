@@ -168,6 +168,28 @@ class BackOfficeLoginTests {
 				.andExpect(redirectedUrl("/employee/login"));
 	}
 
+	// ---------- API(fetch) 주소 ----------
+
+	// 로그인하지 않고 API를 부르면 로그인 화면 HTML 대신 401 (화면 주소는 위 테스트처럼 로그인 화면으로)
+	@Test
+	void apiRequiresLoginReturns401() throws Exception {
+		mockMvc.perform(get("/admin/api/test")).andExpect(status().isUnauthorized());
+		mockMvc.perform(get("/employee/api/test")).andExpect(status().isUnauthorized());
+	}
+
+	// 로그인했으면 401이 아니라 컨트롤러까지 간다 (이 주소는 없으므로 404)
+	@Test
+	void apiAfterLoginPassesSecurity() throws Exception {
+		mockMvc.perform(get("/admin/api/test").session(loginAdmin())).andExpect(status().isNotFound());
+		mockMvc.perform(get("/employee/api/test").session(loginEmployee(staffNo))).andExpect(status().isNotFound());
+	}
+
+	// 직원 세션으로 관리자 API를 불러도 401 (영역 분리)
+	@Test
+	void employeeSessionCannotCallAdminApi() throws Exception {
+		mockMvc.perform(get("/admin/api/test").session(loginEmployee(managerNo))).andExpect(status().isUnauthorized());
+	}
+
 	// ---------- CSRF 토큰 만료 ----------
 
 	// 로그인 화면을 띄워 둔 채 서버가 재시작되면 토큰이 맞지 않는다 → 403 대신 로그인 화면으로 (?expired)
