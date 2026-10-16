@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!-- 관리자 사이드바 (와이어프레임 2장). 역할별 메뉴는 와이어프레임 2장 표 / 04-화면목록 5장 기준 -->
+<!-- 역할은 hasAnyRole로 전부 적는다 (SecurityConfig 권한 계층이 화면 검사에도 적용되는지 확인 안 됨) -->
+<body>
+<nav class="adm-side" th:fragment="sidebar" aria-label="관리자 메뉴" th:with="uri=${currentUri}">
+
+    <div class="adm-logo"><span class="adm-logo-mark"></span>ONBANK Admin</div>
+
+    <div class="adm-group">대시보드</div>
+    <a class="adm-menu" th:href="@{/admin}" th:classappend="${uri == '/admin'} ? 'active'">
+        <span class="adm-ico"></span>대시보드</a>
+
+    <th:block sec:authorize="hasAnyRole('SUPER_ADMIN','OPERATOR')">
+        <div class="adm-group">고객 · 계좌</div>
+        <a class="adm-menu" th:href="@{/admin/members}" th:classappend="${#strings.startsWith(uri, '/admin/members')} ? 'active'">
+            <span class="adm-ico"></span>회원 관리</a>
+        <a class="adm-menu" th:href="@{/admin/accounts}" th:classappend="${#strings.startsWith(uri, '/admin/accounts')} ? 'active'">
+            <span class="adm-ico"></span>계좌 관리</a>
+        <a class="adm-menu" th:href="@{/admin/transactions}" th:classappend="${#strings.startsWith(uri, '/admin/transactions')} ? 'active'">
+            <span class="adm-ico"></span>거래 관리</a>
+    </th:block>
+
+    <div class="adm-group">상품 · 대출</div>
+    <a class="adm-menu" sec:authorize="hasAnyRole('SUPER_ADMIN','SERVICE')"
+       th:href="@{/admin/products}" th:classappend="${#strings.startsWith(uri, '/admin/products')} ? 'active'">
+        <span class="adm-ico"></span>상품 관리</a>
+    <a class="adm-menu" sec:authorize="hasAnyRole('SUPER_ADMIN','OPERATOR')"
+       th:href="@{/admin/loans}" th:classappend="${#strings.startsWith(uri, '/admin/loans')} ? 'active'">
+        <span class="adm-ico"></span>대출 관리</a>
+
+    <th:block sec:authorize="hasRole('SUPER_ADMIN')">
+        <div class="adm-group">감사</div>
+        <a class="adm-menu" th:href="@{/admin/logs}" th:classappend="${#strings.startsWith(uri, '/admin/logs')} ? 'active'">
+            <span class="adm-ico"></span>활동 로그</a>
+    </th:block>
+
+    <th:block sec:authorize="hasAnyRole('SUPER_ADMIN','OPERATOR')">
+        <div class="adm-group">이상거래 · 모니터링</div>
+        <a class="adm-menu" th:href="@{/admin/fds}" th:classappend="${#strings.startsWith(uri, '/admin/fds')} ? 'active'">
+            <span class="adm-ico"></span>이상거래 탐지</a>
+        <a class="adm-menu" th:href="@{/admin/monitoring}" th:classappend="${#strings.startsWith(uri, '/admin/monitoring')} ? 'active'">
+            <span class="adm-ico"></span>실시간 모니터링</a>
+        <a class="adm-menu" th:href="@{/admin/notifications}" th:classappend="${#strings.startsWith(uri, '/admin/notifications')} ? 'active'">
+            <span class="adm-ico"></span>알림 목록</a>
+    </th:block>
+
+    <th:block sec:authorize="hasRole('SUPER_ADMIN')">
+        <div class="adm-group">시스템</div>
+        <!-- 관리자·직원 탭 어디에 있든 강조되도록 /admin/system 전체로 검사 -->
+        <a class="adm-menu" th:href="@{/admin/system/admins}" th:classappend="${#strings.startsWith(uri, '/admin/system')} ? 'active'">
+            <span class="adm-ico"></span>계정 관리</a>
+    </th:block>
+</nav>
+</body>
+</html>

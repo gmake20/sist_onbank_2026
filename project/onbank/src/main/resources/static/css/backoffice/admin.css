@@ -1,0 +1,41 @@
+/* 관리자 화면 공통 (06-와이어프레임 2장 값 그대로) */
+:root {
+    --adm-bg: #f4f4f2;
+    --adm-line: #c9c9c4;
+    --adm-text: #222;
+    --adm-sub: #6b6963;
+    --adm-active: #e4e4df;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Noto Sans KR', system-ui, sans-serif; color: var(--adm-text); background: var(--adm-bg); }
+a { color: inherit; text-decoration: none; }
+
+.adm-wrap { display: flex; min-height: 100vh; }
+
+/* 사이드바 */
+.adm-side { flex: 0 0 240px; background: #fff; border-right: 1px solid var(--adm-line); padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; }
+.adm-logo { display: flex; align-items: center; gap: 10px; padding: 4px 12px 12px; font-weight: 700; font-size: 16px; }
+.adm-logo-mark { width: 32px; height: 32px; border: 1.5px dashed var(--adm-sub); border-radius: 6px; }
+.adm-group { margin: 16px 12px 4px; font-size: 12px; font-weight: 500; color: var(--adm-sub); }
+.adm-menu { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 6px; font-size: 14px; }
+.adm-menu:hover { background: var(--adm-bg); }
+.adm-menu.active { background: var(--adm-active); font-weight: 700; }
+.adm-ico { width: 16px; height: 16px; border: 1.5px solid var(--adm-sub); border-radius: 3px; }
+.adm-menu.active .adm-ico { border-color: var(--adm-text); }
+
+/* 헤더 */
+.adm-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.adm-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 32px; background: #fff; border-bottom: 1px solid var(--adm-line); }
+.adm-breadcrumb { font-size: 12px; color: var(--adm-sub); }
+.adm-page-title { margin: 0; font-size: 20px; font-weight: 700; }
+.adm-header-right { display: flex; align-items: center; gap: 16px; }
+.adm-header-right form { margin: 0; }
+.adm-bell { position: relative; width: 44px; height: 44px; border: 1px solid var(--adm-line); border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: center; }
+.adm-user { display: flex; align-items: center; gap: 10px; line-height: 1.3; }
+.adm-avatar { width: 36px; height: 36px; border-radius: 18px; border: 1.5px dashed var(--adm-sub); }
+.adm-user-name { font-size: 14px; font-weight: 500; }
+.adm-user-role { font-size: 12px; color: var(--adm-sub); }
+.adm-btn { min-height: 44px; padding: 0 16px; border: 1px solid var(--adm-line); border-radius: 8px; background: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+
+/* 본문 */
+.adm-main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 24px; }

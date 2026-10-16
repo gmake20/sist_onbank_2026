@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!-- 관리자 화면 공통 틀 (와이어프레임 2장). 화면은 layout:decorate="~{backoffice/layout/admin}" 로 본문만 쓴다 -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title layout:title-pattern="$CONTENT_TITLE - ONBANK 관리자">ONBANK 관리자</title>
+    <link rel="stylesheet" th:href="@{/css/backoffice/admin.css}">
+</head>
+<body>
+<div class="adm-wrap">
+    <nav th:replace="~{backoffice/fragments/admin-sidebar :: sidebar}"></nav>
+
+    <div class="adm-body">
+        <header class="adm-header">
+            <div>
+                <div class="adm-breadcrumb" layout:fragment="breadcrumb">관리자 콘솔</div>
+                <h1 class="adm-page-title" layout:fragment="page-title">페이지 제목</h1>
+            </div>
+            <div class="adm-header-right">
+                <!-- 알림 목록(S-18). 미확인 개수 배지는 MON-005 때 추가 -->
+                <a class="adm-bell" th:href="@{/admin/notifications}" aria-label="알림 목록">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"></path>
+                        <path d="M10 20a2 2 0 0 0 4 0"></path>
+                    </svg>
+                </a>
+                <div class="adm-user">
+                    <div class="adm-avatar"></div>
+                    <div>
+                        <!-- principal = 팀원1 AdminPrincipal (getName, getRole) -->
+                        <div class="adm-user-name" sec:authentication="principal.name">이름</div>
+                        <div class="adm-user-role" sec:authentication="principal.role">역할</div>
+                    </div>
+                </div>
+                <!-- 로그아웃은 POST (CSRF 토큰은 th:action이 자동으로 넣음) -->
+                <form th:action="@{/admin/logout}" method="post">
+                    <button type="submit" class="adm-btn">로그아웃</button>
+                </form>
+            </div>
+        </header>
+
+        <main class="adm-main" layout:fragment="content">
+            본문 자리
+        </main>
+    </div>
+</div>
+</body>
+</html>
