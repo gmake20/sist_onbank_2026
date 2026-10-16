@@ -3,8 +3,13 @@ package org.doit.onbank.config;
 import java.util.LinkedHashMap;
 
 import org.doit.onbank.admin.security.AdminDetailsService;
+import org.doit.onbank.admin.security.AdminLoginAttemptRecorder;
+import org.doit.onbank.common.security.LoginFailureHandler;
+import org.doit.onbank.common.security.LoginSuccessHandler;
 import org.doit.onbank.employee.security.EmployeeDetailsService;
+import org.doit.onbank.employee.security.EmployeeLoginAttemptRecorder;
 import org.doit.onbank.member.security.MemberDetailsService;
+import org.doit.onbank.member.security.MemberLoginAttemptRecorder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -32,7 +37,8 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 // - 체인마다 사용할 UserDetailsService를 직접 지정한다. 3개가 Bean으로 등록되어 있어 자동 선택되지 않음
 // - 직원·관리자는 로그인 정보를 세션에 다른 이름으로 저장한다 → 고객 로그인으로 직원 화면에 들어갈 수 없고,
 //   같은 브라우저에서 고객과 직원으로 함께 로그인해도 섞이지 않음
-// 다음 단계 : 로그인 성공/실패 핸들러(5회 잠금, 로그인 이력), 임시 비밀번호 변경 강제, 세션 타임아웃, 중복 로그인 제한
+// - 로그인 성공/실패 핸들러 : 비밀번호 5회 오류 잠금 (LoginSuccessHandler, LoginFailureHandler)
+// 다음 단계 : 로그인 이력 기록, 임시 비밀번호 변경 강제, 세션 타임아웃, 중복 로그인 제한
 @Configuration
 public class SecurityConfig {
 
@@ -57,12 +63,14 @@ public class SecurityConfig {
 	// 관리자 영역 (admin 테이블)
 	@Bean
 	@Order(1)
-	SecurityFilterChain adminFilterChain(HttpSecurity http, AdminDetailsService adminDetailsService) throws Exception {
+	SecurityFilterChain adminFilterChain(HttpSecurity http, AdminDetailsService adminDetailsService,
+			AdminLoginAttemptRecorder adminLoginAttemptRecorder) throws Exception {
+		HttpSessionRequestCache requestCache = requestCache("SPRING_SECURITY_SAVED_REQUEST_ADMIN");
 		http
 			.securityMatcher("/admin/**")
 			.userDetailsService(adminDetailsService)
 			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_ADMIN")))
-			.requestCache(cache -> cache.requestCache(requestCache("SPRING_SECURITY_SAVED_REQUEST_ADMIN")))
+			.requestCache(cache -> cache.requestCache(requestCache))
 			.exceptionHandling(ex -> ex
 				.accessDeniedHandler(accessDeniedHandler("/admin/login"))
 				.authenticationEntryPoint(entryPoint("/admin/login", "/admin/api/**")))
@@ -75,8 +83,8 @@ public class SecurityConfig {
 				.loginProcessingUrl("/admin/login")
 				.usernameParameter("loginId")
 				.passwordParameter("password")
-				.defaultSuccessUrl("/admin")
-				.failureUrl("/admin/login?error")
+				.successHandler(new LoginSuccessHandler(adminLoginAttemptRecorder, "/admin", requestCache))
+				.failureHandler(new LoginFailureHandler(adminLoginAttemptRecorder, "loginId", "/admin/login"))
 				.permitAll())
 			.logout(logout -> logout
 				.logoutUrl("/admin/logout")
@@ -90,12 +98,14 @@ public class SecurityConfig {
 	// 직원 영역 (employee 테이블)
 	@Bean
 	@Order(2)
-	SecurityFilterChain employeeFilterChain(HttpSecurity http, EmployeeDetailsService employeeDetailsService) throws Exception {
+	SecurityFilterChain employeeFilterChain(HttpSecurity http, EmployeeDetailsService employeeDetailsService,
+			EmployeeLoginAttemptRecorder employeeLoginAttemptRecorder) throws Exception {
+		HttpSessionRequestCache requestCache = requestCache("SPRING_SECURITY_SAVED_REQUEST_EMPLOYEE");
 		http
 			.securityMatcher("/employee/**")
 			.userDetailsService(employeeDetailsService)
 			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_EMPLOYEE")))
-			.requestCache(cache -> cache.requestCache(requestCache("SPRING_SECURITY_SAVED_REQUEST_EMPLOYEE")))
+			.requestCache(cache -> cache.requestCache(requestCache))
 			.exceptionHandling(ex -> ex
 				.accessDeniedHandler(accessDeniedHandler("/employee/login"))
 				.authenticationEntryPoint(entryPoint("/employee/login", "/employee/api/**")))
@@ -115,8 +125,8 @@ public class SecurityConfig {
 				.loginProcessingUrl("/employee/login")
 				.usernameParameter("employeeNo")
 				.passwordParameter("password")
-				.defaultSuccessUrl("/employee")
-				.failureUrl("/employee/login?error")
+				.successHandler(new LoginSuccessHandler(employeeLoginAttemptRecorder, "/employee", requestCache))
+				.failureHandler(new LoginFailureHandler(employeeLoginAttemptRecorder, "employeeNo", "/employee/login"))
 				.permitAll())
 			.logout(logout -> logout
 				.logoutUrl("/employee/logout")
@@ -130,9 +140,12 @@ public class SecurityConfig {
 	// 고객 영역 (members 테이블) : 위 두 영역이 아닌 나머지 전부
 	@Bean
 	@Order(3)
-	SecurityFilterChain memberFilterChain(HttpSecurity http, MemberDetailsService memberDetailsService) throws Exception {
+	SecurityFilterChain memberFilterChain(HttpSecurity http, MemberDetailsService memberDetailsService,
+			MemberLoginAttemptRecorder memberLoginAttemptRecorder) throws Exception {
+		HttpSessionRequestCache requestCache = new HttpSessionRequestCache();	// 고객은 세션 기본 이름 사용
 		http
 			.userDetailsService(memberDetailsService)
+			.requestCache(cache -> cache.requestCache(requestCache))
 			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/login")))
 			.authorizeHttpRequests(auth -> auth
 				// 비회원 공개 : 회원가입, 가입용 휴대폰 인증 API (아래 anyRequest를 잠가도 열려 있어야 함)
@@ -148,8 +161,10 @@ public class SecurityConfig {
 				.loginProcessingUrl("/login")		// POST /login 은 Spring Security가 처리
 				.usernameParameter("loginId")
 				.passwordParameter("password")
-				.defaultSuccessUrl("/")			// 로그인 전에 보려던 페이지가 있으면 그 페이지로 이동
-				.failureUrl("/login?error")
+				// 성공 : 실패 횟수 초기화 → 로그인 전에 보려던 페이지, 없으면 /
+				.successHandler(new LoginSuccessHandler(memberLoginAttemptRecorder, "/", requestCache))
+				// 실패 : 비밀번호 5회 오류면 잠금 → /login?error, ?locked, ?disabled
+				.failureHandler(new LoginFailureHandler(memberLoginAttemptRecorder, "loginId", "/login"))
 				.permitAll())
 			.logout(logout -> logout
 				.logoutUrl("/logout")				// POST만 허용 (CSRF 보호)

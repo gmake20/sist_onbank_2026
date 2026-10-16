@@ -27,6 +27,9 @@
         <form th:action="@{/login}" method="post">
             <!-- 아이디가 없는지, 비밀번호가 틀렸는지 구분하지 않고 같은 문구로 안내 -->
             <p class="login-error" th:if="${param.error}">아이디 또는 비밀번호가 올바르지 않습니다.</p>
+            <!-- 실패 사유별 안내 (LoginFailureHandler) -->
+            <p class="login-error" th:if="${param.locked}">비밀번호를 5회 잘못 입력하여 로그인이 제한되었습니다. 고객센터로 문의해 주세요.</p>
+            <p class="login-error" th:if="${param.disabled}">이용이 정지되었거나 탈퇴한 계정입니다. 고객센터로 문의해 주세요.</p>
             <p class="login-error" th:if="${param.expired}">보안을 위해 화면이 만료되었습니다. 다시 로그인해 주세요.</p>
             <!-- 회원가입 완료 후 이동해 온 경우 (SignupController의 flash 속성) -->
             <p class="login-info" th:if="${msg}" th:text="${msg}"></p>

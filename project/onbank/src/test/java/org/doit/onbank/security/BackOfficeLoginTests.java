@@ -6,13 +6,17 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.endsWith;
 
 import java.time.LocalDate;
 
 import org.doit.onbank.admin.entity.Admin;
 import org.doit.onbank.admin.entity.AdminRole;
+import org.doit.onbank.admin.entity.AdminStatus;
 import org.doit.onbank.admin.repository.AdminRepository;
 import org.doit.onbank.employee.entity.Employee;
 import org.doit.onbank.employee.entity.EmployeeRole;
@@ -26,7 +30,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.EntityManager;
 
 // 직원(/employee/**)·관리자(/admin/**) 로그인과 영역 분리 확인
 // @Transactional : 테스트 계정은 테스트가 끝나면 롤백 (공용 DB에 남지 않음)
@@ -50,6 +57,9 @@ class BackOfficeLoginTests {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private EntityManager entityManager;
 
 	private final String suffix = String.valueOf(System.currentTimeMillis() % 100_000_000);
 	private final String staffNo = "S" + suffix;	// 사번은 10자 이하
@@ -166,6 +176,96 @@ class BackOfficeLoginTests {
 	void adminSessionCannotAccessEmployee() throws Exception {
 		mockMvc.perform(get("/employee").session(loginAdmin()))
 				.andExpect(redirectedUrl("/employee/login"));
+	}
+
+	// ---------- 비밀번호 5회 오류 잠금 ----------
+
+	private ResultActions employeeLogin(String employeeNo, String password) throws Exception {
+		return mockMvc.perform(formLogin("/employee/login").userParameter("employeeNo").user(employeeNo).password(password));
+	}
+
+	private ResultActions adminLogin(String password) throws Exception {
+		return mockMvc.perform(formLogin("/admin/login").userParameter("loginId").user(adminId).password(password));
+	}
+
+	@Test
+	void employeeLockedAfterFiveFailures() throws Exception {
+		for (int i = 1; i <= 4; i++) {
+			employeeLogin(staffNo, "wrong").andExpect(redirectedUrl("/employee/login?error"));
+		}
+		// 5번째 실패에서 잠기고 잠금 안내
+		employeeLogin(staffNo, "wrong").andExpect(redirectedUrl("/employee/login?locked"));
+
+		Employee employee = employeeRepository.findByEmployeeNo(staffNo).orElseThrow();
+		assertThat(employee.getLoginFailCount()).isEqualTo(5);
+		assertThat(employee.getLoginLockedAt()).isNotNull();
+
+		// 잠긴 뒤에는 비밀번호가 맞아도 로그인 불가 (실패 횟수도 더 늘지 않음)
+		employeeLogin(staffNo, rawPassword)
+				.andExpect(unauthenticated())
+				.andExpect(redirectedUrl("/employee/login?locked"));
+		assertThat(employeeRepository.findByEmployeeNo(staffNo).orElseThrow().getLoginFailCount()).isEqualTo(5);
+
+		// 잠금 해제 후 다시 로그인 가능
+		employee.unlockLogin();
+		employeeLogin(staffNo, rawPassword).andExpect(authenticated());
+	}
+
+	@Test
+	void adminLockedAfterFiveFailures() throws Exception {
+		for (int i = 1; i <= 4; i++) {
+			adminLogin("wrong").andExpect(redirectedUrl("/admin/login?error"));
+		}
+		adminLogin("wrong").andExpect(redirectedUrl("/admin/login?locked"));
+
+		Admin admin = adminRepository.findByLoginId(adminId).orElseThrow();
+		assertThat(admin.getStatus()).isEqualTo(AdminStatus.LOCKED);
+		assertThat(admin.getLoginFailCount()).isEqualTo(5);
+
+		adminLogin(rawPassword).andExpect(unauthenticated()).andExpect(redirectedUrl("/admin/login?locked"));
+
+		admin.unlock();
+		adminLogin(rawPassword).andExpect(authenticated());
+	}
+
+	// 성공하면 실패 횟수가 0으로 돌아간다 (연속 5회일 때만 잠김). 관리자는 마지막 로그인 시간도 기록
+	@Test
+	void successResetsFailCount() throws Exception {
+		employeeLogin(staffNo, "wrong");
+		employeeLogin(staffNo, "wrong");
+		assertThat(employeeRepository.findByEmployeeNo(staffNo).orElseThrow().getLoginFailCount()).isEqualTo(2);
+		employeeLogin(staffNo, rawPassword).andExpect(authenticated());
+		assertThat(employeeRepository.findByEmployeeNo(staffNo).orElseThrow().getLoginFailCount()).isZero();
+
+		adminLogin("wrong");
+		adminLogin(rawPassword).andExpect(authenticated());
+		Admin admin = adminRepository.findByLoginId(adminId).orElseThrow();
+		assertThat(admin.getLoginFailCount()).isZero();
+		assertThat(admin.getLastLoginAt()).isNotNull();
+	}
+
+	// 휴직·퇴사 직원은 비밀번호가 맞아도 로그인 불가 → ?disabled
+	@Test
+	void disabledEmployeeCannotLogin() throws Exception {
+		jdbcTemplate.update("UPDATE employee SET status = 'ON_LEAVE' WHERE employee_no = ?", staffNo);
+		entityManager.clear();	// 위 UPDATE를 엔티티가 다시 읽도록
+
+		employeeLogin(staffNo, rawPassword)
+				.andExpect(unauthenticated())
+				.andExpect(redirectedUrl("/employee/login?disabled"));
+	}
+
+	// 성공 핸들러를 바꾼 뒤에도 로그인 전에 보려던 페이지로 돌아간다 (영역별 requestCache 사용)
+	@Test
+	void loginReturnsToSavedRequest() throws Exception {
+		MockHttpSession session = (MockHttpSession) mockMvc.perform(get("/employee"))
+				.andExpect(redirectedUrl("/employee/login"))
+				.andReturn().getRequest().getSession(false);
+
+		mockMvc.perform(post("/employee/login").session(session).with(csrf())
+						.param("employeeNo", staffNo).param("password", rawPassword))
+				.andExpect(authenticated())
+				.andExpect(header().string("Location", endsWith("/employee?continue")));
 	}
 
 	// ---------- API(fetch) 주소 ----------

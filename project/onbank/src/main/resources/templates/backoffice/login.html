@@ -26,6 +26,9 @@
         <form th:action="@{${loginUrl}}" method="post">
             <!-- 아이디가 없는지, 비밀번호가 틀렸는지 구분하지 않고 같은 문구로 안내 -->
             <p class="msg-error" th:if="${param.error}" th:text="|${idLabel} 또는 비밀번호가 올바르지 않습니다.|"></p>
+            <!-- 실패 사유별 안내 (LoginFailureHandler) -->
+            <p class="msg-error" th:if="${param.locked}">비밀번호를 5회 잘못 입력하여 계정이 잠겼습니다. 관리자에게 잠금 해제를 요청하세요.</p>
+            <p class="msg-error" th:if="${param.disabled}">사용할 수 없는 계정입니다. 관리자에게 문의하세요.</p>
             <p class="msg-info" th:if="${param.logout}">로그아웃되었습니다.</p>
             <p class="msg-error" th:if="${param.expired}">보안을 위해 화면이 만료되었습니다. 다시 로그인해 주세요.</p>
 

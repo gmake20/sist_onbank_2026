@@ -91,4 +91,26 @@ public class Member extends BaseEntity {
 		this.termsAgreedAt = termsAgreedAt;
 		this.marketingAgree = marketingAgree;
 	}
+
+	// ---------- 로그인 실패 잠금 (LoginFailureHandler에서 호출) ----------
+
+	// 비밀번호 오류 1회 기록. maxFailCount회가 되면 잠근다. 잠긴 상태면 true
+	public boolean recordLoginFailure(int maxFailCount, LocalDateTime now) {
+		loginFailCount++;
+		if (loginFailCount >= maxFailCount && loginLockedAt == null) {
+			loginLockedAt = now;
+		}
+		return loginLockedAt != null;
+	}
+
+	// 로그인 성공 : 실패 횟수 초기화
+	public void recordLoginSuccess() {
+		loginFailCount = 0;
+	}
+
+	// 잠금 해제 (다음 단계 : 비밀번호 재설정, 직원 회원 관리 화면에서 호출)
+	public void unlockLogin() {
+		loginFailCount = 0;
+		loginLockedAt = null;
+	}
 }

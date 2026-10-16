@@ -78,4 +78,31 @@ public class Admin {
 		this.role = role;
 		this.tempPassword = tempPassword;
 	}
+
+	// ---------- 로그인 실패 잠금 (LoginFailureHandler에서 호출) ----------
+	// 관리자는 잠금을 status = LOCKED로 표시한다 (직원·고객은 login_locked_at)
+	// 시간이 지나도 자동으로 풀리지 않는다. 다른 관리자가 unlock()으로 해제
+
+	// 비밀번호 오류 1회 기록. maxFailCount회가 되면 잠근다. 잠긴 상태면 true
+	public boolean recordLoginFailure(int maxFailCount) {
+		loginFailCount++;
+		if (loginFailCount >= maxFailCount && status == AdminStatus.ACTIVE) {
+			status = AdminStatus.LOCKED;
+		}
+		return status == AdminStatus.LOCKED;
+	}
+
+	// 로그인 성공 : 실패 횟수 초기화, 마지막 로그인 시간 기록
+	public void recordLoginSuccess(LocalDateTime now) {
+		loginFailCount = 0;
+		lastLoginAt = now;
+	}
+
+	// 잠금 해제 (관리자 파트의 계정 잠금 해제 화면에서 호출). 비활성(INACTIVE) 계정은 그대로 둔다
+	public void unlock() {
+		loginFailCount = 0;
+		if (status == AdminStatus.LOCKED) {
+			status = AdminStatus.ACTIVE;
+		}
+	}
 }

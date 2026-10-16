@@ -1,5 +1,6 @@
 package org.doit.onbank.member.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.logout;
@@ -72,6 +73,35 @@ class LoginTests {
 		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password("wrong"))
 				.andExpect(unauthenticated())
 				.andExpect(redirectedUrl("/login?error"));
+	}
+
+	// 비밀번호 5회 연속 오류면 잠기고, 잠긴 뒤에는 비밀번호가 맞아도 로그인 불가
+	@Test
+	void lockedAfterFiveFailures() throws Exception {
+		for (int i = 1; i <= 4; i++) {
+			mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password("wrong"))
+					.andExpect(redirectedUrl("/login?error"));
+		}
+		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password("wrong"))
+				.andExpect(redirectedUrl("/login?locked"));
+		assertThat(member.getLoginLockedAt()).isNotNull();
+
+		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password(rawPassword))
+				.andExpect(unauthenticated())
+				.andExpect(redirectedUrl("/login?locked"));
+		mockMvc.perform(get("/login").param("locked", ""))
+				.andExpect(content().string(containsString("5회 잘못 입력")));
+	}
+
+	// 성공하면 실패 횟수 초기화
+	@Test
+	void successResetsFailCount() throws Exception {
+		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password("wrong"));
+		assertThat(member.getLoginFailCount()).isEqualTo(1);
+
+		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password(rawPassword))
+				.andExpect(authenticated());
+		assertThat(member.getLoginFailCount()).isZero();
 	}
 
 	@Test
