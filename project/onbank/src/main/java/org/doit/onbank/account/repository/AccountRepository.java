@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.doit.onbank.account.entity.Account;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.doit.onbank.account.entity.AccountStatus;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,4 +33,17 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 	@Query(value = "select daily_transfer_limit as dailyTransferLimit, once_transfer_limit as onceTransferLimit"
 			+ " from members where member_id = :memberId", nativeQuery = true)
 	Optional<MemberTransferLimit> findTransferLimit(@Param("memberId") Long memberId);
+
+	// 10/17 입출금 가능한 계좌만 받기 - 이지훈 추가
+	List<Account> findByMemberIdAndAccountTypeAndAccountStatus(
+			Long memberId,
+			String accountType,
+			String accountStatus
+	);
+
+	// 10/17 명의와 일치하는지 검증 - 이지훈 추가
+	Optional<Account> findByAccountIdAndMemberId(
+			Long accountId,
+			Long memberId
+	);
 }

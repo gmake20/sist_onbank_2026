@@ -28,6 +28,9 @@ public class LoanApplicationForm {
 
     @AssertTrue(message = "필수 약관에 동의해야 합니다.")
     private boolean agreedToTerms;
+
+    @NotNull(message = "대출금 수령 계좌를 선택하세요.")
+    private Long disbursementAccountId;
     
     @NotBlank(message = "상환 방식을 선택하세요.")
     @Pattern(

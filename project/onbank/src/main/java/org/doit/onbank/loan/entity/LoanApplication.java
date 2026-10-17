@@ -11,6 +11,7 @@ import org.doit.onbank.employee.entity.EmployeeRole;
 import org.doit.onbank.employee.entity.EmployeeStatus;
 import org.doit.onbank.member.entity.Member;
 
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,6 +27,7 @@ import jakarta.persistence.Version;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 
 @Entity
 @Table(name = "loan_application")
@@ -85,6 +87,14 @@ public class LoanApplication {
 
     @Column(name = "AGREED_TO_TERMS", nullable = false)
     private boolean agreedToTerms;
+
+    // 대출금을 받을 입출금계좌
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "disbursement_account_id")
+//    private Account disbursementAccount;
+
+//    ALTER TABLE LOAN_APPLICATION
+//    ADD COLUMN disbursement_account_id BIGINT;
 
     // ======================================
     // 5. 심사 상태

@@ -13,6 +13,10 @@ import org.doit.onbank.loan.repository.LoanProductRepository;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.repository.MemberRepository;
 
+import org.doit.onbank.account.entity.Account;
+import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.repository.AccountRepository;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +31,7 @@ public class LoanApplicationService {
     private final LoanApplicationRepository applicationRepository;
     private final LoanProductRepository productRepository;
     private final MemberRepository memberRepository;
+    private final AccountRepository accountRepository;
 
     // ========================================
     // 1. 대출 신청
@@ -123,6 +128,43 @@ public class LoanApplicationService {
 
             throw new IllegalArgumentException(
                     "지원하지 않는 상환 방식입니다."
+            );
+        }
+
+
+        // =========================================
+        // 8. 대출금 수령 계좌 검증 (추가)
+        // =========================================
+
+        Long accountId = form.getDisbursementAccountId();
+
+        // 계좌 선택 여부
+        if (accountId == null) {
+            throw new IllegalArgumentException(
+                    "대출금을 수령할 계좌를 선택하세요."
+            );
+        }
+
+        // 계좌 존재 여부 + 소유자 확인
+        Account account = accountRepository
+                .findByAccountIdAndMemberId(accountId, memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "본인 명의의 계좌만 선택할 수 있습니다."
+                        )
+                );
+
+        // 입출금계좌인지 검증
+        if (!"CHECKING".equals(account.getAccountType())) {
+            throw new IllegalArgumentException(
+                    "입출금계좌만 대출금 수령 계좌로 선택할 수 있습니다."
+            );
+        }
+
+        // 정상 계좌인지 검증
+        if (!AccountStatus.ACTIVE.equals(account.getAccountStatus())) {
+            throw new IllegalArgumentException(
+                    "정상 상태의 계좌만 선택할 수 있습니다."
             );
         }
 
