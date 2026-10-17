@@ -23,11 +23,14 @@ import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.service.AccountOpenService;
 import org.doit.onbank.admin.security.AdminDetailsService;
+import org.doit.onbank.admin.security.AdminLoginAttemptRecorder;
 import org.doit.onbank.config.SecurityConfig;
 import org.doit.onbank.employee.security.EmployeeDetailsService;
+import org.doit.onbank.employee.security.EmployeeLoginAttemptRecorder;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.security.LoginMember;
 import org.doit.onbank.member.security.MemberDetailsService;
+import org.doit.onbank.member.security.MemberLoginAttemptRecorder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +67,16 @@ class AccountOpenPageControllerTests {
 
 	@MockitoBean
 	private EmployeeDetailsService employeeDetailsService;
+
+	// (10-17) SecurityConfig 로그인 실패 5회 잠금 핸들러가 요구하는 Bean
+	@MockitoBean
+	private MemberLoginAttemptRecorder memberLoginAttemptRecorder;
+
+	@MockitoBean
+	private AdminLoginAttemptRecorder adminLoginAttemptRecorder;
+
+	@MockitoBean
+	private EmployeeLoginAttemptRecorder employeeLoginAttemptRecorder;
 
 	private LoginMember me;
 

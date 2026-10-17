@@ -1,15 +1,21 @@
 package org.doit.onbank.account.controller;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.doit.onbank.account.dto.FavoriteGroups;
 import org.doit.onbank.account.dto.RecipientInfo;
 import org.doit.onbank.account.dto.TransferForm;
 import org.doit.onbank.account.dto.TransferLimitInfo;
 import org.doit.onbank.account.dto.TransferReceipt;
 import org.doit.onbank.account.entity.Account;
+import org.doit.onbank.account.entity.AccountFavorite;
 import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
@@ -122,15 +128,32 @@ public class TransferPageController {
 	}
 
 	// 입력 화면 그리기 : 출금 가능한 내 계좌만 선택 목록에 넣는다
-	// 입금계좌 선택 창(즐겨찾기 / 최근입금계좌 / 본인계좌)에 보여 줄 목록도 함께 넣는다
+	// 계좌 선택 창(내 계좌 즐겨찾기 / 상대계좌 즐겨찾기 / 최근입금계좌 / 본인계좌)에 보여 줄 목록도 함께 넣는다
 	private String showForm(LoginMember me, Model model) {
 		List<Account> myAccounts = accountService.getMyAccounts(me.getMemberId());
-		List<Account> accounts = myAccounts.stream()
+		List<Account> accounts = new ArrayList<>(myAccounts.stream()
 				.filter(Account::canWithdraw)
+				.toList());
+		FavoriteGroups favoriteGroups = accountFavoriteService.getMyFavoriteGroups(me.getMemberId());
+
+		// 내 계좌 즐겨찾기는 출금할 수 있는 계좌만 보여 준다 (동결 계좌 등은 출금계좌로 고를 수 없음)
+		Set<String> withdrawableNumbers = accounts.stream().map(Account::getAccountNumber).collect(Collectors.toSet());
+		List<AccountFavorite> myAccountFavorites = favoriteGroups.myAccounts().stream()
+				.filter(f -> withdrawableNumbers.contains(f.getRecipientAccountNumber()))
 				.toList();
+
+		// 출금계좌 목록은 즐겨찾기한 내 계좌를 즐겨찾기 순서대로 위에 둔다
+		// → 출금계좌를 정하지 않고 들어오면 첫 번째 즐겨찾기 계좌가 기본으로 선택된다
+		List<String> favoriteOrder = myAccountFavorites.stream().map(AccountFavorite::getRecipientAccountNumber).toList();
+		accounts.sort(Comparator.comparingInt(account -> {
+			int index = favoriteOrder.indexOf(account.getAccountNumber());
+			return index < 0 ? Integer.MAX_VALUE : index;
+		}));
+
 		model.addAttribute("accounts", accounts);
 		model.addAttribute("depositableAccounts", myAccounts.stream().filter(Account::canDeposit).toList());
-		model.addAttribute("favorites", accountFavoriteService.getMyFavorites(me.getMemberId()));
+		model.addAttribute("myAccountFavorites", myAccountFavorites);
+		model.addAttribute("otherFavorites", favoriteGroups.otherAccounts());
 		model.addAttribute("recentAccounts", accountFavoriteService.getRecentDepositAccounts(me.getMemberId()));
 		model.addAttribute("today", LocalDate.now());
 		return "account/transfer";

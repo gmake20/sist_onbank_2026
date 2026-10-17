@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---------- 입금계좌 선택 창 (즐겨찾기 / 최근입금계좌 / 본인계좌) ----------
+    // ---------- 계좌 선택 창 (내 계좌 즐겨찾기 → 출금계좌 / 상대계좌 즐겨찾기·최근입금계좌·본인계좌 → 입금계좌) ----------
 
     const pickerLayer = document.querySelector('.js-picker-layer');
     let fillFrom = false;	// "즐겨찾는이체정보"로 열면 기본 출금계좌도 채운다
@@ -215,6 +215,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastOpener = null;
                 pickerLayer.hidden = true;
                 amountInput.focus();
+            });
+        });
+
+        // 내 계좌 즐겨찾기 선택 : 출금계좌만 바꾸고 창을 닫는다
+        pickerLayer.querySelectorAll('.js-pick-from').forEach((button) => {
+            button.addEventListener('click', () => {
+                const option = fromSelect
+                        ? fromSelect.querySelector('option[data-account-number="' + button.dataset.accountNumber + '"]') : null;
+                if (option && fromSelect.value !== option.value) {
+                    fromSelect.value = option.value;
+                    fromSelect.dispatchEvent(new Event('change'));	// 전액·조회 문구 갱신
+                    fromSelect.dispatchEvent(new Event('input'));	// 확인 단계였다면 입력 단계로 되돌림
+                }
+                lastOpener = null;
+                pickerLayer.hidden = true;
+                passwordInput.focus();
             });
         });
     }
