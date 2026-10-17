@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>OTP 발급 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+    <link rel="stylesheet" th:href="@{/css/otp.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">OTP 발급</h2>
+
+        <!-- 등록 코드 (발급 직후 한 번만 보임) -->
+        <div class="receipt-box">
+            <strong class="receipt-title">OTP가 발급되었습니다.</strong>
+            <div class="alert alert-error">
+                등록 코드는 지금 한 번만 표시됩니다. 이 화면을 벗어나면 다시 볼 수 없습니다.
+            </div>
+            <div class="otp-register">
+                <!-- QR 코드 : otpauth:// 형식이라 OTP 앱 카메라로 바로 등록된다 -->
+                <div id="otp-qr" class="otp-qr" th:data-uri="${issued.otpauthUri()}"></div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 25%;">
+                        <col style="width: 75%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>일련번호</th>
+                            <td th:text="${issued.serialNo()}">0123456789</td>
+                        </tr>
+                        <tr>
+                            <th>등록 코드</th>
+                            <td><code class="otp-code" th:text="${issued.formattedRegistrationCode()}">ABCD EFGH IJKL MNOP QRST UVWX YZ23 4567</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <ol class="otp-steps">
+                <li>휴대폰 OTP 앱(Google Authenticator 등)에서 <strong>QR 코드 스캔</strong> 또는 <strong>설정 키 입력</strong>을 고릅니다.</li>
+                <li>설정 키 입력이면 위의 등록 코드를 입력하고, 키 유형은 <strong>시간 기준</strong>으로 둡니다.</li>
+                <li>앱에 표시된 6자리 번호로 아래 사용 등록을 진행합니다.</li>
+            </ol>
+        </div>
+
+        <!-- 사용 등록 : otp.html(발급 상태)에서도 이 조각을 그대로 쓴다 -->
+        <form th:fragment="activateForm" class="js-once-form" method="post" th:action="@{/mybank/security/otp/activate}">
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>OTP 사용 등록</h3>
+                </div>
+                <p class="sub-text">기기에 표시된 번호를 입력하고, 30초 뒤 새 번호가 표시되면 그 번호를 이어서 입력하세요.</p>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>첫 번째 번호</th>
+                            <td>
+                                <input type="text" class="form-input otp-input" name="firstCode" maxlength="6"
+                                       inputmode="numeric" pattern="\d{6}" autocomplete="off" required>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>두 번째 번호</th>
+                            <td>
+                                <input type="text" class="form-input otp-input" name="secondCode" maxlength="6"
+                                       inputmode="numeric" pattern="\d{6}" autocomplete="off" required>
+                                <span class="sub-text">새 번호가 표시된 뒤 입력</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="submit-action">
+                <button type="submit" class="btn-submit">사용 등록</button>
+            </div>
+        </form>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>
+    <!-- QR 코드 생성 (불러오지 못해도 등록 코드로 등록할 수 있다) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script th:src="@{/js/otp.js}"></script>
+</body>
+</html>
