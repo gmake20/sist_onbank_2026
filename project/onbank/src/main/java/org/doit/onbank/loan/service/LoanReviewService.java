@@ -168,6 +168,9 @@ public class LoanReviewService {
                 startedAt
         );
 
+        // 대출 계좌 생성
+        // 입출금 계좌에 입금
+
         return application.getId();
     }
 }

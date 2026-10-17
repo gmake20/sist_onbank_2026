@@ -1,0 +1,18 @@
+/* 대출금 수령 계좌 선택 영역 */
+.loan-account-section { margin-top: 32px; }
+.loan-account-description { margin: 8px 0 20px; color: #697386; font-size: 14px; }
+.loan-account-list { display: grid; gap: 12px; }
+.loan-account-option { display: flex; align-items: center; gap: 14px; padding: 20px; border: 1px solid #d9e1eb; border-radius: 14px; cursor: pointer; background: #fff; transition: border-color .2s, background .2s; }
+.loan-account-option:hover { border-color: #315ed4; }
+.loan-account-option:has(input:checked) { border: 2px solid #315ed4; background: #f3f7ff; padding: 19px; }
+.loan-account-option input { accent-color: #315ed4; width: 18px; height: 18px; flex-shrink: 0; }
+.loan-account-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.loan-account-name { color: #202b3b; font-weight: 700; }
+.loan-account-number { font-size: 14px; color: #627084; overflow-wrap: anywhere; }
+.loan-account-balance { font-size: 13px; color: #627084; }
+.loan-account-empty { background: #f7f9fc; border: 1px dashed #c5cfdb; padding: 20px; border-radius: 12px; color: #667085; }
+.loan-account-notice { margin-top: 12px; font-size: 13px; color: #697386; line-height: 1.6; }
+@media (max-width: 600px) {
+    .loan-account-option { padding: 15px; }
+    .loan-account-option:has(input:checked) { padding: 14px; }
+}

@@ -9,6 +9,7 @@ import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionStatus;
 import org.doit.onbank.account.entity.TransactionType;
+import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.repository.AccountRepository;
 import org.doit.onbank.account.repository.TransactionHistoryRepository;
 import org.springframework.stereotype.Service;
@@ -107,5 +108,17 @@ public class AccountService {
 
 	private String contentOrDefault(String content, String defaultContent) {
 		return (content == null || content.isBlank()) ? defaultContent : content;
+	}
+
+	// 10/17 이지훈 추가
+	@Transactional(readOnly = true)
+	public List<Account> getDisbursementAccounts(Long memberId) {
+
+		return accountRepository
+				.findByMemberIdAndAccountTypeAndAccountStatus(
+						memberId,
+						"CHECKING",
+						"ACTIVE"
+				);
 	}
 }
