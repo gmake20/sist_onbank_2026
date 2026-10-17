@@ -3,15 +3,15 @@
 > Claude에게 이어서 작업을 요청할 때 이 파일을 먼저 읽게 하세요.
 > 예: "docs/team2-progress.md 읽고 이어서 작업하자"
 
-마지막 정리: 2026-10-15
+마지막 정리: 2026-10-17
 
 ---
 
 ## 1. 내 역할
 
 - 팀원2. 담당: 계좌, 입출금, 이체, 거래내역, 자산관리 (기획서 [README.md](README.md) 12장)
-- 현재 목표: **계좌 입출금 기능 마무리 → 이체 기능 구현**. 테이블과 엔티티는 확정·반영 완료
-- 세션 인수인계: [team2-handoff.md](team2-handoff.md) (최근 작업 상태, 다음에 할 일, 주의할 점)
+- 현재 상태: 입출금·당행 즉시이체·계좌 개설·즐겨찾기 구현 완료. **다음 목표: 6.1 전체 거래내역 조회 (제안, 사용자 확인 필요)**
+- 세션 인수인계: [team2-handoff.md](team2-handoff.md) (최근 작업 상태, 다음에 할 일, 주의할 점). **10-16 이후 결정(계좌 유형 값, 계좌번호 규칙, 한도 기본값, 즐겨찾기 등)은 handoff 1-1이 기준**
 - 처리 규칙의 기준은 기획서 11-1장 (비밀번호 검증 → 비관적 락 → 검증 → 잔액 갱신 → 원장 기록 → 커밋 후 이벤트)
 
 ## 2. 내 파일
@@ -22,10 +22,13 @@
 | [schema-team2-dictionary.md](schema-team2-dictionary.md) | SQL과 같게 정리 완료 |
 | 엔티티 6개 (`org.doit.onbank.account.entity`) | 커밋·main 머지 완료. 공용 DB에서 `ddl-auto=validate` 통과 확인 |
 | [schema-team1-mysql.sql](schema-team1-mysql.sql) | members에 `daily_transfer_limit`, `once_transfer_limit` 추가. 공용 DB에 ALTER 완료, 팀1과 협의 완료 |
-| [data-team2-mysql.sql](data-team2-mysql.sql) | 화면 확인용 테스트 계좌 3개 (`TEST-0001`~`0003`, 계좌 비밀번호 1234). 삭제 SQL 포함 |
-| 입출금 코드 (`org.doit.onbank.account` 아래 `entity / repository / service / controller / dto`) | 2026-10-15 작성. `account` 브랜치에 커밋·푸시 완료 (main 머지 전) |
-| 입출금 화면 (`templates/account/my-accounts, detail, deposit, withdraw.html`, `static/js/account.js`, `account.css` 하단) | 2026-10-15 작성. `account` 브랜치에 커밋·푸시 완료 (main 머지 전) |
-| 테스트 (`src/test/java/org/doit/onbank/account/`) | 44개 통과. `account` 브랜치에 커밋·푸시 완료 (main 머지 전) |
+| [data-team2-mysql.sql](data-team2-mysql.sql) | 화면 확인용 테스트 계좌 3개 (`TEST-0001`~`0003`, 계좌 비밀번호 1234). 삭제 SQL 포함. 아이디 줄은 PC마다 바꿔 쓰고 커밋하지 않음 |
+| 입출금 코드·화면 (`org.doit.onbank.account` 아래 `entity / repository / service / controller / dto`, `templates/account/list, detail, deposit, withdraw.html`, `static/js/account.js`) | 10-15 작성, main 머지됨, 브라우저 확인 완료 |
+| 이체 코드·화면 (`AccountTransferService`, `TransferPageController`, `transfer.html`, `transfer-result.html`, `static/js/transfer.js`) | 10-16 작성, main 머지됨, 브라우저 확인 완료 |
+| 계좌 개설·상태 변경 (`AccountOpenService`, `AccountManageService`, `AccountNumberGenerator`, `open.html`, `open-result.html`) | 10-16 작성, main 머지됨 (PR #33), 브라우저 확인 전 |
+| 즐겨찾기 (`AccountFavoriteService`, `FavoritePageController`, `favorites.html`, `favorite-edit.html`, `favorite-toggle.html`) | 10-16 작성, main 머지됨 (PR #33), 브라우저 확인 전. 10-17 이체 화면 내 계좌 / 상대계좌 구분 추가 (`account` 브랜치, main PR 전) |
+| [team2-account-number-rule.md](team2-account-number-rule.md) | 팀3 공유용 계좌번호 규칙·예적금 계좌 생성 방법 |
+| 테스트 (`src/test/java/org/doit/onbank/account/`) | **146개 통과** (10-17) + `contextLoads` 통과 |
 
 담당 테이블 6개: `financial_institution_code`, `account`, `account_transfer`, `transaction_history`, `account_favorite`, `asset_report`
 
@@ -42,7 +45,7 @@
 5. **금액은 모두 BIGINT(원 단위)** ↔ 엔티티 `Long`. 이자율은 `DECIMAL(7,4)` ↔ `BigDecimal`.
 6. **가입일은 `signup_date` 그대로** 사용한다.
 7. **예적금·대출 계약 컬럼 10개는 삭제하지 않고 팀2에서 독립적으로 사용**: `expired_date`, `interest_rate`, `signup_period`, `monthly_payment`, `loan_amount`, `loan_balance`, `payment_day`, `repayment_method`, `current_payment_round`, `total_payment_rounds`. 팀3과 겹치는 대응표는 데이터 사전 1장에 있다.
-8. **유형·상태 컬럼은 `String`**: enum을 쓰지 않는다. 확정된 값은 상수 클래스(`AccountStatus`, `TransactionType`, `TransactionStatus`)로 참조해 오타를 막는다. `account_type`, `transfer_type` 값은 아직 미정.
+8. **유형·상태 컬럼은 `String`**: enum을 쓰지 않는다. 확정된 값은 상수 클래스(`AccountStatus`, `AccountType`, `TransactionType`, `TransactionStatus`, `TransferType`)로 참조해 오타를 막는다. `account_type`, `transfer_type` 값은 10-16 확정 (handoff 1-1).
 9. **다른 테이블 참조는 연관관계 없이 `Long` ID 필드**로 둔다.
 10. **제약 조건은 최소한만**: 모든 테이블 PK, `account.member_id NOT NULL`, `account.password_fail_count NOT NULL DEFAULT 0`, `account.account_number UNIQUE`. FK, CHECK, 인덱스는 두지 않는다.
 11. **DB 운영**: `ddl-auto=validate`라 서버는 테이블을 검사만 한다. 테이블 생성·변경은 워크벤치에서 SQL을 직접 실행한다. 컬럼을 바꾸면 SQL 변경 이력에 ALTER를 기록하고 엔티티도 함께 바꾼다.
@@ -87,7 +90,7 @@
   - `transfer_limit_request`가 아직 **계좌 기준**(`account_id NOT NULL`, 계좌당 대기 1건)이다. 한도가 회원 기준이 됐으므로 회원 기준으로 바꿔야 한다. 그러면 `fk_tlr_account` ALTER도 필요 없어진다
   - 공용 DB에 members가 이미 있으면 변경 이력에 `ALTER TABLE members ADD COLUMN ...` 기록
 
-**지금: 계좌 입출금 기능 (계좌 개설 기능 없이 먼저 구현)**
+**계좌 입출금 기능 (10-15 완료)**
 - [x] 0단계: 상태·유형 값 확정 (3장 13~17번)
 - [x] 1단계: `Account.deposit()`, `withdraw()` 추가, 상수 클래스 3개 추가
 - [x] 2단계: Repository 작성: `AccountRepository`(비관적 락 조회 포함), `TransactionHistoryRepository`
@@ -98,17 +101,24 @@
   - ① 입금만 롤백 테스트 + 출금은 화면 확인으로 대신 (제안) / ② 출금까지 커밋 테스트 후 코드에서 삭제
 - [x] 5단계: Controller·화면 코드 작성. `/mybank/accounts` 목록, `/{id}` 거래내역, `/{id}/deposit`, `/{id}/withdraw`. 화면 테스트(`AccountPageControllerTests`, DB 없이 15개) 통과
 - [x] 서버 실행 확인 (2026-10-15): `contextLoads` 통과. 팀3 `loan_repayment_schedule` 문제는 해결됨
-- [ ] 5단계 확인: 브라우저에서 실제 화면 확인. 테스트 계좌는 [data-team2-mysql.sql](data-team2-mysql.sql)로 넣음 (계좌 비밀번호 1234, 계좌번호 `TEST-`로 시작)
-- 기존 목업 `AccountController`(`/account/list`, `/account/transfer`)와 `list.html`, `transfer.html`은 그대로 둠. 새 화면이 확인되면 정리 여부를 정한다
+- [x] 5단계 확인: 브라우저에서 실제 화면 확인 (테스트 계좌는 [data-team2-mysql.sql](data-team2-mysql.sql), 계좌 비밀번호 1234)
+- 예전 목업 주소 `AccountController`(`/account/list`, `/account/transfer`)는 새 화면으로 redirect. `my-accounts.html`은 삭제하고 사용자 원본 `list.html` 구성을 사용
+
+**이체·계좌 개설·즐겨찾기 (10-16 ~ 10-17)**
+- [x] 1일 한도 값 읽기: `AccountRepository.findTransferLimit()`로 `members` 두 컬럼을 SQL로 직접 조회. NULL이면 기본 1일 5,000,000 / 1회 1,000,000
+- [x] `account_type`, `transfer_type` 값 정하기 (handoff 1-1)
+- [x] 이체 Service (아래 6장, OTP는 건너뜀), `AccountTransferRepository`
+- [x] 이체 Controller·화면 (목업 `transfer.html` 구성 유지 + 확인 단계). 브라우저 확인 완료
+- [x] 계좌 개설 (입출금, 본인확인 없이 즉시 `ACTIVE`), 상태 변경 메서드 (`AccountManageService`). 브라우저 확인 전
+- [x] 즐겨찾기 (관리 화면, 전계좌조회 ☆/★, 이체 화면 선택 창, 이체 완료 [즐겨찾기 추가]). 브라우저 확인 전
+- [x] (10-17) 이체 화면 [내 계좌 즐겨찾기](출금계좌) / [상대계좌 즐겨찾기](입금계좌) 구분. 브라우저 확인 전
 
 **그 다음**
-- [ ] **1일 한도 값을 읽는 방법 정하기**: `members` 컬럼을 `Member` 엔티티 필드로 읽을지, 별도 쿼리로 읽을지. 현재 `Member` 엔티티에는 두 컬럼이 없음 (팀1 파일이라 직접 수정하지 않음)
-- [ ] `account_type`, `transfer_type` 값 정하기
-- [ ] 계좌 개설, 상태 변경 메서드(승인·동결·해제·해지)
-- [ ] **이체 Service 구현** (아래 6장). `AccountTransferRepository` 포함
-- [ ] 이체 Controller·화면 구현 (목업 `transfer.html` 디자인 활용)
+- [ ] 계좌 개설·즐겨찾기 브라우저 확인 (handoff 4-1, 5-1)
+- [ ] 다음 기능 고르기 (사용자 확인): 제안은 6.1 전체 거래내역 조회 (기간/유형 검색·필터·페이징) → 6.2 거래내역 상세
 - [ ] 시드 데이터 `data-team2-mysql.sql`에 금융기관 코드(우리 은행 OnBank 포함) 추가. 테스트 계좌 3개는 작성 완료
 - [ ] 동시 이체 테스트 작성
+- [ ] 이체 완료 이벤트 (팀4 알림용, 아래 6장 8번)
 
 **구현할 때 지킬 것**
 - 계좌를 개설할 때 `balance`, `today_transfer_amount`를 0으로 넣는다 (NULL이면 계산 오류)
@@ -124,7 +134,7 @@
 - **이체 순서**
   1. 입력 검증 (금액 > 0, 출금계좌 ≠ 입금계좌, 출금계좌가 내 계좌인지, 1회 한도)
   2. 계좌 비밀번호 검증 (REQUIRES_NEW)
-  3. OTP 검증: `otpService.verify(memberId, otpCode)` (팀1 제공 예정. 나오기 전까지는 stub으로)
+  3. OTP 검증: `otpService.verify(memberId, otpCode)` (팀1 제공 예정. 지금은 건너뜀)
   4. 계좌 2개를 **ID 오름차순으로** `PESSIMISTIC_WRITE` 잠금 (데드락 방지)
   5. 상태 검사: 출금 계좌는 `ACTIVE`, 입금 계좌는 `ACTIVE`·`FROZEN` (`Account.withdraw()`, `deposit()` 안에서 확인)
   6. 잔액 검사, 1일 한도 검사: `touchTransaction(now)` 후 출금 계좌의 `today_transfer_amount + 이번 금액 ≤ members.daily_transfer_limit`

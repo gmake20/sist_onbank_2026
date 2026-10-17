@@ -42,7 +42,7 @@
         <div class="transfer-section">
             <div class="section-title-wrap">
                 <h3>출금계좌정보</h3>
-                <!-- 즐겨찾기 선택 : 입금계좌 + 기본 출금계좌까지 채운다 -->
+                <!-- 상대계좌 즐겨찾기 선택 : 입금계좌 + 기본 출금계좌까지 채운다 -->
                 <button type="button" class="btn-import text-blue js-open-picker"
                         data-picker="favorite" data-fill-from="true">⭐ 즐겨찾는이체정보</button>
             </div>
@@ -58,9 +58,11 @@
                             <select class="form-select js-from-account" th:field="*{fromAccountId}">
                                 <option th:each="account : ${accounts}"
                                         th:value="${account.accountId}"
-                                        th:attr="data-balance=${account.balance ?: 0},data-fail-count=${account.passwordFailCount}"
+                                        th:attr="data-balance=${account.balance ?: 0},data-fail-count=${account.passwordFailCount},data-account-number=${account.accountNumber}"
                                         th:text="|ON 통장 (${account.accountNumber})|">ON 통장 (1002-862-******)</option>
                             </select>
+                            <!-- 출금계좌만 바꾼다 -->
+                            <button type="button" class="btn-sm js-open-picker" data-picker="my-favorite">내 계좌 즐겨찾기</button>
                             <button type="button" class="btn-sm btn-outline js-show-balance">잔액조회</button>
                             <span class="sub-text js-balance-text"></span>
                             <p class="field-error" th:if="${#fields.hasErrors('fromAccountId')}" th:errors="*{fromAccountId}"></p>
@@ -134,7 +136,7 @@
                         <td>
                             <div class="btn-group-top">
                                 <!-- 입금계좌만 채운다 -->
-                                <button type="button" class="btn-sm js-open-picker" data-picker="favorite">자주쓰는 입금계좌</button>
+                                <button type="button" class="btn-sm js-open-picker" data-picker="favorite">상대계좌 즐겨찾기</button>
                                 <button type="button" class="btn-sm js-open-picker" data-picker="recent">최근입금계좌</button>
                                 <button type="button" class="btn-sm js-open-picker" data-picker="mine">본인계좌</button>
                             </div>
@@ -217,30 +219,51 @@
 
         </form>
 
-        <!-- 입금계좌 선택 창 : 즐겨찾기 / 최근입금계좌 / 본인계좌 (버튼에 따라 한 목록만 보인다) -->
+        <!-- 계좌 선택 창 : 내 계좌 즐겨찾기(출금계좌) / 상대계좌 즐겨찾기 / 최근입금계좌 / 본인계좌(입금계좌)
+             버튼에 따라 한 목록만 보인다 -->
         <div class="picker-layer js-picker-layer" hidden>
             <div class="picker-box" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
                 <div class="picker-header">
-                    <strong id="pickerTitle" class="js-picker-title">입금계좌 선택</strong>
+                    <strong id="pickerTitle" class="js-picker-title">계좌 선택</strong>
                     <button type="button" class="picker-close js-picker-close" aria-label="닫기">✕</button>
                 </div>
 
-                <!-- 즐겨찾기 -->
-                <div class="js-picker-list" data-picker="favorite" data-title="자주쓰는 입금계좌" hidden>
+                <!-- 내 계좌 즐겨찾기 : 고르면 출금계좌가 바뀐다 (출금할 수 있는 계좌만) -->
+                <div class="js-picker-list" data-picker="my-favorite" data-title="내 계좌 즐겨찾기" hidden>
+                    <table class="account-table picker-table">
+                        <thead>
+                            <tr><th>별칭</th><th>계좌번호</th><th>선택</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="favorite : ${myAccountFavorites}">
+                                <td th:text="${favorite.favoriteAlias ?: 'ON 통장'}">생활비 통장</td>
+                                <td th:text="${favorite.recipientAccountNumber}">1002-862-000000</td>
+                                <td><button type="button" class="btn-sm js-pick-from"
+                                            th:attr="data-account-number=${favorite.recipientAccountNumber}">선택</button></td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(myAccountFavorites)}">
+                                <td colspan="3" class="empty-row"><p>출금할 수 있는 내 계좌 즐겨찾기가 없습니다.<br>전계좌조회에서 예금명 옆 ☆를 눌러 등록하세요.</p></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 상대계좌 즐겨찾기 : 내 계좌가 아닌 즐겨찾기 -->
+                <div class="js-picker-list" data-picker="favorite" data-title="상대계좌 즐겨찾기" hidden>
                     <table class="account-table picker-table">
                         <thead>
                             <tr><th>별칭</th><th>계좌번호</th><th>예금주</th><th>선택</th></tr>
                         </thead>
                         <tbody>
-                            <tr th:each="favorite : ${favorites}">
+                            <tr th:each="favorite : ${otherFavorites}">
                                 <td th:text="${favorite.favoriteAlias ?: favorite.recipientAccountName}">엄마</td>
                                 <td th:text="${favorite.recipientAccountNumber}">1002-123-456789</td>
                                 <td th:text="${favorite.recipientAccountName}">김*수</td>
                                 <td><button type="button" class="btn-sm js-pick"
                                             th:attr="data-account-number=${favorite.recipientAccountNumber},data-from-id=${favorite.accountId}">선택</button></td>
                             </tr>
-                            <tr th:if="${#lists.isEmpty(favorites)}">
-                                <td colspan="4" class="empty-row"><p>등록된 즐겨찾기가 없습니다.</p></td>
+                            <tr th:if="${#lists.isEmpty(otherFavorites)}">
+                                <td colspan="4" class="empty-row"><p>등록된 상대계좌 즐겨찾기가 없습니다.</p></td>
                             </tr>
                         </tbody>
                     </table>

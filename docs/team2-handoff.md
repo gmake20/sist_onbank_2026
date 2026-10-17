@@ -1,10 +1,10 @@
-# 팀원2 작업 인수인계 (2026-10-16 퇴근 전 최종 정리)
+# 팀원2 작업 인수인계 (2026-10-17 정리)
 
 > 새 세션에서 Claude에게 이렇게 요청하세요.
 > **"docs/team2-handoff.md 와 docs/team2-progress.md 읽고 이어서 작업하자"**
 >
 > - 이 파일: 최근 작업 상태, 바로 다음에 할 일, 주의할 점 (**최신**)
-> - [team2-progress.md](team2-progress.md): 확정한 결정 사항(3장), 엔티티 메서드, 이체 설계. **10-15 기준이라 아래 1-1의 새 결정은 이 파일이 최신**
+> - [team2-progress.md](team2-progress.md): 기본 결정 사항(3장), 엔티티 메서드, 이체 설계, 전체 할 일 목록. **10-16 이후 결정은 이 파일 1-1이 기준**
 > - [schema-team2-dictionary.md](schema-team2-dictionary.md): 테이블 컬럼 설명
 > - [team2-account-number-rule.md](team2-account-number-rule.md): 팀3에 공유할 계좌번호 규칙·예적금 계좌 생성 방법
 
@@ -12,15 +12,18 @@
 
 ## 0. 시작하기 전에 확인할 것
 
-1. **10-16 작업(계좌 개설, 즐겨찾기, 팀3 공유 문서)은 `account` 브랜치에 커밋·푸시했다** (main PR 전, 아래 `2-2` 파일 목록). 집 PC에서 받기:
+1. **브랜치 상태 (10-17)**
+   - 10-16 작업(계좌 개설, 상태 변경, 즐겨찾기, 팀3 공유 문서)은 PR #33으로 **main에 머지됨**
+   - 10-17 작업(내 계좌 / 상대계좌 즐겨찾기, 화면 테스트 수정)은 `account` 브랜치에 커밋·푸시함. **main PR은 사용자가 GitHub에서 만들고 머지** (이 PC에는 `gh`가 없어 Claude가 PR을 만들 수 없음)
+   - 다른 PC에서 받기:
      ```
      git fetch origin
      git checkout account
      git pull origin account
      ```
-   - 받아졌는지 확인: `project/onbank/src/main/java/org/doit/onbank/account/service/AccountFavoriteService.java` 와 `docs/team2-account-number-rule.md` 가 있으면 됨
-   - 집 PC에 커밋하지 않은 파일이 있으면 pull 이 막힌다. 먼저 `git status` 로 확인
-   - 브랜치 상태 (10-16 확인): 팀2 입출금·이체 작업은 이미 main에 머지되어 있다. 로컬 `account`는 `git pull origin main`으로 `origin/main`(6752f95)과 같아져서 `origin/account`보다 30커밋 앞서 있다. `origin/account`는 HEAD의 조상이라 그대로 푸시하면 된다 (강제 푸시 필요 없음)
+   - 받아졌는지 확인: `project/onbank/src/main/java/org/doit/onbank/account/dto/FavoriteGroups.java` 가 있으면 됨
+   - 커밋하지 않은 파일이 있으면 pull 이 막힌다. 먼저 `git status` 로 확인 (`docs/data-team2-mysql.sql` 아이디 줄은 PC마다 다르므로 커밋하지 않는다)
+   - PR이 머지된 뒤 새 작업을 시작할 때는 `git pull origin main`으로 `account`를 main과 맞춘다
 2. PC마다 따로 있는 것 (Git에 없음)
    - `CLAUDE.local.md`: 개인 작업 원칙 (`.git/info/exclude`로 제외)
    - `application-local.properties`: 공용 DB(cafe24) 접속 정보
@@ -37,7 +40,7 @@
 - **(10-16 추가) 기획서 [심화]·[선택] 기능은 판단해서 바로 구현하지 않는다.** 범위·결정할 것·작업량을 짧게 정리해 구현할지 먼저 묻는다. 구현하기로 한 기능도 화면·버튼 추가처럼 범위를 넓힐 때는 다시 묻는다
 - `index.html`, `index.css`, `SecurityConfig` 등 공용 파일을 바꿀 때는 사용자에게 알리고, 커밋 전에 다른 팀 변경과 겹치는지 확인한다
 
-### 1-1. 2026-10-16에 새로 확정한 결정
+### 1-1. 2026-10-16 이후 확정한 결정
 
 | 항목 | 결정 |
 |---|---|
@@ -59,10 +62,25 @@
 | 즐겨찾기 | 회원 단위 조회, 당행 `financial_institution_id` NULL, 예금주명은 가린 이름 저장, 최대 20개, 중복 등록 불가. **본인 계좌도 등록 가능** (와이어프레임 9번 "본인 계좌와 타인 계좌 모두 등록 가능"). 등록·수정(별칭·메모)·삭제·순서 이동 |
 | 즐겨찾기 진입점 | 전계좌조회 예금명 옆 ☆/★ (사용자 요청), 이체 완료 화면 [⭐ 즐겨찾기 추가] (받는 분 계좌, 본인 계좌 포함), 이체 화면 선택 창 "즐겨찾기 관리 ›", 메인 "빠른메뉴 >" 펼침 목록 [즐겨찾기 목록 조회] → `/mybank/favorites` |
 | 심화 기능 진행 방식 | 구현 전에 사용자에게 먼저 묻는다 (1장 작업 규칙) |
+| **(10-17) 내 계좌 / 상대계좌 즐겨찾기 구분** | 컬럼은 추가하지 않는다. 즐겨찾기 계좌번호가 **내 계좌 번호 중 하나면 내 계좌, 아니면 상대계좌** (`AccountFavoriteService.getMyFavoriteGroups`). 내 계좌 즐겨찾기는 전계좌조회 ☆로 등록 |
+| **(10-17) 이체 화면 즐겨찾기 버튼 2개** | 출금계좌번호 옆 [내 계좌 즐겨찾기] → 출금계좌만 바꿈 (출금 가능한 계좌만 표시) / 입금계좌 [상대계좌 즐겨찾기] (원래 "자주쓰는 입금계좌") → 입금계좌만 채움. "⭐ 즐겨찾는이체정보"도 상대계좌 즐겨찾기만 보여 줌 (내 계좌로 보낼 때는 [본인계좌]) |
+| **(10-17) 출금계좌 기본 선택** | 출금계좌 목록에서 즐겨찾기한 내 계좌를 즐겨찾기 순서대로 맨 위에 둔다 → `?from=` 없이 들어오면 첫 번째 즐겨찾기 계좌가 선택됨 |
 
-## 2. 2026-10-16 작업 요약
+## 2. 작업 요약
 
-### 2-1. 한 일
+### 2-0. 2026-10-17 한 일
+
+| 작업 | 내용 | 확인 |
+|---|---|---|
+| 내 계좌 / 상대계좌 즐겨찾기 (사용자 요청) | 이체 화면 출금계좌번호 옆 [내 계좌 즐겨찾기] 추가, 입금계좌 버튼을 [상대계좌 즐겨찾기]로 변경, 즐겨찾기한 내 계좌를 출금계좌 목록 맨 위·기본 선택 (1-1, 5장) | 테스트 통과, **브라우저 확인 전** |
+| 테스트 환경 수정 | 공용 `SecurityConfig`에 로그인 실패 5회 잠금이 들어와 실패하던 팀2 화면 테스트 57개를 고침 (7장) | 통과 |
+| 테스트 | 팀2 **146개 통과** (143 → 146) + `contextLoads` 통과 | |
+
+- 수정: `AccountFavoriteService`, `TransferPageController`, `transfer.html`, `transfer.js`, 화면 테스트 4개(`AccountOpenPageControllerTests`, `AccountPageControllerTests`, `FavoritePageControllerTests`, `TransferPageControllerTests`), `AccountFavoriteServiceTests`, `docs/team2-handoff.md`, `docs/team2-progress.md`
+- 새 파일: `dto/FavoriteGroups`
+- 정하지 않은 것: 즐겨찾기 관리 화면(`/mybank/favorites`)도 내 계좌·상대계좌로 나눠 보여 줄지 (지금은 한 목록)
+
+### 2-1. 2026-10-16 한 일
 
 | 작업 | 내용 | 확인 |
 |---|---|---|
@@ -74,7 +92,7 @@
 | 팀3 공유 문서 | [team2-account-number-rule.md](team2-account-number-rule.md): 계좌번호 규칙, 예적금 계좌 생성 예시 코드, 협의할 것 4개 | 사용자가 팀3에 전달 |
 | 테스트 | 팀2 **143개 통과** (74 → 143) + `contextLoads` 통과 | |
 
-### 2-2. 10-16 커밋에 들어간 파일
+### 2-2. 10-16 커밋에 들어간 파일 (PR #33으로 main 머지됨)
 
 - 수정: `AccountPageController`, `TransferPageController`, `TransferReceipt`, `Account`, `AccountFavorite`, `AccountRepository`, `AccountTransferRepository`, `AccountTransferService`, `account.css`, **`index.css`(공용)**, `transfer.js`, `list.html`, `transfer-result.html`, `transfer.html`, **`index.html`(공용)**, `AccountPageControllerTests`, `TransferPageControllerTests`, `docs/team2-handoff.md`
 - 새 파일: `AccountOpenPageController`, `FavoritePageController`, `FavoriteEditForm`, `FavoriteForm`, `OpenAccountForm`, `OpenAccountReceipt`, `AccountFavoriteRepository`, `RecentDepositAccount`, `AccountFavoriteService`, `AccountManageService`, `AccountNumberGenerator`, `AccountOpenService`, 템플릿 `favorite-edit`, `favorite-toggle`, `favorites`, `open-result`, `open`, 테스트 8개, `docs/team2-account-number-rule.md`
@@ -82,11 +100,13 @@
 
 ### 2-3. 다음에 할 일 (순서대로)
 
-1. **브라우저 확인** (서버 재시작 후): 계좌 개설 4-1, 즐겨찾기 5-1, 메인 화면 "빠른메뉴 >" → [계좌 개설] / [즐겨찾기 목록 조회] 두 줄이 보이고 각각 이동하는지
-2. 확인 결과 문제가 있으면 수정 → **사용자가 지시하면** 커밋·푸시 → main PR은 사용자가 결정
-3. 팀3에 [team2-account-number-rule.md](team2-account-number-rule.md) 전달 (사용자가 직접). `AccountNumberGenerator`는 main 머지 후 쓸 수 있다고 함께 안내
-4. 팀4에 `AccountManageService` 메서드 전달 (10장)
-5. **다음 기능 고르기 — 사용자에게 먼저 묻는다**
+1. **10-17 PR 만들기·머지** (사용자가 GitHub에서): `account` → `main`
+2. **브라우저 확인** (서버 재시작 후): 계좌 개설 4-1, 즐겨찾기 5-1 (10-17 항목 포함), 메인 화면 "빠른메뉴 >" → [계좌 개설] / [즐겨찾기 목록 조회] 두 줄이 보이고 각각 이동하는지
+3. 확인 결과 문제가 있으면 수정 → **사용자가 지시하면** 커밋·푸시
+4. 팀3에 [team2-account-number-rule.md](team2-account-number-rule.md) 전달 (사용자가 직접). `AccountNumberGenerator`는 main에 머지되어 있어 바로 쓸 수 있다
+5. 팀4에 `AccountManageService` 메서드 전달 (10장)
+6. 즐겨찾기 관리 화면을 내 계좌·상대계좌로 나눌지 사용자 확인 (2-0)
+7. **다음 기능 고르기 — 사용자에게 먼저 묻는다**
    - 남은 [핵심]: **6.1 전체 거래내역 조회 (기간/유형 검색·필터·페이징)**, 6.2 거래내역 상세. 지금 `detail.html`은 거래내역 전체를 한 번에 보여 주기만 한다 → 제안: 다음 작업으로 이것
    - [심화] (구현 전에 반드시 물어볼 것): 4.4 계좌 별명, 4.6 계좌 해지(고객 화면. 기능표에는 핵심, 메뉴표에는 심화로 되어 있어 확인 필요), 4.7 계좌 비밀번호 변경, 5.4 예약이체(팀3과 역할 확인), 6.3 소비 분석, 6.4 CSV 다운로드, 7 자산관리
    - [선택]: 계좌 개설 20영업일 제한, 5.5 정기이체
@@ -99,10 +119,11 @@
 | 입출금 (엔티티·Service·화면) | 완료, 브라우저 확인 완료 |
 | **이체 (당행 즉시이체)** | **완료, 브라우저 확인 완료 (10-16)** |
 | **전계좌조회 화면 (`list.html` 원본 구성)** | **완료, 브라우저 확인 완료 (10-16)** |
-| 팀2 테스트 | **143개 통과** (DB 없이) + `contextLoads` 통과 (10-16) |
-| **계좌 개설 (입출금, 즉시 개설)** | **코드·테스트 완료 (10-16). 브라우저 확인 전, account 브랜치 푸시 완료** (아래 4장) |
-| 상태 변경 메서드 (승인·반려·동결·해제·해지·잠금 해제) | 코드·테스트 완료 (10-16). 호출하는 화면은 팀4 |
-| **즐겨찾기** | **코드·테스트 완료 (10-16). 브라우저 확인 전, account 브랜치 푸시 완료** (아래 5장) |
+| 팀2 테스트 | **146개 통과** (DB 없이) + `contextLoads` 통과 (10-17) |
+| **계좌 개설 (입출금, 즉시 개설)** | 코드·테스트 완료, main 머지됨 (10-16). **브라우저 확인 전** (아래 4장) |
+| 상태 변경 메서드 (승인·반려·동결·해제·해지·잠금 해제) | 코드·테스트 완료, main 머지됨 (10-16). 호출하는 화면은 팀4 |
+| **즐겨찾기** | 코드·테스트 완료, main 머지됨 (10-16). **브라우저 확인 전** (아래 5장) |
+| **내 계좌 / 상대계좌 즐겨찾기 (이체 화면)** | 코드·테스트 완료 (10-17). **account 브랜치 푸시, main PR 전, 브라우저 확인 전** |
 | DB 통합 테스트 | 방법 결정 필요 (progress 5장) |
 
 ## 4. 계좌 개설 (기획서 5-2장, 핵심): 10-16 구현 완료, 확인 남음
@@ -149,6 +170,9 @@
 - 본인 계좌 즐겨찾기를 "⭐ 즐겨찾는이체정보"로 고르면 입금계좌만 채워지는지 (출금계좌와 같은 계좌가 되지 않게)
 - 이체 화면 버튼 4개: "⭐ 즐겨찾는이체정보"(입금계좌 + 기본 출금계좌), "자주쓰는 입금계좌"(입금계좌만), "최근입금계좌", "본인계좌"(지금 고른 출금계좌는 목록에서 빠짐). 선택 창은 ✕, 바깥 클릭, Esc로 닫힘
 - 확인으로 생긴 즐겨찾기는 공용 DB `account_favorite`에 남는다
+- **(10-17)** 전계좌조회에서 내 계좌 ☆ → 이체 화면 [내 계좌 즐겨찾기]에 그 계좌가 보이고, 고르면 출금계좌가 바뀌는지 (잔액조회 문구가 지워지고 [전액] 금액도 바뀜). 동결 계좌는 목록에 없는지
+- **(10-17)** 즐겨찾기한 내 계좌가 출금계좌 목록 맨 위에 있고 처음부터 선택되어 있는지 / 계좌 화면에서 [이체]로 들어오면(`?from=`) 그 계좌가 선택되는지
+- **(10-17)** [상대계좌 즐겨찾기]·"⭐ 즐겨찾는이체정보"에는 다른 사람 계좌만 보이는지. 확인 단계에서 [내 계좌 즐겨찾기]로 출금계좌를 바꾸면 입력 단계로 돌아가는지
 
 ### 5-2. 구현한 것
 
@@ -161,6 +185,7 @@
 | `FavoritePageController` | `GET/POST /mybank/favorites`, `GET/POST /{id}/edit`, `POST /{id}/move?direction=up|down`, `POST /{id}/delete`. 등록·삭제는 `returnTo=accounts`면 전계좌조회로 돌아감 (그 외 값은 무시) |
 | 전계좌조회 | `AccountPageController`가 `favoriteIds` 전달, `account/favorite-toggle.html` 조각을 세 영역 예금명 칸에 넣음 (컬럼 구성은 그대로) |
 | 이체 화면 | `TransferPageController`가 즐겨찾기·최근입금계좌·입금 가능한 내 계좌를 화면에 넣고, `?to=`로 입금계좌를 미리 채움. `transfer.html` 기존 버튼 4개에 기능만 연결 + 선택 창(`picker-layer`). `transfer.js` 하단에 선택 창 동작 |
+| **(10-17) 내 계좌 / 상대계좌 구분** | `AccountFavoriteService.getMyFavoriteGroups(memberId)` → `FavoriteGroups(myAccounts, otherAccounts)`. `TransferPageController`가 내 계좌 즐겨찾기 중 출금 가능한 것만 `myAccountFavorites`로, 나머지를 `otherFavorites`로 넣고 출금계좌 목록 순서를 정함. `transfer.html` 선택 창에 `my-favorite` 목록 추가, `transfer.js`의 `.js-pick-from`이 출금계좌 select를 바꿈 (option의 `data-account-number`로 찾음) |
 | 이체 결과 | `TransferReceipt`에 `fromAccountId` 추가, `transfer-result.html`에 [⭐ 즐겨찾기 추가] |
 | 화면 | `account/favorites.html` (전계좌조회와 같은 표 구성 + 출금 화면과 같은 입력 표), `account.css`에 `alert-info`, `inline-form`, `picker-*` |
 | 테스트 | `AccountFavoriteServiceTests` 18개, `FavoritePageControllerTests` 17개, `TransferPageControllerTests` 3개, `AccountPageControllerTests` 1개 추가 |
@@ -228,6 +253,7 @@
 - **목업 HTML의 `<button>`을 form 안에 넣을 때는 `type="button"` 필수.** 없으면 누를 때마다 form이 제출된다
 - **화면 테스트(`@WebMvcTest`)에는 `@MockitoBean JpaMetamodelMappingContext`가 필요하다** (`@EnableJpaAuditing` 때문)
 - **(10-16) 공용 `SecurityConfig`가 회원·관리자·직원 로그인 3개로 나뉘었다.** 화면 테스트에 `@MockitoBean`으로 `MemberDetailsService`, `AdminDetailsService`, `EmployeeDetailsService`를 넣어야 Spring이 뜬다. 새 화면 테스트를 만들 때 기존 테스트에서 복사
+- **(10-17) `SecurityConfig`에 로그인 실패 5회 잠금이 들어오면서** 화면 테스트에 `MemberLoginAttemptRecorder`, `AdminLoginAttemptRecorder`, `EmployeeLoginAttemptRecorder`도 `@MockitoBean`으로 넣어야 한다 (팀2 화면 테스트 4개에 추가함). 공용 `SecurityConfig`가 다시 바뀌면 같은 방식으로 화면 테스트가 모두 실패한다
 - **(10-16) CSRF 토큰이 없거나 틀리면 403이 아니라 `/login?expired`로 리다이렉트된다** (공용 `SecurityConfig`). 팀2 테스트 2개의 기대값을 여기에 맞췄다
 - Bash heredoc으로 Java 파일을 만들면 `"\\d"`가 `"\d"`로 바뀌어 컴파일 오류가 난다. 정규식이 있는 파일은 Write/Edit로 작성
 - 일부 기존 파일은 줄바꿈이 CRLF라 sed/perl 여러 줄 치환이 안 먹는다. Edit 도구 사용
@@ -246,7 +272,7 @@
 
 ```
 ./gradlew compileJava                                   # 컴파일
-./gradlew test --tests "org.doit.onbank.account.*"      # 팀2 테스트 143개 (DB 불필요)
+./gradlew test --tests "org.doit.onbank.account.*"      # 팀2 테스트 146개 (DB 불필요)
 ./gradlew test --tests "org.doit.onbank.OnbankApplicationTests"   # 서버가 뜨는지 (공용 DB 연결, 읽기만)
 ./gradlew bootRun                                       # 서버 실행 (포트 80), PowerShell 은 .\gradlew.bat bootRun
 ```
