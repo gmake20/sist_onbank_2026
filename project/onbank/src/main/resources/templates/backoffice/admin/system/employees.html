@@ -51,7 +51,6 @@
     <section class="adm-card">
         <div class="adm-card-head">
             <span>총 <b th:text="${employees.size()}">0</b>건</span>
-            <!-- S-20 직원 계정 생성 (2단계에서 만든다. 그 전엔 404) -->
             <a class="adm-btn-primary" th:href="@{/admin/system/employees/new}">+ 직원 계정 생성</a>
         </div>
         <div class="adm-table-wrap">
@@ -85,6 +84,37 @@
     </section>
 
     <p class="adm-note">소속 변경 · 퇴사 처리는 이번 계획에 없습니다. 임시 비밀번호 Y = 첫 로그인 후 비밀번호를 아직 바꾸지 않은 계정.</p>
+    <!-- 임시 비밀번호 안내 : 생성 직후 flash 로 한 번만 온다. "확인"은 목록을 다시 여는 링크 -->
+    <div class="adm-modal-backdrop" th:if="${created != null}">
+        <div class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="m03-title">
+            <div class="adm-modal-head">
+                <h2 id="m03-title">계정이 생성되었습니다</h2>
+                <p>아래 임시 비밀번호를 본인에게 전달하세요.</p>
+            </div>
+            <dl>
+                <dt>구분</dt><dd>직원</dd>
+                <dt>사번</dt><dd th:text="${created.employeeNo}">E0001</dd>
+                <dt>이름 · 지점</dt><dd th:text="|${created.name} · ${created.branchName}|">이름 · 지점</dd>
+                <dt>권한</dt><dd th:text="${created.role}">STAFF</dd>
+                <dt>임시 비밀번호</dt>
+                <dd class="adm-temp-pw">
+                    <code id="tempPw" th:text="${created.tempPassword}">xxxxxxxxxx</code>
+                    <button type="button" class="adm-btn adm-btn-sm" id="copyTempPw">복사</button>
+                </dd>
+            </dl>
+            <div class="adm-alert" role="alert">이 창을 닫으면 임시 비밀번호를 다시 볼 수 없습니다.</div>
+            <div class="adm-modal-btns">
+                <a class="adm-btn-primary" th:href="@{/admin/system/employees}">확인 (목록으로)</a>
+            </div>
+        </div>
+    </div>
+    <script th:if="${created != null}">
+        document.getElementById('copyTempPw').addEventListener('click', function () {
+            var btn = this;
+            navigator.clipboard.writeText(document.getElementById('tempPw').textContent)
+                .then(function () { btn.textContent = '복사됨'; });
+        });
+    </script>
 </main>
 </body>
 </html>
