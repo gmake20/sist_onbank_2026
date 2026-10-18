@@ -1,0 +1,56 @@
+/* 보안설정 > OTP 화면 (account.css 위에 덧붙임) */
+
+.otp-register {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 16px 0;
+}
+
+.otp-register .transfer-form-table {
+    flex: 1;
+    min-width: 280px;
+}
+
+.otp-qr {
+    width: 180px;
+    height: 180px;
+    padding: 8px;
+    background: #fff;
+    border: 1px solid #ddd;
+    box-sizing: content-box;
+}
+
+.otp-qr:empty {
+    display: none;  /* QR 라이브러리를 불러오지 못하면 빈 칸을 숨긴다 */
+}
+
+.otp-code {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 17px;
+    letter-spacing: 1px;
+    word-break: break-all;
+}
+
+.otp-input {
+    width: 140px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 18px;
+    letter-spacing: 4px;
+    text-align: center;
+}
+
+.otp-steps {
+    margin: 8px 0 0;
+    padding-left: 20px;
+    line-height: 1.8;
+}
+
+.otp-reissue {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
