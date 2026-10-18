@@ -9,11 +9,11 @@
 <div layout:fragment="breadcrumb">관리자 콘솔 / 시스템 / 계정 관리</div>
 <h1 layout:fragment="page-title">계정 관리</h1>
 <main layout:fragment="content">
-    <!-- 탭은 주소가 다른 링크 (D-21). 직원 탭 /admin/system/employees 는 아직 없음(404) -->
-    <div class="adm-tabs" role="tablist" aria-label="계정 종류">
-        <a class="adm-tab active" role="tab" aria-selected="true" th:href="@{/admin/system/admins}">관리자</a>
-        <a class="adm-tab" role="tab" aria-selected="false" th:href="@{/admin/system/employees}">직원</a>
-    </div>
+
+    <nav class="adm-tabs" aria-label="계정 종류">
+        <a class="adm-tab active" aria-current="page" th:href="@{/admin/system/admins}">관리자</a>
+        <a class="adm-tab" th:href="@{/admin/system/employees}">직원</a>
+    </nav>
 
     <form class="adm-search" method="get" th:action="@{/admin/system/admins}">
         <div class="adm-field">
@@ -43,7 +43,7 @@
     <section class="adm-card">
         <div class="adm-card-head">
             <span>총 <b th:text="${admins.size()}">0</b>건</span>
-            <!-- S-20 은 다음 단계 (지금은 404) -->
+            <!-- S-20 계정 생성 -->
             <a class="adm-btn-primary" th:href="@{/admin/system/admins/new}">+ 관리자 계정 생성</a>
         </div>
         <div class="adm-table-wrap">
@@ -76,6 +76,38 @@
     </section>
 
     <p class="adm-note">임시 비밀번호 Y = 첫 로그인 후 비밀번호를 아직 바꾸지 않은 계정.</p>
+
+    <!-- M-03 임시 비밀번호 안내 : 생성 직후 flash 로 한 번만 온다.
+         "확인"은 목록을 다시 여는 링크 → flash 가 없으니 모달도 다시 안 나온다 (JS 없이 닫힘) -->
+    <div class="adm-modal-backdrop" th:if="${created != null}">
+        <div class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="m03-title">
+            <div class="adm-modal-head">
+                <h2 id="m03-title">계정이 생성되었습니다</h2>
+                <p>아래 임시 비밀번호를 본인에게 전달하세요.</p>
+            </div>
+            <dl>
+                <dt>구분</dt><dd>관리자</dd>
+                <dt>아이디</dt><dd th:text="${created.loginId}">oper03</dd>
+                <dt>이름 · 역할</dt><dd th:text="|${created.name} · ${created.role}|">이름 · OPERATOR</dd>
+                <dt>임시 비밀번호</dt>
+                <dd class="adm-temp-pw">
+                    <code id="tempPw" th:text="${created.tempPassword}">xxxxxxxxxx</code>
+                    <button type="button" class="adm-btn adm-btn-sm" id="copyTempPw">복사</button>
+                </dd>
+            </dl>
+            <div class="adm-alert" role="alert">이 창을 닫으면 임시 비밀번호를 다시 볼 수 없습니다.</div>
+            <div class="adm-modal-btns">
+                <a class="adm-btn-primary" th:href="@{/admin/system/admins}">확인 (목록으로)</a>
+            </div>
+        </div>
+    </div>
+    <script th:if="${created != null}">
+        document.getElementById('copyTempPw').addEventListener('click', function () {
+            var btn = this;
+            navigator.clipboard.writeText(document.getElementById('tempPw').textContent)
+                .then(function () { btn.textContent = '복사됨'; });
+        });
+    </script>
 </main>
 </body>
 </html>
