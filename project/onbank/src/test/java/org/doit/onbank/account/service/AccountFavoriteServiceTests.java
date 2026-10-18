@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import org.doit.onbank.account.dto.FavoriteGroups;
 import org.doit.onbank.account.dto.RecipientInfo;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountFavorite;
@@ -163,6 +164,34 @@ class AccountFavoriteServiceTests {
 
 		assertThat(accountFavoriteService.getMyFavorites(OTHER_MEMBER_ID)).isEmpty();
 		assertThat(accountFavoriteService.getRecentDepositAccounts(OTHER_MEMBER_ID)).isEmpty();
+	}
+
+	// 이체 화면용 : 즐겨찾기 계좌번호가 내 계좌면 내 계좌, 아니면 상대계좌 (정렬 순서 유지)
+	@Test
+	void getMyFavoriteGroupsSplitsByMyAccountNumber() {
+		AccountFavorite mine = AccountFavorite.builder().accountId(MY_ACCOUNT_ID)
+				.recipientAccountNumber("1002-000-000001").sortOrder(2).build();
+		AccountFavorite other1 = AccountFavorite.builder().accountId(MY_ACCOUNT_ID)
+				.recipientAccountNumber(RECIPIENT_NUMBER).sortOrder(1).build();
+		AccountFavorite other2 = AccountFavorite.builder().accountId(MY_ACCOUNT_ID)
+				.recipientAccountNumber("1002-333-444444").sortOrder(3).build();
+		given(accountFavoriteRepository.findByAccountIdInOrderBySortOrderAscAccountFavoriteIdAsc(myAccountIds))
+				.willReturn(List.of(other1, mine, other2));
+
+		FavoriteGroups groups = accountFavoriteService.getMyFavoriteGroups(MEMBER_ID);
+
+		assertThat(groups.myAccounts()).containsExactly(mine);
+		assertThat(groups.otherAccounts()).containsExactly(other1, other2);
+	}
+
+	@Test
+	void getMyFavoriteGroupsEmptyWhenNoAccount() {
+		given(accountRepository.findByMemberIdOrderByAccountIdAsc(OTHER_MEMBER_ID)).willReturn(List.of());
+
+		FavoriteGroups groups = accountFavoriteService.getMyFavoriteGroups(OTHER_MEMBER_ID);
+
+		assertThat(groups.myAccounts()).isEmpty();
+		assertThat(groups.otherAccounts()).isEmpty();
 	}
 
 	@Test

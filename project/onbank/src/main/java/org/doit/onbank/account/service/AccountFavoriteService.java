@@ -5,8 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.doit.onbank.account.dto.FavoriteGroups;
 import org.doit.onbank.account.dto.RecipientInfo;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountFavorite;
@@ -39,6 +41,20 @@ public class AccountFavoriteService {
 	@Transactional(readOnly = true)
 	public List<AccountFavorite> getMyFavorites(Long memberId) {
 		return findMyFavorites(myAccountIds(memberId));
+	}
+
+	// 이체 화면용 : 즐겨찾기를 내 계좌(출금계좌로 고름) / 상대계좌(입금계좌로 고름)로 나눈다
+	// 구분 컬럼이 없으므로 즐겨찾기 계좌번호가 지금 내 계좌 번호 중 하나면 내 계좌로 본다 (각 목록은 정렬 순서 유지)
+	@Transactional(readOnly = true)
+	public FavoriteGroups getMyFavoriteGroups(Long memberId) {
+		List<Account> myAccounts = accountRepository.findByMemberIdOrderByAccountIdAsc(memberId);
+		Set<String> myAccountNumbers = myAccounts.stream()
+				.map(Account::getAccountNumber)
+				.collect(Collectors.toSet());
+		Map<Boolean, List<AccountFavorite>> groups = findMyFavorites(myAccounts.stream().map(Account::getAccountId).toList())
+				.stream()
+				.collect(Collectors.partitioningBy(f -> myAccountNumbers.contains(f.getRecipientAccountNumber())));
+		return new FavoriteGroups(groups.get(true), groups.get(false));
 	}
 
 	// 계좌번호 → 즐겨찾기 ID (전계좌조회의 ★ 표시, 이체 완료 화면의 "등록됨" 표시)

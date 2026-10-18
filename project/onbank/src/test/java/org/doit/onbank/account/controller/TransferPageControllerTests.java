@@ -1,5 +1,6 @@
 package org.doit.onbank.account.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import org.doit.onbank.account.dto.FavoriteGroups;
 import org.doit.onbank.account.dto.RecipientInfo;
 import org.doit.onbank.account.dto.TransferLimitInfo;
 import org.doit.onbank.account.dto.TransferReceipt;
@@ -35,11 +37,14 @@ import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
 import org.doit.onbank.admin.security.AdminDetailsService;
+import org.doit.onbank.admin.security.AdminLoginAttemptRecorder;
 import org.doit.onbank.config.SecurityConfig;
 import org.doit.onbank.employee.security.EmployeeDetailsService;
+import org.doit.onbank.employee.security.EmployeeLoginAttemptRecorder;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.security.LoginMember;
 import org.doit.onbank.member.security.MemberDetailsService;
+import org.doit.onbank.member.security.MemberLoginAttemptRecorder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +88,16 @@ class TransferPageControllerTests {
 	@MockitoBean
 	private EmployeeDetailsService employeeDetailsService;
 
+	// (10-17) SecurityConfig 로그인 실패 5회 잠금 핸들러가 요구하는 Bean
+	@MockitoBean
+	private MemberLoginAttemptRecorder memberLoginAttemptRecorder;
+
+	@MockitoBean
+	private AdminLoginAttemptRecorder adminLoginAttemptRecorder;
+
+	@MockitoBean
+	private EmployeeLoginAttemptRecorder employeeLoginAttemptRecorder;
+
 	private LoginMember me;
 
 	@BeforeEach
@@ -99,6 +114,17 @@ class TransferPageControllerTests {
 		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(
 				account(1L, "TEST-0001", AccountStatus.ACTIVE, 100_000L),
 				account(2L, "TEST-0002", AccountStatus.FROZEN, 50_000L)));	// 동결 계좌는 출금계좌 목록에서 빠짐
+		given(accountFavoriteService.getMyFavoriteGroups(MEMBER_ID))
+				.willReturn(new FavoriteGroups(List.of(), List.of()));
+	}
+
+	private AccountFavorite favorite(Long baseAccountId, String number, String name, String alias) {
+		return AccountFavorite.builder()
+				.accountId(baseAccountId)
+				.recipientAccountNumber(number)
+				.recipientAccountName(name)
+				.favoriteAlias(alias)
+				.build();
 	}
 
 	private Account account(Long id, String number, String status, long balance) {
@@ -138,15 +164,10 @@ class TransferPageControllerTests {
 						containsString("이체실행"))));
 	}
 
-	// 입금계좌 선택 창 : 즐겨찾기(기본 출금계좌 포함), 최근입금계좌, 본인계좌(입금 가능한 계좌)
+	// 입금계좌 선택 창 : 상대계좌 즐겨찾기(기본 출금계좌 포함), 최근입금계좌, 본인계좌(입금 가능한 계좌)
 	@Test
 	void formShowsPickerLists() throws Exception {
-		AccountFavorite favorite = AccountFavorite.builder()
-				.accountId(1L)
-				.recipientAccountNumber("TEST-7777")
-				.recipientAccountName("박*희")
-				.favoriteAlias("월세")
-				.build();
+		AccountFavorite favorite = favorite(1L, "TEST-7777", "박*희", "월세");
 		RecentDepositAccount recent = new RecentDepositAccount() {
 			@Override
 			public String getAccountNumber() {
@@ -158,7 +179,8 @@ class TransferPageControllerTests {
 				return LocalDateTime.of(2026, 10, 16, 9, 0);
 			}
 		};
-		given(accountFavoriteService.getMyFavorites(MEMBER_ID)).willReturn(List.of(favorite));
+		given(accountFavoriteService.getMyFavoriteGroups(MEMBER_ID))
+				.willReturn(new FavoriteGroups(List.of(), List.of(favorite)));
 		given(accountFavoriteService.getRecentDepositAccounts(MEMBER_ID)).willReturn(List.of(recent));
 
 		mockMvc.perform(get("/mybank/transfer").with(user(me)))
@@ -169,6 +191,28 @@ class TransferPageControllerTests {
 						containsString("data-account-number=\"TEST-8888\""),
 						containsString("2026.10.16"),
 						containsString("data-account-number=\"TEST-0002\""))));	// 동결 계좌도 입금은 가능
+	}
+
+	// 내 계좌 즐겨찾기 : 출금 가능한 계좌만 선택 창에 나오고, 출금계좌 목록 맨 위(기본 선택)에 온다
+	@Test
+	void formShowsMyAccountFavoritesFirst() throws Exception {
+		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(
+				account(1L, "TEST-0001", AccountStatus.ACTIVE, 100_000L),
+				account(2L, "TEST-0002", AccountStatus.FROZEN, 50_000L),
+				account(3L, "TEST-0003", AccountStatus.ACTIVE, 30_000L)));
+		given(accountFavoriteService.getMyFavoriteGroups(MEMBER_ID)).willReturn(new FavoriteGroups(
+				List.of(favorite(3L, "TEST-0003", "테*트", "생활비"), favorite(2L, "TEST-0002", "테*트", "동결통장")),
+				List.of()));
+
+		String html = mockMvc.perform(get("/mybank/transfer").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("생활비"),
+						containsString("class=\"btn-sm js-pick-from\" data-account-number=\"TEST-0003\""),
+						not(containsString("동결통장")))))	// 동결 계좌는 출금계좌로 고를 수 없음
+				.andReturn().getResponse().getContentAsString();
+
+		assertThat(html.indexOf("ON 통장 (TEST-0003)")).isLessThan(html.indexOf("ON 통장 (TEST-0001)"));
 	}
 
 	// 즐겨찾기 관리 화면의 [이체] : 출금계좌와 입금계좌를 미리 채운다

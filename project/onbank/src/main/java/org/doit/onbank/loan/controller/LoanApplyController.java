@@ -1,10 +1,10 @@
-
 package org.doit.onbank.loan.controller;
 
 import org.doit.onbank.loan.dto.LoanApplicationForm;
 import org.doit.onbank.loan.service.LoanApplicationService;
 import org.doit.onbank.loan.service.LoanProductService;
 import org.doit.onbank.member.security.LoginMember;
+import org.doit.onbank.account.service.AccountService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +27,7 @@ public class LoanApplyController {
 
     private final LoanProductService loanProductService;
     private final LoanApplicationService applicationService;
+    private final AccountService accountService;
 
     // 대출 신청서 화면
     @GetMapping
@@ -39,6 +41,8 @@ public class LoanApplyController {
         	return "redirect:/login";
         }
 
+        Long memberId = me.getMemberId();
+
         model.addAttribute(
                 "product",
                 loanProductService.findById(productId)
@@ -49,7 +53,12 @@ public class LoanApplyController {
 
         model.addAttribute("loanApplicationForm", form);
 
-        return "loan/loan-apply";
+        model.addAttribute(
+                "accounts",
+                accountService.getDisbursementAccounts(memberId)
+        );
+
+        return "loan/loan-apply2";
     }
 
     // 대출 신청서 저장
@@ -68,15 +77,13 @@ public class LoanApplyController {
         // 2. 로그인 회원 ID
         Long memberId = me.getMemberId();
 
-        System.out.println("로그인 회원 ID = " + memberId);
-
         if (form.getProductId() == null) {
             bindingResult.rejectValue(
                     "productId",
                     "required",
                     "상품을 선택하세요."
             );
-            return "loan/loan-apply";
+            return "loan/loan-apply2";
         }
 
         var product = loanProductService.findById(
@@ -85,7 +92,7 @@ public class LoanApplyController {
         model.addAttribute("product", product);
 
         if (bindingResult.hasErrors()) {
-            return "loan/loan-apply";
+            return "loan/loan-apply2";
         }
 
         if (product.getMaxTermMonths() != null
@@ -99,8 +106,13 @@ public class LoanApplyController {
                     "해당 상품의 최대 대출 기간을 초과했습니다."
             );
 
-            return "loan/loan-apply";
+            return "loan/loan-apply2";
         }
+
+        model.addAttribute(
+                "accounts",
+                accountService.getDisbursementAccounts(memberId)
+        );
 
         Long applicationId =
                 applicationService.apply(form, memberId);
