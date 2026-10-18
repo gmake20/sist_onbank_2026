@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>계정 관리</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 시스템 / 계정 관리</div>
+<h1 layout:fragment="page-title">계정 관리</h1>
+<main layout:fragment="content">
+
+    <nav class="adm-tabs" aria-label="계정 종류">
+        <a class="adm-tab" th:href="@{/admin/system/admins}">관리자</a>
+        <a class="adm-tab active" aria-current="page" th:href="@{/admin/system/employees}">직원</a>
+    </nav>
+
+    <form class="adm-search" method="get" th:action="@{/admin/system/employees}">
+        <div class="adm-field">
+            <label for="keyword">사번 · 이름</label>
+            <input type="text" id="keyword" name="keyword" th:value="${keyword}" placeholder="사번 또는 이름">
+        </div>
+        <div class="adm-field">
+            <label for="branchId">소속 지점</label>
+            <select id="branchId" name="branchId">
+                <option value="">전체</option>
+                <option th:each="b : ${branches}" th:value="${b.branchId}" th:text="${b.name}"
+                        th:selected="${b.branchId == branchId}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="role">역할</label>
+            <select id="role" name="role">
+                <option value="">전체</option>
+                <option th:each="r : ${roles}" th:value="${r}" th:text="${r}" th:selected="${r == role}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="status">상태</label>
+            <select id="status" name="status">
+                <option value="">전체</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s}" th:selected="${s == status}"></option>
+            </select>
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/system/employees}">초기화</a>
+        </div>
+    </form>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>총 <b th:text="${employees.size()}">0</b>건</span>
+            <a class="adm-btn-primary" th:href="@{/admin/system/employees/new}">+ 직원 계정 생성</a>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>사번</th><th>이름</th><th>소속 지점</th><th>직급</th><th>역할</th><th>상태</th><th>임시 비밀번호</th><th>입사일</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="e : ${employees}">
+                    <td th:text="${e.employeeNo}">E0001</td>
+                    <td th:text="${e.name}">이름</td>
+                    <td th:text="${branchNames.get(e.branchId)}">본점</td>
+                    <td th:text="${e.position}">과장</td>
+                    <td th:text="${e.role}">STAFF</td>
+                    <td>
+                        <span class="adm-badge" th:switch="${e.status.name()}">
+                            <th:block th:case="'ACTIVE'">ACTIVE 재직</th:block>
+                            <th:block th:case="'ON_LEAVE'">ON_LEAVE 휴직</th:block>
+                            <th:block th:case="'RETIRED'">RETIRED 퇴사</th:block>
+                        </span>
+                    </td>
+                    <td th:text="${e.tempPassword} ? 'Y' : 'N'">N</td>
+                    <td th:text="${#temporals.format(e.hiredAt, 'yyyy-MM-dd')}">YYYY-MM-DD</td>
+                </tr>
+                <tr th:if="${employees.isEmpty()}">
+                    <td colspan="8" class="adm-empty">조건에 맞는 직원이 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <p class="adm-note">소속 변경 · 퇴사 처리는 이번 계획에 없습니다. 임시 비밀번호 Y = 첫 로그인 후 비밀번호를 아직 바꾸지 않은 계정.</p>
+    <!-- 임시 비밀번호 안내 : 생성 직후 flash 로 한 번만 온다. "확인"은 목록을 다시 여는 링크 -->
+    <div class="adm-modal-backdrop" th:if="${created != null}">
+        <div class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="m03-title">
+            <div class="adm-modal-head">
+                <h2 id="m03-title">계정이 생성되었습니다</h2>
+                <p>아래 임시 비밀번호를 본인에게 전달하세요.</p>
+            </div>
+            <dl>
+                <dt>구분</dt><dd>직원</dd>
+                <dt>사번</dt><dd th:text="${created.employeeNo}">E0001</dd>
+                <dt>이름 · 지점</dt><dd th:text="|${created.name} · ${created.branchName}|">이름 · 지점</dd>
+                <dt>권한</dt><dd th:text="${created.role}">STAFF</dd>
+                <dt>임시 비밀번호</dt>
+                <dd class="adm-temp-pw">
+                    <code id="tempPw" th:text="${created.tempPassword}">xxxxxxxxxx</code>
+                    <button type="button" class="adm-btn adm-btn-sm" id="copyTempPw">복사</button>
+                </dd>
+            </dl>
+            <div class="adm-alert" role="alert">이 창을 닫으면 임시 비밀번호를 다시 볼 수 없습니다.</div>
+            <div class="adm-modal-btns">
+                <a class="adm-btn-primary" th:href="@{/admin/system/employees}">확인 (목록으로)</a>
+            </div>
+        </div>
+    </div>
+    <script th:if="${created != null}">
+        document.getElementById('copyTempPw').addEventListener('click', function () {
+            var btn = this;
+            navigator.clipboard.writeText(document.getElementById('tempPw').textContent)
+                .then(function () { btn.textContent = '복사됨'; });
+        });
+    </script>
+</main>
+</body>
+</html>

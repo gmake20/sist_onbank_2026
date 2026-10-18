@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>계정 생성</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 시스템 / 계정 관리 / 계정 생성</div>
+<h1 layout:fragment="page-title">계정 생성</h1>
+<main layout:fragment="content">
+    <section class="adm-card adm-form-card">
+
+        <nav class="adm-tabs adm-tabs-in-card" aria-label="만들 계정 종류">
+            <a class="adm-tab" th:href="@{/admin/system/admins/new}">관리자</a>
+            <a class="adm-tab active" aria-current="page" th:href="@{/admin/system/employees/new}">직원</a>
+        </nav>
+
+        <form class="adm-form" method="post" th:action="@{/admin/system/employees}" th:object="${form}">
+            <div class="adm-info">사번과 비밀번호는 입력하지 않습니다. 저장하면 사번(E0001 형식)과 임시 비밀번호가 만들어지고, 새 계정은 첫 로그인 때 비밀번호를 바꿔야 합니다.</div>
+            <div class="adm-alert" role="alert" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}"></div>
+
+            <div class="adm-field">
+                <label for="name">이름 (필수)</label>
+                <input type="text" id="name" th:field="*{name}" maxlength="30">
+                <span class="adm-error" th:if="${#fields.hasErrors('name')}" th:text="${#fields.errors('name')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="email">이메일 (필수)</label>
+                <input type="text" id="email" th:field="*{email}" maxlength="100">
+                <span class="adm-error" th:if="${#fields.hasErrors('email')}" th:text="${#fields.errors('email')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="phone">전화 (선택)</label>
+                <input type="text" id="phone" th:field="*{phone}" maxlength="20">
+                <span class="adm-error" th:if="${#fields.hasErrors('phone')}" th:text="${#fields.errors('phone')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="branchId">소속 지점 (필수)</label>
+                <select id="branchId" th:field="*{branchId}">
+                    <option value="">선택하세요</option>
+                    <option th:each="b : ${branches}" th:value="${b.branchId}" th:text="${b.name}"></option>
+                </select>
+                <span class="adm-error" th:if="${#fields.hasErrors('branchId')}" th:text="${#fields.errors('branchId')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="position">직급 (필수, 표시용)</label>
+                <select id="position" th:field="*{position}">
+                    <option value="">선택하세요</option>
+                    <option th:each="p : ${positions}" th:value="${p}" th:text="${p}"></option>
+                </select>
+                <span class="adm-error" th:if="${#fields.hasErrors('position')}" th:text="${#fields.errors('position')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="role">역할 (필수)</label>
+                <select id="role" th:field="*{role}">
+                    <option value="">선택하세요</option>
+                    <option th:each="r : ${roles}" th:value="${r}" th:switch="${r.name()}">
+                        <th:block th:case="'STAFF'">STAFF 일반 직원</th:block>
+                        <th:block th:case="'MANAGER'">MANAGER 책임자</th:block>
+                    </option>
+                </select>
+                <span class="adm-error" th:if="${#fields.hasErrors('role')}" th:text="${#fields.errors('role')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="hiredAt">입사일 (필수)</label>
+                <input type="date" id="hiredAt" th:field="*{hiredAt}">
+                <span class="adm-error" th:if="${#fields.hasErrors('hiredAt')}" th:text="${#fields.errors('hiredAt')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="reason">생성 사유 (필수)</label>
+                <input type="text" id="reason" th:field="*{reason}" maxlength="200" placeholder="예: 신규 입사">
+                <span class="adm-error" th:if="${#fields.hasErrors('reason')}" th:text="${#fields.errors('reason')[0]}"></span>
+            </div>
+
+            <div class="adm-form-btns">
+                <a class="adm-btn adm-btn-link" th:href="@{/admin/system/employees}">취소</a>
+                <button type="submit" class="adm-btn-primary">계정 생성</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
