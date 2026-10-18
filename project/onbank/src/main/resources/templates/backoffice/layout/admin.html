@@ -29,7 +29,9 @@
                     </svg>
                 </a>
                 <div class="adm-user">
-                    <div class="adm-avatar"></div>
+                    <!-- 이름 첫 글자 (principal.name = 팀원1 AdminPrincipal) -->
+                    <div class="adm-avatar" aria-hidden="true"
+                         th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">이</div>
                     <div>
                         <!-- principal = 팀원1 AdminPrincipal (getName, getRole) -->
                         <div class="adm-user-name" sec:authentication="principal.name">이름</div>

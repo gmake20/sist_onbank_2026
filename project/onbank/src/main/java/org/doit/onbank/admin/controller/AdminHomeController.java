@@ -28,6 +28,7 @@ public class AdminHomeController {
 		model.addAttribute("me", me);
 		model.addAttribute("roleName", me.getRole().name());
 		model.addAttribute("logoutUrl", "/admin/logout");
-		return "backoffice/home";
+		// return "backoffice/home";
+		return "backoffice/admin/dashboard";
 	}
 }

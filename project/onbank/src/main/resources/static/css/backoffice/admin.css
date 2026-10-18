@@ -1,96 +1,722 @@
-/* 관리자 화면 공통 (06-와이어프레임 2장 값 그대로) */
+/* 관리자 화면 공통. */
 :root {
-    --adm-bg: #f4f4f2;
-    --adm-line: #c9c9c4;
-    --adm-text: #222;
-    --adm-sub: #6b6963;
-    --adm-active: #e4e4df;
+    --adm-floor: #ebeff6; /* 바닥: 사이드바·헤더가 이 위에 */
+    --adm-panel: #f6f8fb; /* 큰 판 (.adm-main) */
+    --adm-bg: #f3f5f9; /* 옅은 면: 표 머리줄, 메뉴 hover */
+    --adm-line: #d5dbe6;
+    --adm-text: #1b2533;
+    --adm-sub: #5b6577;
+    --adm-active: #e6ebf3;
+    --adm-blue: #1f4fb8;
 }
-* { box-sizing: border-box; }
-body { margin: 0; font-family: 'Noto Sans KR', system-ui, sans-serif; color: var(--adm-text); background: var(--adm-bg); }
-a { color: inherit; text-decoration: none; }
 
-.adm-wrap { display: flex; min-height: 100vh; }
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Noto Sans KR', system-ui, sans-serif;
+    color: var(--adm-text);
+    background: var(--adm-floor);
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* 키보드 포커스: 탭 키로 이동할 때 현재 위치 표시 (마우스 클릭엔 안 보임) */
+:focus-visible {
+    outline: 2px solid var(--adm-blue);
+    outline-offset: 2px;
+}
+
+.adm-wrap {
+    display: flex;
+    min-height: 100vh;
+}
 
 /* 사이드바 */
-.adm-side { flex: 0 0 240px; background: #fff; border-right: 1px solid var(--adm-line); padding: 20px 12px; display: flex; flex-direction: column; gap: 2px; }
-.adm-logo { display: flex; align-items: center; gap: 10px; padding: 4px 12px 12px; font-weight: 700; font-size: 16px; }
-.adm-logo-mark { width: 32px; height: 32px; border: 1.5px dashed var(--adm-sub); border-radius: 6px; }
-.adm-group { margin: 16px 12px 4px; font-size: 12px; font-weight: 500; color: var(--adm-sub); }
-.adm-menu { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 6px; font-size: 14px; }
-.adm-menu:hover { background: var(--adm-bg); }
-.adm-menu.active { background: var(--adm-active); font-weight: 700; }
-.adm-ico { width: 16px; height: 16px; border: 1.5px solid var(--adm-sub); border-radius: 3px; }
-.adm-menu.active .adm-ico { border-color: var(--adm-text); }
+.adm-side {
+    flex: 0 0 240px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.adm-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 12px 12px;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.adm-logo-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: var(--adm-blue);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.adm-group {
+    margin: 16px 12px 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--adm-sub);
+}
+
+.adm-menu {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.adm-menu:hover {
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.adm-menu.active {
+    background: #fff;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(27, 37, 51, 0.06);
+}
+
+.adm-ico {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--adm-sub);
+    border-radius: 3px;
+}
+
+.adm-menu.active .adm-ico {
+    border-color: var(--adm-blue);
+}
 
 /* 헤더 */
-.adm-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.adm-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 32px; background: #fff; border-bottom: 1px solid var(--adm-line); }
-.adm-breadcrumb { font-size: 12px; color: var(--adm-sub); }
-.adm-page-title { margin: 0; font-size: 20px; font-weight: 700; }
-.adm-header-right { display: flex; align-items: center; gap: 16px; }
-.adm-header-right form { margin: 0; }
-.adm-bell { position: relative; width: 44px; height: 44px; border: 1px solid var(--adm-line); border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: center; }
-.adm-user { display: flex; align-items: center; gap: 10px; line-height: 1.3; }
-.adm-avatar { width: 36px; height: 36px; border-radius: 18px; border: 1.5px dashed var(--adm-sub); }
-.adm-user-name { font-size: 14px; font-weight: 500; }
-.adm-user-role { font-size: 12px; color: var(--adm-sub); }
-.adm-btn { min-height: 44px; padding: 0 16px; border: 1px solid var(--adm-line); border-radius: 8px; background: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+.adm-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.adm-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 64px;
+    padding: 8px 32px;
+    background: rgba(235,
+    239, 246, 0.72);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter:
+  blur(1px))) {
+    .adm-header {
+        background: var(--adm-floor);
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .adm-header {
+        background: var(--adm-floor);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+}
+
+.adm-breadcrumb {
+    font-size: 12px;
+    color: var(--adm-sub);
+}
+
+.adm-page-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.adm-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.adm-header-right form {
+    margin: 0;
+}
+
+.adm-bell {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--adm-line);
+    border-radius: 6px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.adm-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.3;
+}
+
+.adm-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    border: 1px solid var(--adm-line);
+    background: var(--adm-active);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.adm-user-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.adm-user-role {
+    font-size: 12px;
+    color: var(--adm-sub);
+}
+
+.adm-btn {
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--adm-line);
+    border-radius: 6px; /* 둥글기: 조작(버튼·입력) 6 / 카드 8 / 모달 12 */
+    background: #fff;
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}
 
 /* 본문 */
-.adm-main { flex: 1; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+.adm-main {
+    flex: 1;
+    margin: 0 16px 16px 0;
+    padding: 32px;
+    border-radius: 16px;
+    background: var(--adm-panel);
+    border: 1px solid #fff;
+    box-shadow: 0 1px 2px rgba(27, 37, 51, 0.04), 0 8px 24px rgba(31, 79, 184, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
 
 /* 탭 (와이어프레임 12장) */
-.adm-tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--adm-line); }
-.adm-tab { display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; border-bottom: 3px solid transparent; font-size: 15px; color: #555; }
-.adm-tab.active { border-bottom-color: var(--adm-text); color: var(--adm-text); font-weight: 700; }
+.adm-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--adm-line);
+}
+
+.adm-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 20px;
+    border-bottom: 3px solid transparent;
+    font-size: 16px;
+    color: var(--adm-sub);
+}
+
+.adm-tab.active {
+    border-bottom-color: var(--adm-text);
+    color: var(--adm-text);
+    font-weight: 700;
+}
 
 /* 검색 폼 */
-.adm-search { background: #fff; border: 1px solid var(--adm-line); border-radius: 8px; padding: 20px 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
-.adm-field { display: flex; flex-direction: column; gap: 6px; }
-.adm-field label { font-size: 13px; font-weight: 500; }
-.adm-field input, .adm-field select { min-height: 44px; padding: 0 10px; border: 1px solid #9a988f; border-radius: 6px; background: #fff; font: inherit; font-size: 14px; }
-.adm-field input { width: 220px; }
-.adm-field select { min-width: 130px; }
-.adm-search-btns { display: flex; gap: 8px; }
-.adm-btn-primary { display: inline-flex; align-items: center; min-height: 44px; padding: 0 24px; border: 1px solid #1f4fb8; border-radius: 6px; background: #1f4fb8; color: #fff; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
-.adm-btn-link { display: inline-flex; align-items: center; border-color: #9a988f; border-radius: 6px; }
+.adm-search {
+    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: 8px;
+    padding: 20px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.adm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.adm-field label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.adm-field input, .adm-field select {
+    min-height: 44px;
+    padding: 0 10px;
+    border: 1px solid #8a94a6; /* 입력칸 경계는 흰색 대비 3:1 이상 필요 (#8a94a6 약 3.1, 계산값) */
+    border-radius: 6px;
+    background: #fff;
+    font: inherit;
+    font-size: 14px;
+}
+
+.adm-field input {
+    width: 220px;
+}
+
+.adm-field select {
+    min-width: 130px;
+}
+
+.adm-search-btns {
+    display: flex;
+    gap: 8px;
+}
+
+.adm-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 24px;
+    border: 1px solid #1f4fb8;
+    border-radius: 6px;
+    background: #1f4fb8;
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.adm-btn-link {
+    display: inline-flex;
+    align-items: center;
+    border-color: #8a94a6;
+    border-radius: 6px;
+}
 
 /* 목록 카드 + 표 */
-.adm-card { background: #fff; border: 1px solid var(--adm-line); border-radius: 8px; overflow: hidden; }
-.adm-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 24px; border-bottom: 1px solid var(--adm-line); font-size: 14px; }
-.adm-table-wrap { overflow-x: auto; }
-.adm-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-.adm-table thead tr { text-align: left; background: var(--adm-bg); }
-.adm-table th { padding: 12px 16px; font-weight: 500; white-space: nowrap; }
-.adm-table td { padding: 14px 16px; border-top: 1px solid #e4e4df; }
-.adm-badge { display: inline-block; padding: 2px 10px; border: 1px solid var(--adm-sub); border-radius: 12px; font-size: 12px; white-space: nowrap; }
-.adm-empty { text-align: center; color: var(--adm-sub); }
-.adm-note { margin: 0; font-size: 12px; color: var(--adm-sub); line-height: 1.5; }
+.adm-card {
+    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.adm-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 14px 32px 8px; /* 32 = 표 여백 16 + 칸 16 → "총 N건"·버튼과 표 글자 양끝이 맞음 */
+    font-size: 14px;
+}
+
+.adm-table-wrap {
+    overflow-x: auto;
+    padding: 0 16px 12px; /* 표 전체를 박스 안쪽에 */
+}
+
+.adm-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+}
+
+.adm-table thead tr {
+    text-align: left;
+}
+
+
+/* 머리줄 = 박스 안쪽에 놓인 둥근 띠 (양끝 칸만 둥글게) */
+.adm-table th {
+    padding: 12px 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    background: var(--adm-bg);
+}
+
+.adm-table th:first-child {
+    border-radius: 6px 0 0 6px;
+}
+
+.adm-table th:last-child {
+    border-radius: 0 6px 6px 0;
+}
+
+/* 표 머리줄 고정 + 유리 (docs/DESIGN-관리자-화면디자인.md 3장).
+   .adm-card overflow:hidden 과 .adm-table-wrap overflow-x:auto 가 있으면 sticky 가 페이지 기준으로 안 붙어서,
+   넓은 화면에서만 clip/visible 로 바꾼다. 좁은 화면은 가로 스크롤이 우선 */
+@media (min-width: 1280px) {
+    .adm-card {
+        overflow: clip;
+    }
+
+    .adm-table-wrap {
+        overflow: visible;
+    }
+
+    .adm-table th {
+        position: sticky;
+        top: 64px; /* 고정 헤더 높이 (.adm-header min-height) */
+        z-index: 5;
+        background: rgba(243, 245, 249, 0.78);
+        -webkit-backdrop-filter: blur(12px) saturate(160%);
+        backdrop-filter: blur(12px) saturate(160%);
+        box-shadow: inset 0 -1px 0 var(--adm-line);
+    }
+}
+
+@media (min-width: 1280px) and (prefers-reduced-transparency: reduce) {
+    .adm-table th {
+        background: var(--adm-bg);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+}
+
+.adm-table td {
+    padding: 14px 16px;
+    border-top: 1px solid var(--adm-active);
+    font-variant-numeric: tabular-nums; /* 숫자 폭 맞춤: 날짜·시간이 세로로 줄 맞음 */
+}
+/* 박스 안 여백(C안): 띠 모양 머리줄 바로 밑 첫 행은 선 없음 */
+.adm-table tbody tr:first-child td {
+    border-top: 0;
+}
+
+.adm-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border: 1px solid var(--adm-sub);
+    border-radius: 12px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.adm-empty {
+    text-align: center;
+    color: var(--adm-sub);
+}
+
+.adm-note {
+    margin: 0;
+    font-size: 12px;
+    color: var(--adm-sub);
+    line-height: 1.5;
+}
 
 /* 생성 폼 (와이어프레임 12-2장) */
-.adm-form-card { max-width: 640px; }
-.adm-tabs-in-card { padding: 0 16px; }
-.adm-form { padding: 28px; display: flex; flex-direction: column; gap: 18px; }
-.adm-form .adm-field label { font-size: 14px; }
-.adm-form .adm-field input, .adm-form .adm-field select { width: 100%; }
-.adm-info { border: 1.5px solid var(--adm-sub); border-radius: 6px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
-.adm-error { font-size: 12px; color: #a52f23; line-height: 1.5; }
-.adm-form-btns { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; }
+.adm-form-card {
+    max-width: 640px;
+}
+
+.adm-tabs-in-card {
+    padding: 0 16px;
+}
+
+.adm-form {
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.adm-form .adm-field label {
+    font-size: 14px;
+}
+
+.adm-form .adm-field input, .adm-form .adm-field select {
+    width: 100%;
+}
+
+.adm-info {
+    background: var(--adm-bg);
+    border: 1px solid var(--adm-line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.adm-error {
+    font-size: 12px;
+    color: #a52f23;
+    line-height: 1.5;
+}
+
+.adm-form-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 8px;
+}
 
 /* 모달 M-03 (와이어프레임 12-2장) */
-.adm-modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(20, 20, 19, 0.55); }
-.adm-modal { width: 100%; max-width: 480px; background: #fff; border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 20px; }
-.adm-modal-head { display: flex; flex-direction: column; gap: 6px; }
-.adm-modal-head h2 { margin: 0; font-size: 20px; }
-.adm-modal-head p { margin: 0; font-size: 14px; color: #444; line-height: 1.5; }
-.adm-modal dl { margin: 0; display: grid; grid-template-columns: 110px 1fr; gap: 10px 12px; font-size: 14px; padding: 16px; background: var(--adm-bg); border-radius: 8px; }
-.adm-modal dt { color: var(--adm-sub); }
-.adm-modal dd { margin: 0; }
-.adm-temp-pw { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.adm-temp-pw code { padding: 4px 10px; border: 1px dashed var(--adm-sub); border-radius: 6px; font-size: 16px; font-weight: 700; letter-spacing: 1px; }
-.adm-btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
-.adm-alert { border: 1px dashed #a52f23; border-radius: 6px; padding: 10px 12px; font-size: 13px; color: #a52f23; line-height: 1.5; }
-.adm-modal-btns { display: flex; justify-content: flex-end; }
-.adm-modal-backdrop[hidden] { display: none; }
-.adm-modal-btns { gap: 8px; }
+.adm-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(235, 239, 246, 0.6); /* 뒤 화면이 바닥과 같은 푸른 안개 속으로 */
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .adm-modal-backdrop {
+        background: rgba(235, 239, 246, 0.92);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+}
+
+/* 모달 = 큰 판과 같은 구조: 바탕 옅은 안개 + 흰 테두리, 안쪽 정보 상자는 흰 카드 (docs/DESIGN-관리자-화면디자인.md 1장) */
+.adm-modal {
+    width: 100%;
+    max-width: 480px;
+    background: var(--adm-panel);
+    border: 1px solid #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(27, 37, 51, 0.06), 0 24px 60px rgba(27, 37, 51, 0.16);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: adm-modal-in 0.16s ease-out;
+}
+
+@keyframes adm-modal-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .adm-modal {
+        animation: none;
+    }
+}
+
+.adm-modal-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.adm-modal-head h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.adm-modal-head p {
+    margin: 0;
+    font-size: 14px;
+    color: #444;
+    line-height: 1.5;
+}
+
+.adm-modal dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px 12px;
+    font-size: 14px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: 8px;
+}
+
+.adm-modal dt {
+    color: var(--adm-sub);
+}
+
+.adm-modal dd {
+    margin: 0;
+}
+
+.adm-temp-pw {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+/* 임시 비밀번호: 고정폭 글꼴로 l/1, O/0 구분 */
+.adm-temp-pw code {
+    padding: 4px 10px;
+    background: var(--adm-bg);
+    border: 1px solid var(--adm-line);
+    border-radius: 6px;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.adm-btn-sm {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+}
+
+/* 경고 상자: 점선 → 옅은 빨강 면 + 실선. 글자 대비 약 6.3 (계산값) */
+.adm-alert {
+    background: #fdf1ef;
+    border: 1px solid #f0c9c3;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #a52f23;
+    line-height: 1.5;
+}
+
+.adm-modal-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.adm-modal-backdrop[hidden] {
+    display: none;
+}
+
+/* 긴 값 칸 (활동 로그 변경 전·후, 사유): 한 줄로 자르고 전체는 title 툴팁으로 */
+.adm-cell-long {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 페이지 이동 (S-14 활동 로그). 버튼 모양은 .adm-btn / .adm-btn-primary + .adm-btn-sm 그대로 */
+.adm-pager {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px 16px;
+}
+
+/* 대시보드 S-04: 요약 카드 3열 (와이어프레임 3장) */
+.adm-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.adm-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 24px;
+    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: 8px;
+}
+
+.adm-kpi:hover {
+    border-color: var(--adm-blue);
+}
+
+.adm-kpi-label {
+    font-size: 14px;
+    color: var(--adm-sub);
+}
+
+/* 숫자 폭 고정: 자릿수 바뀌어도 흔들리지 않게 */
+.adm-kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.adm-kpi-value small {
+    margin-left: 2px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.adm-kpi-go {
+    font-size: 12px;
+    color: var(--adm-sub);
+}
+
+/* 차트 판 (DSH-002) */
+.adm-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: 8px;
+}
+
+.adm-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.adm-panel-head h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.adm-chart-empty {
+    margin: 0;
+    padding: 80px 0;
+}
+
+@media (max-width: 900px) {
+    .adm-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .adm-kpis {
+        grid-template-columns: 1fr;
+    }
+}
