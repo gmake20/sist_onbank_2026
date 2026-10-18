@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>활동 로그</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 감사 / 활동 로그</div>
+<h1 layout:fragment="page-title">활동 로그</h1>
+<main layout:fragment="content">
+
+    <form class="adm-search" method="get" th:action="@{/admin/logs}">
+        <div class="adm-field">
+            <label for="actorType">작업자 구분</label>
+            <select id="actorType" name="actorType">
+                <option value="">전체</option>
+                <option th:each="t : ${actorTypes}" th:value="${t}" th:text="${t}" th:selected="${t == actorType}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="actorLoginId">작업자 아이디</label>
+            <input type="text" id="actorLoginId" name="actorLoginId" th:value="${actorLoginId}" placeholder="관리자 아이디 또는 사번">
+        </div>
+        <div class="adm-field">
+            <label for="actionType">작업 유형</label>
+            <select id="actionType" name="actionType">
+                <option value="">전체</option>
+                <option th:each="a : ${actionTypes}" th:value="${a}" th:text="${a}" th:selected="${a == actionType}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="targetType">대상 구분</label>
+            <select id="targetType" name="targetType">
+                <option value="">전체</option>
+                <option th:each="t : ${targetTypes}" th:value="${t}" th:text="${t}" th:selected="${t == targetType}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="targetId">대상 ID</label>
+            <input type="text" id="targetId" name="targetId" th:value="${targetId}" placeholder="정확히 일치">
+        </div>
+        <div class="adm-field">
+            <label for="from">시작일</label>
+            <input type="date" id="from" name="from" th:value="${from}">
+        </div>
+        <div class="adm-field">
+            <label for="to">종료일</label>
+            <input type="date" id="to" name="to" th:value="${to}">
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/logs}">초기화</a>
+        </div>
+    </form>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>총 <b th:text="${logs.totalElements}">0</b>건</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>일시</th><th>작업자</th><th>작업 유형</th><th>대상</th><th>변경 전</th><th>변경 후</th><th>사유</th><th>IP</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${logs}">
+                    <td th:text="${#temporals.format(row.log.createdAt, 'yyyy-MM-dd HH:mm:ss')}">YYYY-MM-DD HH:mm:ss</td>
+                    <td>
+                        <span class="adm-badge" th:text="${row.log.actorType}">ADMIN</span>
+                        <!-- 계정을 못 찾으면 번호만 표시 -->
+                        <span th:text="${row.actor != null} ? |${row.actor.loginId} (${row.actor.name})| : |#${row.log.actorId}|">admin01 (이름)</span>
+                    </td>
+                    <td th:text="${row.log.actionType}">ADMIN_CREATE</td>
+                    <!-- 대상이 관리자·직원이면 번호 옆에 아이디(이름). 계좌 등 다른 대상은 번호만 -->
+                    <td>
+                        <span th:text="|${row.log.targetType} #${row.log.targetId}|">ADMIN #3</span>
+                        <span th:if="${row.target != null}" th:text="|· ${row.target.loginId} (${row.target.name})|">· oper02 (이름)</span>
+                    </td>
+                    <td class="adm-cell-long" th:text="${row.log.beforeValue} ?: '-'" th:title="${row.log.beforeValue}">-</td>
+                    <td class="adm-cell-long" th:text="${row.log.afterValue} ?: '-'" th:title="${row.log.afterValue}">-</td>
+                    <td class="adm-cell-long" th:text="${row.log.reason} ?: '-'" th:title="${row.log.reason}">-</td>
+                    <td th:text="${row.log.requestIp} ?: '-'">127.0.0.1</td>
+                </tr>
+                <tr th:if="${logs.totalElements == 0}">
+                    <td colspan="8" class="adm-empty">조건에 맞는 활동 로그가 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : 현재 페이지 앞뒤로 최대 10개. 링크마다 검색 조건을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${logs.totalPages > 1}"
+             th:with="start=${logs.number > 4 ? logs.number - 4 : 0},
+                      end=${start + 9 < logs.totalPages - 1 ? start + 9 : logs.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${logs.hasPrevious()}"
+               th:href="@{/admin/logs(actorType=${actorType}, actorLoginId=${actorLoginId}, actionType=${actionType},
+                         targetType=${targetType}, targetId=${targetId}, from=${from}, to=${to}, page=${logs.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == logs.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == logs.number}" th:text="${p + 1}"
+                   th:href="@{/admin/logs(actorType=${actorType}, actorLoginId=${actorLoginId}, actionType=${actionType},
+                             targetType=${targetType}, targetId=${targetId}, from=${from}, to=${to}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${logs.hasNext()}"
+               th:href="@{/admin/logs(actorType=${actorType}, actorLoginId=${actorLoginId}, actionType=${actionType},
+                         targetType=${targetType}, targetId=${targetId}, from=${from}, to=${to}, page=${logs.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">조회만 됩니다 (수정·삭제 없음). 기간을 비우면 최근 30일. 잘린 칸은 마우스를 올리면 전체가 보입니다. 로그인 이력은 기록 기능이 생긴 뒤 탭으로 추가합니다.</p>
+</main>
+</body>
+</html>

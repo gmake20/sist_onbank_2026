@@ -6,7 +6,7 @@
 <body>
 <nav class="adm-side" th:fragment="sidebar" aria-label="관리자 메뉴" th:with="uri=${currentUri}">
 
-    <div class="adm-logo"><span class="adm-logo-mark"></span>ONBANK Admin</div>
+    <div class="adm-logo"><span class="adm-logo-mark">ON</span>ONBANK Admin</div>
 
     <div class="adm-group">대시보드</div>
     <a class="adm-menu" th:href="@{/admin}" th:classappend="${uri == '/admin'} ? 'active'">

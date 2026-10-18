@@ -60,7 +60,7 @@ public class AdminManageService {
 
         // 임시 비밀번호는 로그에 남기지 않는다.
         adminLogService.record(me, "ADMIN_CREATE", "ADMIN", String.valueOf(admin.getAdminId()),
-                  null, admin.getRole().name(), form.getReason().trim(), requestIp);
+                  null, admin.getLoginId() + " " + admin.getRole().name(), form.getReason().trim(), requestIp);
 
         return new AdminCreateResult(admin.getLoginId(), admin.getName(), admin.getRole(), tempPassword);
     }
