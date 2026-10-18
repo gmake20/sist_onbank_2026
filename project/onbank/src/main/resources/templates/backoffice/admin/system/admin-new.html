@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>계정 생성</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 시스템 / 계정 관리 / 계정 생성</div>
+<h1 layout:fragment="page-title">계정 생성</h1>
+<main layout:fragment="content">
+    <section class="adm-card adm-form-card">
+
+        <nav class="adm-tabs adm-tabs-in-card" aria-label="만들 계정 종류">
+            <a class="adm-tab active" aria-current="page" th:href="@{/admin/system/admins/new}">관리자</a>
+            <a class="adm-tab" th:href="@{/admin/system/employees/new}">직원</a>
+        </nav>
+
+        <!-- th:action 이 CSRF 토큰을 자동으로 넣는다. th:field 는 id·name·입력값(오류 후 다시 보여 줄 때)을 채운다 -->
+        <form class="adm-form" method="post" th:action="@{/admin/system/admins}" th:object="${form}">
+            <div class="adm-info">비밀번호는 입력하지 않습니다. 저장하면 임시 비밀번호가 만들어지고, 새 계정은 첫 로그인 때 비밀번호를 바꿔야 합니다.</div>
+
+            <div class="adm-field">
+                <label for="loginId">아이디 (필수)</label>
+                <input type="text" id="loginId" th:field="*{loginId}" placeholder="영문 소문자·숫자 4~20자" maxlength="20">
+                <!-- 비워 두면 @NotBlank·@Pattern 두 오류가 같이 나서 첫 번째만 보여 준다 -->
+                <span class="adm-error" th:if="${#fields.hasErrors('loginId')}" th:text="${#fields.errors('loginId')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="name">이름 (필수)</label>
+                <input type="text" id="name" th:field="*{name}" maxlength="50">
+                <span class="adm-error" th:if="${#fields.hasErrors('name')}" th:text="${#fields.errors('name')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="role">역할 (필수)</label>
+                <!-- 기본값 없음. SUPER_ADMIN 은 선택지에 없다 (컨트롤러 CREATABLE_ROLES) -->
+                <select id="role" th:field="*{role}">
+                    <option value="">선택하세요</option>
+                    <option th:each="r : ${roles}" th:value="${r}" th:switch="${r.name()}">
+                        <th:block th:case="'OPERATOR'">OPERATOR 운영 관리자</th:block>
+                        <th:block th:case="'SERVICE'">SERVICE 고객지원 관리자</th:block>
+                    </option>
+                </select>
+                <span class="adm-error" th:if="${#fields.hasErrors('role')}" th:text="${#fields.errors('role')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="reason">생성 사유 (필수)</label>
+                <input type="text" id="reason" th:field="*{reason}" maxlength="200" placeholder="예: 신규 입사">
+                <span class="adm-error" th:if="${#fields.hasErrors('reason')}" th:text="${#fields.errors('reason')[0]}"></span>
+            </div>
+
+            <div class="adm-form-btns">
+                <a class="adm-btn adm-btn-link" th:href="@{/admin/system/admins}">취소</a>
+                <button type="submit" class="adm-btn-primary">계정 생성</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
