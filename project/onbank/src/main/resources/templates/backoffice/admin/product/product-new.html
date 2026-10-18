@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>상품 등록</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 상품 · 대출 / 상품 관리 / 상품 등록</div>
+<h1 layout:fragment="page-title">상품 등록</h1>
+<main layout:fragment="content">
+    <section class="adm-card adm-form-card">
+
+        <!-- th:action 이 CSRF 토큰을 자동으로 넣는다. 칸은 product 테이블 기준 (명세서 2.8과 다름) -->
+        <form class="adm-form" method="post" th:action="@{/admin/products}" th:object="${form}">
+            <!-- 특정 칸이 아닌 오류 (지금은 저장 연결 전 안내) -->
+            <div class="adm-alert" role="alert" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}"></div>
+
+            <div class="adm-field">
+                <label for="productName">상품명 (필수)</label>
+                <input type="text" id="productName" th:field="*{productName}" maxlength="100">
+                <span class="adm-error" th:if="${#fields.hasErrors('productName')}" th:text="${#fields.errors('productName')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="productType">유형 (필수)</label>
+                <select id="productType" th:field="*{productType}">
+                    <option value="">선택하세요</option>
+                    <option value="DEPOSIT">예금</option>
+                    <option value="SAVINGS">적금</option>
+                </select>
+                <span class="adm-error" th:if="${#fields.hasErrors('productType')}" th:text="${#fields.errors('productType')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="baseInterestRate">기본금리 (%, 필수)</label>
+                <input type="number" id="baseInterestRate" th:field="*{baseInterestRate}" step="0.0001" min="0" placeholder="예: 3.5">
+                <span class="adm-error" th:if="${#fields.hasErrors('baseInterestRate')}" th:text="${#fields.errors('baseInterestRate')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="earlyTerminationRate">중도해지 이율 (%, 필수)</label>
+                <input type="number" id="earlyTerminationRate" th:field="*{earlyTerminationRate}" step="0.0001" min="0" placeholder="기본금리 이하">
+                <span class="adm-error" th:if="${#fields.hasErrors('earlyTerminationRate')}" th:text="${#fields.errors('earlyTerminationRate')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="termMonths">가입기간 (개월, 필수)</label>
+                <input type="number" id="termMonths" th:field="*{termMonths}" min="1" max="600" placeholder="예: 12">
+                <span class="adm-error" th:if="${#fields.hasErrors('termMonths')}" th:text="${#fields.errors('termMonths')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="minimumAmount">최소가입금액 (원, 필수)</label>
+                <input type="number" id="minimumAmount" th:field="*{minimumAmount}" min="1" step="1" placeholder="예: 100000">
+                <span class="adm-error" th:if="${#fields.hasErrors('minimumAmount')}" th:text="${#fields.errors('minimumAmount')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="preferentialCondition">우대조건</label>
+                <textarea id="preferentialCondition" th:field="*{preferentialCondition}" maxlength="500" rows="3"></textarea>
+                <span class="adm-error" th:if="${#fields.hasErrors('preferentialCondition')}" th:text="${#fields.errors('preferentialCondition')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="status">판매 상태 (필수)</label>
+                <select id="status" th:field="*{status}">
+                    <option value="ON_SALE">판매중</option>
+                    <option value="STOPPED">판매중지</option>
+                </select>
+                <span class="adm-error" th:if="${#fields.hasErrors('status')}" th:text="${#fields.errors('status')[0]}"></span>
+            </div>
+
+            <div class="adm-form-btns">
+                <a class="adm-btn adm-btn-link" th:href="@{/admin/products}">취소</a>
+                <button type="submit" class="adm-btn-primary">상품 등록</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
