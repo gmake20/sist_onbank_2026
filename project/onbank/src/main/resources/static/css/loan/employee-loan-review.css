@@ -950,3 +950,28 @@
 		grid-template-columns: 1fr
 	}
 }
+
+/* 대출 실행 버튼 */
+.btn-loan-execute {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	margin-top: 20px;
+	padding: 13px 26px;
+
+	background: #2456c6;
+	color: #fff;
+
+	border-radius: 10px;
+	text-decoration: none;
+
+	font-size: 15px;
+	font-weight: 700;
+	transition: background 0.2s ease;
+}
+
+.btn-loan-execute:hover {
+	background: #173f9c;
+	color: #fff;
+}
