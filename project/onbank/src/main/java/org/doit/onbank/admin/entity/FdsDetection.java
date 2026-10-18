@@ -32,6 +32,11 @@ public class FdsDetection {
     @Column(nullable = false, length = 30)
     private String ruleCode;
 
+    // 컬럼이 SMALLINT라서 지정하지 않으면 validate가 INT로 기대해 실패한다
+    @JdbcTypeCode(SqlTypes.SMALLINT)
+    @Column(nullable = false)
+    private int riskScore;
+
     @Column(length = 500)
     private String detail;
 
@@ -52,10 +57,11 @@ public class FdsDetection {
     private LocalDateTime detectedAt;
 
     @Builder
-    private FdsDetection(Long accountId, Long transactionHistoryId, String ruleCode, String detail) {
+    private FdsDetection(Long accountId, Long transactionHistoryId, String ruleCode, int riskScore, String detail) {
         this.accountId = accountId;
         this.transactionHistoryId = transactionHistoryId;
         this.ruleCode = ruleCode;
+        this.riskScore = riskScore;
         this.detail = detail;
     }
 
