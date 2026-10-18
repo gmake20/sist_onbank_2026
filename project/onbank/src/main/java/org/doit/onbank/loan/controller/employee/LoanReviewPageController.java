@@ -3,17 +3,21 @@ package org.doit.onbank.loan.controller.employee;
 
 import java.util.List;
 
+import org.doit.onbank.account.entity.Account;
+import org.doit.onbank.account.repository.AccountRepository;
 import org.doit.onbank.employee.security.EmployeePrincipal;
 import org.doit.onbank.loan.entity.LoanApplication;
 import org.doit.onbank.loan.entity.LoanApplicationStatus;
 import org.doit.onbank.loan.repository.LoanApplicationRepository;
 
+import org.doit.onbank.loan.service.LoanExecutionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
@@ -27,6 +31,8 @@ import lombok.RequiredArgsConstructor;
 public class LoanReviewPageController {
 
     private final LoanApplicationRepository applicationRepository;
+    private final LoanExecutionService loanExecutionService;
+    private final AccountRepository accountRepository;
 
     
     @GetMapping("/review")
@@ -141,5 +147,24 @@ public class LoanReviewPageController {
                         application.getStatus() == status
                 )
                 .count();
+    }
+
+    @GetMapping("/execute/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
+    public String executePage(
+            @PathVariable Long id,
+            Model model) {
+
+        LoanApplication application =
+                loanExecutionService.findApprovedApplication(id);
+
+//        Account account = accountRepository
+//                .findById(application.getDisbursementAccountId())
+//                .orElseThrow();
+
+        model.addAttribute("application", application);
+//        model.addAttribute("recipientAccount", account);
+
+        return "employee/loan/employee-loan-execute";
     }
 }

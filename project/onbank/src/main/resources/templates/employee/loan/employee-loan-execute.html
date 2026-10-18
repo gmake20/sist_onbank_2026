@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>대출 실행 - ONBANK EMPLOYEE</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/loan/employee-loan-execute.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+<main class="loan-execute-page">
+    <div class="loan-execute-container">
+        <header class="loan-execute-heading">
+            <span class="page-label">ONBANK EMPLOYEE · LOAN DISBURSEMENT</span>
+            <h1>대출 실행</h1>
+            <p>승인된 대출 조건과 수령 계좌를 최종 확인한 뒤 대출금을 지급합니다.</p>
+        </header>
+
+        <nav class="execution-steps" aria-label="대출 처리 단계">
+            <div class="step done"><span class="step-number">1</span> 대출 심사</div>
+            <div class="step done"><span class="step-number">2</span> 대출 승인</div>
+            <div class="step current" aria-current="step"><span class="step-number">3</span> 대출 실행</div>
+        </nav>
+
+        <div class="loan-execute-status" th:if="${application.status.name() != 'APPROVED'}">
+            <strong>현재 실행할 수 없는 신청입니다.</strong>
+            <p>대출 신청 상태가 승인완료(APPROVED)일 때만 실행할 수 있습니다.</p>
+        </div>
+
+        <section class="execute-panel" aria-labelledby="loan-info-title">
+            <div class="panel-heading">
+                <h2 id="loan-info-title">대출 승인 정보</h2>
+                <span class="status-pill" th:text="${application.status.name() == 'APPROVED' ? '승인 완료' : application.status.name()}">승인 완료</span>
+            </div>
+            <div class="info-grid">
+                <div class="info-field"><span>대출 신청번호</span><strong th:text="${application.id}">101</strong></div>
+                <div class="info-field"><span>신청 회원</span><strong th:text="${application.member.name}">홍길동</strong></div>
+                <div class="info-field"><span>대출 상품</span><strong th:text="${application.product.name}">ONBANK 신용대출</strong></div>
+                <div class="info-field"><span>대출 기간</span><strong th:text="|${application.requestedMonths}개월|">12개월</strong></div>
+                <div class="info-field"><span>승인 금리</span><strong th:text="${application.approvedInterestRate != null ? '연 ' + application.approvedInterestRate + '%' : '-'}">연 5.5%</strong></div>
+                <div class="info-field"><span>상환 방식</span><strong th:text="${application.repaymentMethod == 'EQUAL' ? '원리금균등상환' : application.repaymentMethod == 'PRINCIPAL' ? '원금균등상환' : application.repaymentMethod == 'BULLET' ? '만기일시상환' : '미지정'}">원리금균등상환</strong></div>
+            </div>
+            <div class="amount-highlight">
+                <span>실행 예정 금액</span>
+                <strong th:text="${application.approvedAmount != null ? #numbers.formatDecimal(application.approvedAmount, 1, 'COMMA', 0, 'POINT') + '원' : '-'}">10,000,000원</strong>
+                <small>승인된 금액으로만 지급되며, 실행 화면에서는 금액을 수정할 수 없습니다.</small>
+            </div>
+        </section>
+
+        <section class="execute-panel" aria-labelledby="receiver-title">
+            <div class="panel-heading"><h2 id="receiver-title">대출금 수령 계좌</h2></div>
+            <div class="receiver-card" th:if="${recipientAccount != null}">
+                <div class="receiver-icon" aria-hidden="true">₩</div>
+                <div class="receiver-info">
+                    <strong th:text="${recipientAccount.accountType}">입출금계좌</strong>
+                    <span th:text="${recipientAccount.accountNumber}">110-123-456789</span>
+                    <small th:text="|계좌 상태: ${recipientAccount.accountStatus}|"></small>
+                </div>
+            </div>
+            <div class="receiver-error" th:if="${recipientAccount == null}">
+                수령 계좌 정보를 찾지 못했습니다. 계좌 연결 상태를 확인해 주세요.
+            </div>
+            <p class="help-text">수령 계좌는 대출 신청 시 고객이 지정한 계좌입니다. 실제 실행 직전에 서버에서 소유자·계좌 유형·상태를 다시 검사합니다.</p>
+        </section>
+
+        <section class="execute-panel" aria-labelledby="check-title">
+            <div class="panel-heading"><h2 id="check-title">실행 전 확인사항</h2></div>
+            <ul class="check-list">
+                <li>대출 승인 상태 및 승인 유효 여부</li>
+                <li>수령 계좌가 신청인 본인 명의의 정상 입출금계좌인지</li>
+                <li>이미 대출이 실행되거나 입금 처리된 신청이 아닌지</li>
+                <li>대출계좌 생성, 고객 계좌 입금, 거래원장·상환 일정 기록</li>
+            </ul>
+        </section>
+
+        <div class="execute-feedback" th:if="${errorMessage != null}" role="alert" th:text="${errorMessage}">실행 실패 사유</div>
+
+        <form id="executeForm" class="execution-form"
+              th:if="${application.status.name() == 'APPROVED' and recipientAccount != null}"
+              th:action="@{/employee/loans/execute/{id}(id=${application.id})}" method="post">
+            <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <label class="execute-consent"><input id="executeConfirm" type="checkbox" required>
+                <span>승인 조건과 수령 계좌를 확인했으며, 대출 실행 시 실제 계좌 잔액이 증가하는 것을 이해했습니다.</span>
+            </label>
+            <div class="execution-actions">
+                <a class="btn-back" th:href="@{/employee/loans/review(id=${application.id})}">심사 상세로 돌아가기</a>
+                <button id="executeButton" class="btn-execute" type="submit" disabled>대출 실행하기</button>
+            </div>
+        </form>
+        <div class="execution-actions" th:unless="${application.status.name() == 'APPROVED' and recipientAccount != null}">
+            <a class="btn-back" th:href="@{/employee/loans/review(id=${application.id})}">심사 상세로 돌아가기</a>
+        </div>
+        <p class="bottom-notice">※ 이 버튼은 실제 지급 처리 요청입니다. 중복 클릭 및 중복 지급은 서버에서 반드시 방지해야 합니다.</p>
+    </div>
+</main>
+<div th:replace="~{fragments/footer :: footerFragment}"></div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('executeForm');
+    if (!form) return;
+    const checkbox = document.getElementById('executeConfirm');
+    const button = document.getElementById('executeButton');
+    checkbox.addEventListener('change', () => { button.disabled = !checkbox.checked; });
+    form.addEventListener('submit', function (event) {
+      if (!checkbox.checked || !confirm('대출계좌를 생성하고 고객 입출금계좌에 대출금을 지급하시겠습니까?')) {
+        event.preventDefault(); return;
+      }
+      button.disabled = true;
+      button.textContent = '대출 실행 처리 중...';
+    });
+  });
+</script>
+</body>
+</html>

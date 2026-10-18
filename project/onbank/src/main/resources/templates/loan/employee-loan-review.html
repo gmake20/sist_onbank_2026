@@ -205,6 +205,11 @@
 						th:text="|승인금리: 연 ${selected.approvedInterestRate}%|">-</p>
 					<p th:if="${selected.reviewedAt != null}"
 						th:text="|승인일시: ${#temporals.format(selected.reviewedAt,'yyyy.MM.dd HH:mm')}|">-</p>
+					<!-- 대출 실행 페이지 이동 -->
+					<a class="btn-loan-execute"
+					   th:href="@{/employee/loans/execute/{id}(id=${selected.id})}">
+						대출 실행하기
+					</a>
 				</div>
 				<!-- 5. 거절 결과 -->
 				<div th:if="${s == 'REJECTED'}"
