@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>대시보드</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 대시보드</div>
+<h1 layout:fragment="page-title">대시보드</h1>
+<main layout:fragment="content">
+
+    <!-- 요약 지표 (DSH-001). 숫자는 GET /admin/api/dashboard/summary 연결 전까지 "—" -->
+    <section class="adm-kpis" aria-label="요약 지표">
+        <a class="adm-kpi" th:href="@{/admin/members}">
+            <span class="adm-kpi-label">전체 회원</span>
+            <span class="adm-kpi-value">—<small>명</small></span>
+            <span class="adm-kpi-go">회원 관리로 이동</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/admin/members}">
+            <span class="adm-kpi-label">이용 제한 회원</span>
+            <span class="adm-kpi-value">—<small>명</small></span>
+            <span class="adm-kpi-go">이용 제한만 보기</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/admin/transactions}">
+            <span class="adm-kpi-label">오늘 거래 건수</span>
+            <span class="adm-kpi-value">—<small>건</small></span>
+            <span class="adm-kpi-go">오늘 거래 보기</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/admin/transactions}">
+            <span class="adm-kpi-label">오늘 거래 금액</span>
+            <span class="adm-kpi-value">—<small>원</small></span>
+            <span class="adm-kpi-go">오늘 거래 보기</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/admin/accounts}">
+            <span class="adm-kpi-label">동결 계좌</span>
+            <span class="adm-kpi-value">—<small>개</small></span>
+            <span class="adm-kpi-go">동결 계좌만 보기</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/admin/loans}">
+            <span class="adm-kpi-label">대출 잔액</span>
+            <span class="adm-kpi-value">—<small>원</small></span>
+            <span class="adm-kpi-go">대출 관리로 이동</span>
+        </a>
+    </section>
+
+    <!-- 거래량 추이 (DSH-002). 차트는 일별 집계 API 만들 때 -->
+    <section class="adm-panel" aria-labelledby="trend-title">
+        <div class="adm-panel-head">
+            <h2 id="trend-title">거래량 추이</h2>
+            <div class="adm-field">
+                <label for="trendRange">기간</label>
+                <select id="trendRange" disabled>
+                    <option>최근 7일</option>
+                    <option>최근 30일</option>
+                </select>
+            </div>
+        </div>
+        <p class="adm-empty adm-chart-empty">차트 준비 중</p>
+    </section>
+
+</main>
+</body>
+</html>

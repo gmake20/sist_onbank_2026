@@ -635,3 +635,88 @@ a {
     gap: 6px;
     padding: 8px 16px 16px;
 }
+
+/* 대시보드 S-04: 요약 카드 3열 (와이어프레임 3장) */
+.adm-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.adm-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 24px;
+    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: 8px;
+}
+
+.adm-kpi:hover {
+    border-color: var(--adm-blue);
+}
+
+.adm-kpi-label {
+    font-size: 14px;
+    color: var(--adm-sub);
+}
+
+/* 숫자 폭 고정: 자릿수 바뀌어도 흔들리지 않게 */
+.adm-kpi-value {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.adm-kpi-value small {
+    margin-left: 2px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.adm-kpi-go {
+    font-size: 12px;
+    color: var(--adm-sub);
+}
+
+/* 차트 판 (DSH-002) */
+.adm-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    background: #fff;
+    border: 1px solid var(--adm-line);
+    border-radius: 8px;
+}
+
+.adm-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.adm-panel-head h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.adm-chart-empty {
+    margin: 0;
+    padding: 80px 0;
+}
+
+@media (max-width: 900px) {
+    .adm-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .adm-kpis {
+        grid-template-columns: 1fr;
+    }
+}
