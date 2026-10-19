@@ -1,4 +1,5 @@
 /* 관리자 화면 공통. */
+
 :root {
     --adm-floor: #ebeff6; /* 바닥: 사이드바·헤더가 이 위에 */
     --adm-panel: #f6f8fb; /* 큰 판 (.adm-main) */
