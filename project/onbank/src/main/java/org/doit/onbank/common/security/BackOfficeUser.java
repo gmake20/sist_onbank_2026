@@ -11,4 +11,7 @@ public interface BackOfficeUser {
 	Long getActorId();	// employee_id 또는 admin_id
 
 	String getName();
+
+	// 임시 비밀번호(temp_pw_yn = 'Y')면 true → 비밀번호 변경 전에는 다른 화면을 쓸 수 없다 (TempPasswordFilter)
+	boolean isTempPassword();
 }

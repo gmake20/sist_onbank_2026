@@ -25,7 +25,7 @@ public class EmployeePrincipal implements UserDetails, CredentialsContainer, Bac
 	private final String name;
 	private final EmployeeRole role;
 	private final Long branchId;
-	private final boolean tempPassword;	// 다음 단계 : true면 비밀번호 변경 화면으로 보냄
+	private final boolean tempPassword;	// true면 비밀번호 변경 화면으로 보냄 (LoginSuccessHandler, TempPasswordFilter)
 	private String password;			// 로그인 성공 후 eraseCredentials()로 지움
 
 	private final boolean locked;		// 5회 실패 잠금 (login_locked_at)
