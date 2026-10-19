@@ -108,7 +108,16 @@ public class LoanApplyController {
 
             return "loan/loan-apply2";
         }
-
+        
+        // 대출금 수령 계좌 선택 여부 검사
+        if (form.getDisbursementAccountId() == null) {
+            bindingResult.rejectValue(
+                    "disbursementAccount",
+                    "required",
+                    "대출금을 수령할 계좌를 선택하세요."
+            );
+        }
+        
         model.addAttribute(
                 "accounts",
                 accountService.getDisbursementAccounts(memberId)

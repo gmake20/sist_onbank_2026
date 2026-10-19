@@ -152,18 +152,25 @@ public class LoanReviewPageController {
     @GetMapping("/execute/{id}")
     @PreAuthorize("hasRole('MANAGER')")
     public String executePage(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             Model model) {
 
         LoanApplication application =
                 loanExecutionService.findApprovedApplication(id);
 
-//        Account account = accountRepository
-//                .findById(application.getDisbursementAccountId())
-//                .orElseThrow();
+        Account account = application.getDisbursementAccount();
+        
+        System.out.println(
+                "대출 신청 ID = " + application.getId()
+        );
 
-        model.addAttribute("application", application);
-//        model.addAttribute("recipientAccount", account);
+        System.out.println(
+                "대출 상태 = " + application.getStatus()
+        );
+
+        // model.addAttribute("application", application);
+        model.addAttribute("loanApplication", application);
+        model.addAttribute("recipientAccount", account);
 
         return "employee/loan/employee-loan-execute";
     }

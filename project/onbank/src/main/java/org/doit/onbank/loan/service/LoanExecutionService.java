@@ -42,11 +42,11 @@ public class LoanExecutionService {
         }
 
         // 4. 대출금 수령 계좌 확인
-//        if (application.getDisbursementAccountId() == null) {
-//            throw new IllegalStateException(
-//                    "대출금 수령 계좌가 지정되지 않았습니다."
-//            );
-//        }
+        if (application.getDisbursementAccount() == null) {
+            throw new IllegalStateException(
+                    "대출금 수령 계좌가 지정되지 않았습니다."
+            );
+        }
 
         return application;
     }

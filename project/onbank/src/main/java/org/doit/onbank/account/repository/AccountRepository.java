@@ -46,4 +46,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 			Long accountId,
 			Long memberId
 	);
+	
+	
 }
