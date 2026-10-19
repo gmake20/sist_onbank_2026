@@ -20,6 +20,10 @@ public class TransferForm {
 	@Pattern(regexp = "\\d{4}", message = "계좌 비밀번호는 숫자 4자리입니다.")
 	private String password;
 
+	// 기준 금액을 넘는 타인 계좌 이체일 때만 필요하다. 필요한지는 서버(AccountTransferService)가 다시 판단
+	@Pattern(regexp = "(\\d{6})?", message = "OTP 번호는 숫자 6자리입니다.")
+	private String otpCode;
+
 	@NotNull(message = "이체금액을 입력하세요.")
 	@Min(value = 1, message = "이체금액은 1원 이상이어야 합니다.")
 	private Long amount;

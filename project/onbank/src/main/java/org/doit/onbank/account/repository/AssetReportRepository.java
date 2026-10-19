@@ -1,0 +1,80 @@
+package org.doit.onbank.account.repository;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+
+import org.doit.onbank.account.entity.AssetReport;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+// 자산 리포트 저장 + 리포트에 쓰는 집계 조회
+// asset_report.account_id 에는 회원 ID(member_id)를 넣는다 (데이터 사전 "기준 계좌 (또는 회원)", 리포트는 회원 단위)
+// 팀3 테이블(loan_application, loan_repayment_schedule, product_subscription, product, productcard, card_usage_history)은
+// 팀3 엔티티를 고치지 않고 SQL로 읽기만 한다. 팀3 테이블 구조가 바뀌면 이 SQL도 맞춰야 한다
+public interface AssetReportRepository extends JpaRepository<AssetReport, Long> {
+
+	List<AssetReport> findByAccountIdAndStandardYearMonthIn(Long memberId, Collection<String> yearMonths);
+
+	// 월별 입출금 : [from, to) 기간, 본인 계좌끼리 이체(같은 거래 번호의 상대 행도 내 계좌)는 입금·출금에서 뺀다
+	@Query(value = "SELECT x.ym AS ym,"
+			+ " CAST(COALESCE(SUM(CASE WHEN x.internal = 0 AND x.type IN ('DEPOSIT', 'TRANSFER_IN') THEN x.amt END), 0) AS SIGNED) AS inAmount,"
+			+ " CAST(COALESCE(SUM(CASE WHEN x.internal = 0 AND x.type IN ('WITHDRAWAL', 'TRANSFER_OUT') THEN x.amt END), 0) AS SIGNED) AS outAmount,"
+			+ " CAST(COALESCE(SUM(CASE WHEN x.type IN ('DEPOSIT', 'TRANSFER_IN') AND x.atype IN ('DEPOSIT', 'SAVINGS') THEN x.amt END), 0) AS SIGNED) AS savingsAmount,"
+			+ " CAST(COALESCE(SUM(CASE WHEN x.internal = 0 AND x.type IN ('WITHDRAWAL', 'TRANSFER_OUT') AND x.content NOT LIKE '%관리비%'"
+			+ "   AND (x.content LIKE '%공과금%' OR x.content LIKE '%전기%' OR x.content LIKE '%가스%' OR x.content LIKE '%수도%'"
+			+ "     OR x.content LIKE '%통신%' OR x.content LIKE '%세금%') THEN x.amt END), 0) AS SIGNED) AS utilityBillAmount,"
+			+ " CAST(COALESCE(SUM(CASE WHEN x.internal = 0 AND x.type IN ('WITHDRAWAL', 'TRANSFER_OUT') AND x.content LIKE '%관리비%'"
+			+ "   THEN x.amt END), 0) AS SIGNED) AS maintenanceFeeAmount"
+			+ " FROM (SELECT DATE_FORMAT(th.transaction_at, '%Y%m') AS ym, th.transaction_type AS type,"
+			+ "         th.transaction_amount AS amt, th.transaction_content AS content, a.account_type AS atype,"
+			+ "         EXISTS (SELECT 1 FROM transaction_history t2 JOIN account a2 ON a2.account_id = t2.account_id"
+			+ "                  WHERE t2.transaction_sqno = th.transaction_sqno"
+			+ "                    AND t2.transaction_history_id <> th.transaction_history_id"
+			+ "                    AND a2.member_id = :memberId) AS internal"
+			+ "       FROM transaction_history th JOIN account a ON a.account_id = th.account_id"
+			+ "       WHERE a.member_id = :memberId AND th.transaction_at >= :from AND th.transaction_at < :to) x"
+			+ " GROUP BY x.ym", nativeQuery = true)
+	List<MonthlyCashFlow> findMonthlyCashFlows(@Param("memberId") Long memberId,
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	// 월별 대출 상환액 (팀3) : 납부한 회차의 원금 + 이자
+	@Query(value = "SELECT DATE_FORMAT(s.PAID_AT, '%Y%m') AS ym, CAST(COALESCE(SUM(s.TOTAL_AMOUNT), 0) AS SIGNED) AS amount"
+			+ " FROM loan_repayment_schedule s JOIN loan_application la ON la.APPLICATION_ID = s.APPLICATION_ID"
+			+ " WHERE la.MEMBER_ID = :memberId AND s.PAID_AT >= :from AND s.PAID_AT < :to"
+			+ " GROUP BY DATE_FORMAT(s.PAID_AT, '%Y%m')", nativeQuery = true)
+	List<MonthlyAmount> findMonthlyLoanPayments(@Param("memberId") Long memberId,
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	// 월별 카드 사용액 (팀3)
+	@Query(value = "SELECT DATE_FORMAT(cu.USED_AT, '%Y%m') AS ym, CAST(COALESCE(SUM(cu.AMOUNT), 0) AS SIGNED) AS amount"
+			+ " FROM card_usage_history cu JOIN productcard pc ON pc.CARD_ID = cu.CARD_ID"
+			+ " WHERE pc.MEMBER_ID = :memberId AND cu.USED_AT >= :from AND cu.USED_AT < :to"
+			+ " GROUP BY DATE_FORMAT(cu.USED_AT, '%Y%m')", nativeQuery = true)
+	List<MonthlyAmount> findMonthlyCardUsage(@Param("memberId") Long memberId,
+			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	// 승인된 대출 (팀3) : 대출 실행 기능이 아직 없어 승인 건을 대출로 본다
+	@Query(value = "SELECT la.APPLICATION_ID AS applicationId, lp.PRODUCT_NAME AS productName,"
+			+ " CAST(la.APPROVED_AMOUNT AS SIGNED) AS approvedAmount, la.APPROVED_INTEREST_RATE AS interestRate,"
+			+ " DATE_FORMAT(la.MATURITY_DATE, '%Y-%m-%d') AS maturityDate,"
+			+ " (SELECT CAST(COALESCE(SUM(s.PRINCIPAL_AMOUNT), 0) AS SIGNED) FROM loan_repayment_schedule s"
+			+ "   WHERE s.APPLICATION_ID = la.APPLICATION_ID AND s.PAID_AT IS NOT NULL) AS repaidPrincipal,"
+			+ " (SELECT DATE_FORMAT(MIN(s.DUE_DATE), '%Y-%m-%d') FROM loan_repayment_schedule s"
+			+ "   WHERE s.APPLICATION_ID = la.APPLICATION_ID AND s.PAID_AT IS NULL) AS nextDueDate"
+			+ " FROM loan_application la LEFT JOIN loan_product lp ON lp.LOAN_PRODUCT_ID = la.PRODUCT_ID"
+			+ " WHERE la.MEMBER_ID = :memberId AND la.STATUS = 'APPROVED'"
+			+ " ORDER BY la.APPLICATION_ID", nativeQuery = true)
+	List<LoanSummary> findApprovedLoans(@Param("memberId") Long memberId);
+
+	// 가입 중인 예적금 (팀3) : 해지한 가입은 뺀다
+	@Query(value = "SELECT p.PRODUCT_NAME AS productName, p.PRODUCT_TYPE AS productType,"
+			+ " ps.PRINCIPAL_AMOUNT AS principalAmount, ps.MONTHLY_PAYMENT AS monthlyPayment,"
+			+ " DATE_FORMAT(ps.SUBSCRIBED_AT, '%Y-%m-%d') AS subscribedAt,"
+			+ " DATE_FORMAT(ps.MATURITY_DATE, '%Y-%m-%d') AS maturityDate, ps.EXPECTED_INTEREST AS expectedInterest"
+			+ " FROM product_subscription ps LEFT JOIN product p ON p.PRODUCT_ID = ps.PRODUCT_ID"
+			+ " WHERE ps.MEMBER_ID = :memberId AND ps.CANCELLED_AT IS NULL"
+			+ " ORDER BY ps.MATURITY_DATE", nativeQuery = true)
+	List<SubscriptionSummary> findActiveSubscriptions(@Param("memberId") Long memberId);
+}

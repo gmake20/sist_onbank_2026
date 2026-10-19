@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>자산관리 - ONBANK</title>
+    <!-- 공통 CSS (헤더/푸터 등) -->
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <!-- 계좌 공통 CSS (타이틀, 표, 안내 문구) -->
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+    <!-- 자산관리 리포트 전용 CSS (카드, 그래프) -->
+    <link rel="stylesheet" th:href="@{/css/asset.css}">
+</head>
+<body>
+
+    <!-- 헤더 영역 -->
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container asset-report" th:with="r=${report}">
+
+        <!-- 타이틀 + 월 선택 -->
+        <div class="asset-head">
+            <div>
+                <h2 class="page-title">자산관리</h2>
+                <p class="asset-sub"
+                   th:text="|${r.month.year}년 ${r.month.monthValue}월 자산 리포트 · 조회기준 ${#temporals.format(r.generatedAt, 'yyyy.MM.dd HH:mm')}|">
+                    2026년 10월 자산 리포트 · 조회기준 2026.10.19 15:20</p>
+            </div>
+            <form class="month-form" method="get" th:action="@{/mybank/assets}">
+                <label for="month" class="month-label">기준월</label>
+                <select id="month" name="month" class="form-select js-month-select">
+                    <option th:each="m : ${r.selectableMonths}"
+                            th:value="${m}" th:selected="${m == r.month}"
+                            th:text="|${m.year}년 ${m.monthValue}월|">2026년 10월</option>
+                </select>
+                <noscript><button type="submit" class="btn-sm">조회</button></noscript>
+            </form>
+        </div>
+
+        <div class="alert alert-error" th:each="warning : ${r.warnings}" th:text="${warning}"></div>
+
+        <!-- 1. 한눈에 보기 -->
+        <section class="stat-row" aria-label="자산 요약">
+            <div class="stat-card stat-hero">
+                <span class="stat-label">순자산</span>
+                <strong class="stat-value" th:text="|${#numbers.formatInteger(r.netAssets, 1, 'COMMA')}원|">0원</strong>
+                <span class="stat-note">총자산 − 대출 잔액</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">총자산</span>
+                <strong class="stat-value" th:text="|${#numbers.formatInteger(r.totalAssets, 1, 'COMMA')}원|">0원</strong>
+                <span class="stat-note">입출금 · 예금 · 적금 잔액</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">대출 잔액</span>
+                <strong class="stat-value" th:text="|${#numbers.formatInteger(r.loanBalance, 1, 'COMMA')}원|">0원</strong>
+                <span class="stat-note" th:text="|승인된 대출 ${#lists.size(r.loans)}건 기준|">승인된 대출 0건 기준</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label" th:text="|${r.month.monthValue}월 순입출금|">10월 순입출금</span>
+                <strong class="stat-value"
+                        th:text="|${r.summary.netFlow() > 0 ? '+' : ''}${#numbers.formatInteger(r.summary.netFlow(), 1, 'COMMA')}원|">0원</strong>
+                <span class="stat-note">입금 − 출금 (본인 계좌끼리 이체 제외)</span>
+            </div>
+        </section>
+
+        <div class="asset-grid">
+            <!-- 2. 자산 구성 -->
+            <section class="asset-card">
+                <h3 class="card-title">자산 구성</h3>
+                <div class="donut-wrap" th:if="${r.hasAssets()}">
+                    <div class="donut">
+                        <svg viewBox="0 0 36 36" role="img" aria-label="계좌 유형별 자산 비중">
+                            <circle th:each="s : ${r.composition}" th:if="${s.amount > 0}"
+                                    th:class="|donut-seg ${s.colorClass} js-tip|" cx="18" cy="18" r="15.9155"
+                                    transform="rotate(-90 18 18)"
+                                    th:attr="stroke-dasharray=${s.dashArray},stroke-dashoffset=${s.dashOffset},data-tip=|${s.label} ${#numbers.formatInteger(s.amount, 1, 'COMMA')}원 (${#numbers.formatDecimal(s.percent, 1, 1)}%)|"></circle>
+                        </svg>
+                        <div class="donut-center">
+                            <span>총자산</span>
+                            <strong th:text="|${#numbers.formatInteger(r.totalAssets, 1, 'COMMA')}원|">0원</strong>
+                        </div>
+                    </div>
+                    <table class="legend-table">
+                        <tbody>
+                            <tr th:each="s : ${r.composition}">
+                                <td><span th:class="|legend-dot ${s.colorClass}|"></span><span th:text="${s.label}">입출금</span></td>
+                                <td class="num" th:text="|${#numbers.formatInteger(s.amount, 1, 'COMMA')}원|">0원</td>
+                                <td class="num muted" th:text="|${#numbers.formatDecimal(s.percent, 1, 1)}%|">0.0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-empty" th:unless="${r.hasAssets()}">
+                    <p>잔액이 있는 계좌가 없습니다.</p>
+                    <a class="btn-sm" th:href="@{/mybank/accounts}">전계좌조회</a>
+                </div>
+            </section>
+
+            <!-- 3. 기준월 입금·출금 -->
+            <section class="asset-card">
+                <h3 class="card-title" th:text="|${r.month.monthValue}월 입금 · 출금|">10월 입금 · 출금</h3>
+                <div class="flow-row" th:with="max=${r.summary.inAmount > r.summary.outAmount ? r.summary.inAmount : r.summary.outAmount}">
+                    <div class="flow-item">
+                        <div class="flow-top">
+                            <span><span class="legend-dot series-1"></span>입금</span>
+                            <strong th:text="|${#numbers.formatInteger(r.summary.inAmount, 1, 'COMMA')}원|">0원</strong>
+                        </div>
+                        <div class="hbar-track">
+                            <div class="hbar series-1"
+                                 th:style="|width: ${max > 0 ? r.summary.inAmount * 100.0 / max : 0}%|"></div>
+                        </div>
+                        <p class="diff" th:replace="~{account/asset-diff :: diffText(${r.summary.inDiff})}"></p>
+                    </div>
+                    <div class="flow-item">
+                        <div class="flow-top">
+                            <span><span class="legend-dot series-2"></span>출금</span>
+                            <strong th:text="|${#numbers.formatInteger(r.summary.outAmount, 1, 'COMMA')}원|">0원</strong>
+                        </div>
+                        <div class="hbar-track">
+                            <div class="hbar series-2"
+                                 th:style="|width: ${max > 0 ? r.summary.outAmount * 100.0 / max : 0}%|"></div>
+                        </div>
+                        <p class="diff" th:replace="~{account/asset-diff :: diffText(${r.summary.outDiff})}"></p>
+                    </div>
+                </div>
+                <p class="card-note">본인 계좌끼리 옮긴 금액은 입금·출금에 넣지 않습니다.</p>
+            </section>
+        </div>
+
+        <!-- 4. 최근 6개월 추이 -->
+        <section class="asset-card">
+            <div class="card-head">
+                <h3 class="card-title">최근 6개월 입출금 추이</h3>
+                <div class="legend">
+                    <span><span class="legend-dot series-1"></span>입금</span>
+                    <span><span class="legend-dot series-2"></span>출금</span>
+                </div>
+            </div>
+            <div class="trend" th:if="${r.hasTrend()}">
+                <div class="trend-scale">
+                    <span th:text="|${#numbers.formatInteger(r.trendMax, 1, 'COMMA')}원|">0원</span>
+                    <span>0원</span>
+                </div>
+                <div class="trend-plot">
+                    <div th:each="b : ${r.trend}" th:class="|trend-col js-tip${b.selected ? ' selected' : ''}|"
+                         th:attr="data-tip=|${b.month.year}년 ${b.month.monthValue}월 · 입금 ${#numbers.formatInteger(b.inAmount, 1, 'COMMA')}원 · 출금 ${#numbers.formatInteger(b.outAmount, 1, 'COMMA')}원|">
+                        <div class="trend-bars">
+                            <div class="vbar series-1" th:style="|height: ${b.inHeight}%|"></div>
+                            <div class="vbar series-2" th:style="|height: ${b.outHeight}%|"></div>
+                        </div>
+                        <span class="trend-label" th:text="|${b.month.monthValue}월|">10월</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-empty" th:unless="${r.hasTrend()}">
+                <p>최근 6개월 동안 입금·출금 거래가 없습니다.</p>
+            </div>
+            <details class="table-view">
+                <summary>표로 보기</summary>
+                <table class="account-table">
+                    <thead>
+                        <tr><th>월</th><th>입금</th><th>출금</th><th>순입출금</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="b : ${r.trend}">
+                            <td th:text="|${b.month.year}년 ${b.month.monthValue}월|">2026년 10월</td>
+                            <td class="num" th:text="|${#numbers.formatInteger(b.inAmount, 1, 'COMMA')}원|">0원</td>
+                            <td class="num" th:text="|${#numbers.formatInteger(b.outAmount, 1, 'COMMA')}원|">0원</td>
+                            <td class="num" th:text="|${#numbers.formatInteger(b.inAmount - b.outAmount, 1, 'COMMA')}원|">0원</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </details>
+        </section>
+
+        <!-- 5. 기준월 항목별 현황 -->
+        <section class="asset-card">
+            <h3 class="card-title" th:text="|${r.month.monthValue}월 항목별 현황|">10월 항목별 현황</h3>
+            <ul class="item-list">
+                <li th:each="item : ${r.items}" th:class="${item.connected ? 'item' : 'item disconnected'}">
+                    <span class="item-label" th:text="${item.label}">저축액</span>
+                    <div class="hbar-track">
+                        <div class="hbar series-brand js-tip" th:style="|width: ${item.width}%|"
+                             th:attr="data-tip=|${item.label} ${#numbers.formatInteger(item.amount, 1, 'COMMA')}원|"></div>
+                    </div>
+                    <strong class="item-value" th:if="${item.connected}"
+                            th:text="|${#numbers.formatInteger(item.amount, 1, 'COMMA')}원|">0원</strong>
+                    <span class="item-badge" th:unless="${item.connected}">준비 중</span>
+                    <span class="item-note" th:text="${item.note}">예금·적금 계좌로 들어온 금액</span>
+                </li>
+            </ul>
+            <p class="card-note">공과금·관리비는 거래 메모에 들어간 단어로 분류하므로 실제 지출과 다를 수 있습니다.</p>
+        </section>
+
+        <div class="asset-grid">
+            <!-- 6. 대출 현황 -->
+            <section class="asset-card">
+                <h3 class="card-title">대출 현황</h3>
+                <ul class="progress-list" th:unless="${#lists.isEmpty(r.loans)}">
+                    <li th:each="loan : ${r.loans}">
+                        <div class="progress-top">
+                            <strong th:text="${loan.productName}">신용대출</strong>
+                            <span class="muted" th:text="|연 ${#numbers.formatDecimal(loan.interestRate ?: 0, 1, 2)}%|">연 4.00%</span>
+                        </div>
+                        <div class="hbar-track">
+                            <div class="hbar series-brand js-tip" th:style="|width: ${loan.repaidPercent}%|"
+                                 th:attr="data-tip=|상환 ${#numbers.formatDecimal(loan.repaidPercent, 1, 1)}%|"></div>
+                        </div>
+                        <dl class="progress-meta">
+                            <div><dt>남은 원금</dt><dd th:text="|${#numbers.formatInteger(loan.remaining, 1, 'COMMA')}원|">0원</dd></div>
+                            <div><dt>대출 원금</dt><dd th:text="|${#numbers.formatInteger(loan.approvedAmount, 1, 'COMMA')}원|">0원</dd></div>
+                            <div><dt>월 예상 이자</dt><dd th:text="|${#numbers.formatInteger(loan.monthlyInterestEstimate, 1, 'COMMA')}원|">0원</dd></div>
+                            <div><dt>만기일</dt><dd th:text="${loan.maturityDate ?: '-'}">2028-10-19</dd></div>
+                            <div th:if="${loan.nextDueDate}"><dt>다음 납부일</dt><dd th:text="${loan.nextDueDate}">2026-11-19</dd></div>
+                        </dl>
+                    </li>
+                </ul>
+                <div class="card-empty" th:if="${#lists.isEmpty(r.loans)}">
+                    <p>승인된 대출이 없습니다.</p>
+                </div>
+                <p class="card-note">월 예상 이자는 남은 원금 × 연 금리 ÷ 12로 단순 계산한 값입니다.</p>
+            </section>
+
+            <!-- 7. 예적금 현황 -->
+            <section class="asset-card">
+                <h3 class="card-title">예적금 현황</h3>
+                <ul class="progress-list" th:unless="${#lists.isEmpty(r.subscriptions)}">
+                    <li th:each="sub : ${r.subscriptions}">
+                        <div class="progress-top">
+                            <strong th:text="${sub.productName}">ON 정기적금</strong>
+                            <span class="type-badge" th:text="${sub.typeLabel}">적금</span>
+                        </div>
+                        <div class="hbar-track">
+                            <div class="hbar series-brand js-tip" th:style="|width: ${sub.elapsedPercent}%|"
+                                 th:attr="data-tip=|만기까지 ${#numbers.formatDecimal(sub.elapsedPercent, 1, 1)}% 지남|"></div>
+                        </div>
+                        <dl class="progress-meta">
+                            <div><dt th:text="${sub.amountLabel}">원금</dt><dd th:text="|${#numbers.formatInteger(sub.amount, 1, 'COMMA')}원|">0원</dd></div>
+                            <div th:if="${sub.expectedInterest}"><dt>예상 이자</dt><dd th:text="|${#numbers.formatInteger(sub.expectedInterest, 1, 'COMMA')}원|">0원</dd></div>
+                            <div><dt>만기일</dt><dd th:text="${sub.maturityDate ?: '-'}">2027-10-19</dd></div>
+                        </dl>
+                    </li>
+                </ul>
+                <div class="card-empty" th:if="${#lists.isEmpty(r.subscriptions)}">
+                    <p>가입한 예적금이 없습니다.</p>
+                    <a class="btn-sm" href="/products">금융상품 보기</a>
+                </div>
+            </section>
+        </div>
+
+        <p class="report-footnote">
+            리포트는 이 화면을 열 때 계산되며, 최근 6개월 값이 월별로 저장됩니다.
+            대출은 팀 대출 실행 기능 연동 전이라 승인된 대출 기준으로 표시합니다.
+        </p>
+    </main>
+
+    <!-- 그래프 위에 마우스를 올리면 보이는 안내 -->
+    <div class="chart-tooltip js-tooltip" role="tooltip" hidden></div>
+
+    <!-- 푸터 영역 -->
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/asset.js}"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@ package org.doit.onbank.member.service;
 import java.time.LocalDateTime;
 
 import org.doit.onbank.common.exception.BusinessException;
+import org.doit.onbank.member.dto.MyInfo;
 import org.doit.onbank.member.dto.SignupForm;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.repository.MemberRepository;
@@ -13,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
-// 회원가입
+// 회원가입, 마이페이지 회원정보 조회
 // 가입 즉시 정상(ACTIVE) + 실명확인 미확인(NONE). 직원 승인 없음 (README 5-2장)
 @Service
 @RequiredArgsConstructor
@@ -52,5 +53,13 @@ public class MemberService {
 		} catch (DataIntegrityViolationException e) {
 			throw new BusinessException("이미 가입된 정보가 있습니다. 입력값을 확인해 주세요.");
 		}
+	}
+
+	// 마이페이지 : 로그인한 본인 정보 조회
+	@Transactional(readOnly = true)
+	public MyInfo getMyInfo(Long memberId) {
+		return memberRepository.findById(memberId)
+				.map(MyInfo::from)
+				.orElseThrow(() -> new BusinessException("회원 정보를 찾을 수 없습니다."));
 	}
 }

@@ -520,6 +520,17 @@ a.btn-sm, a.btn-outline {
     display: none;
 }
 
+/* 이체 : OTP 등록 안내 링크·OTP 입력 줄 (a.btn-sm 의 inline-block 이 hidden 을 덮지 않도록) */
+.js-otp-register-link[hidden],
+.js-otp-row[hidden] {
+    display: none;
+}
+
+.js-amount-warning .btn-sm,
+.alert-error .btn-sm {
+    margin-left: 8px;
+}
+
 a.btn-submit {
     display: inline-block;
     text-decoration: none;

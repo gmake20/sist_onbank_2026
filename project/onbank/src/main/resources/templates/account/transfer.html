@@ -30,13 +30,17 @@
             <li><a href="#" title="준비 중입니다">다른금융</a></li>
         </ul>
 
-        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+        <div class="alert alert-error" th:if="${errorMessage}">
+            <span th:text="${errorMessage}"></span>
+            <a class="btn-sm" th:if="${otpRegisterNeeded}" th:href="@{/mybank/security/otp}">OTP 등록하기</a>
+        </div>
         <div class="alert alert-error" th:if="${#lists.isEmpty(accounts)}">
             이체할 수 있는 계좌가 없습니다. (정상 상태인 본인 계좌만 출금계좌로 선택할 수 있습니다)
         </div>
 
+        <!-- data-otp-* : 금액 입력 중 안내 문구용. 실제 OTP 필요 여부는 이체할 때 서버가 다시 판단한다 -->
         <form id="transferForm" class="js-once-form" method="post" th:object="${form}" th:action="@{/mybank/transfer}"
-              th:attr="data-recipient-url=@{/mybank/transfer/recipient},data-limit-url=@{/mybank/transfer/limit}">
+              th:attr="data-recipient-url=@{/mybank/transfer/recipient},data-limit-url=@{/mybank/transfer/limit},data-otp-required-amount=${otpRequiredAmount},data-otp-ready=${otpReady}">
 
         <!-- 1. 출금계좌정보 -->
         <div class="transfer-section">
@@ -102,6 +106,12 @@
                                 <button type="button" class="js-all-amount" data-all="0">전액</button>
                                 <button type="button" class="btn-dark" data-clear>정정</button>
                             </div>
+                            <p class="sub-text js-amount-korean"></p>
+                            <!-- 잔액 초과 / 1회 한도 초과 / OTP 미등록 안내 (금액을 입력하는 즉시) -->
+                            <p class="field-error js-amount-warning" hidden>
+                                <span class="js-amount-warning-text"></span>
+                                <a class="btn-sm js-otp-register-link" th:href="@{/mybank/security/otp}" hidden>OTP 등록하기</a>
+                            </p>
                             <p class="sub-text js-limit-text"></p>
                             <p class="field-error" th:if="${#fields.hasErrors('amount')}" th:errors="*{amount}"></p>
                         </td>
@@ -186,11 +196,14 @@
             </div>
         </div>
 
-        <!-- 하단 확인 버튼 : 받는 분 확인 후 아래 확인 영역을 연다 -->
+        <!-- 하단 확인 버튼 : 받는 분 확인 후 아래 확인 영역을 연다 (입금계좌번호·금액을 넣기 전에는 비활성) -->
         <div class="submit-action js-input-action">
             <button type="button" class="btn-submit js-confirm">확인</button>
         </div>
         <p class="field-error js-confirm-error" style="text-align: center;"></p>
+        <p class="js-confirm-otp-link" style="text-align: center;" hidden>
+            <a class="btn-sm" th:href="@{/mybank/security/otp}">OTP 등록하기</a>
+        </p>
 
         <!-- 2단계 : 이체 정보 확인 (확인 버튼을 누르면 보임) -->
         <div class="transfer-section transfer-confirm js-confirm-box" hidden>
@@ -208,6 +221,16 @@
                     <tr><th>입금계좌번호</th><td class="js-confirm-to"></td></tr>
                     <tr><th>받는 분</th><td><strong class="js-confirm-name"></strong></td></tr>
                     <tr><th>이체금액</th><td><strong class="text-blue js-confirm-amount"></strong></td></tr>
+                    <!-- 기준 금액을 넘는 타인 계좌 이체일 때만 보인다 (숨겨져 있을 때는 disabled 라 전송되지 않음) -->
+                    <tr class="js-otp-row" hidden>
+                        <th>OTP 인증번호</th>
+                        <td>
+                            <input type="password" class="form-input pw-input js-otp-code" name="otpCode"
+                                   maxlength="6" inputmode="numeric" autocomplete="one-time-code" disabled>
+                            <span class="sub-text js-otp-guide"></span>
+                            <p class="field-error" th:if="${#fields.hasErrors('otpCode')}" th:errors="*{otpCode}"></p>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
             <p class="sub-text">받는 분 이름을 확인한 뒤 [이체실행]을 누르세요. 이체 후에는 취소할 수 없습니다.</p>

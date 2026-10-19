@@ -31,9 +31,9 @@ public class AdminManageController {
 
     // S-19 계정 목록 (관리자 탭). select에서 "전체"(빈 값)를 고르면 enum이 null로 들어온다
     @GetMapping
-    public String list(@RequestParam(required = false) String keyword,
-                       @RequestParam(required = false) AdminRole role,
-                       @RequestParam(required = false) AdminStatus status,
+    public String list(@RequestParam(name = "keyword", required = false) String keyword,
+                       @RequestParam(name = "role", required = false) AdminRole role,
+                       @RequestParam(name = "status", required = false) AdminStatus status,
                        Model model) {
         model.addAttribute("admins",adminManageService.searchAdmins(keyword, role, status));
         model.addAttribute("keyword", keyword);

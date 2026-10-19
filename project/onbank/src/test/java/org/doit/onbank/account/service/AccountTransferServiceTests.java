@@ -6,12 +6,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,7 +30,11 @@ import org.doit.onbank.account.repository.AccountTransferRepository;
 import org.doit.onbank.account.repository.MemberTransferLimit;
 import org.doit.onbank.account.repository.TransactionHistoryRepository;
 import org.doit.onbank.member.entity.Member;
+import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.member.repository.MemberRepository;
+import org.doit.onbank.otp.dto.OtpDeviceInfo;
+import org.doit.onbank.otp.entity.OtpStatus;
+import org.doit.onbank.otp.service.OtpService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -47,6 +53,8 @@ class AccountTransferServiceTests {
 	private static final Long MY_ID = 100L;
 	private static final Long OTHER_ID = 200L;
 	private static final String SQNO = "20261015143012-482915";
+	private static final String OTP_CODE = "123456";
+	private static final long OTP_LINE = AccountTransferService.OTP_REQUIRED_AMOUNT;	// 10만 원
 
 	@Mock
 	private AccountRepository accountRepository;
@@ -65,6 +73,9 @@ class AccountTransferServiceTests {
 
 	@Mock
 	private TransactionSqnoGenerator transactionSqnoGenerator;
+
+	@Mock
+	private OtpService otpService;
 
 	@InjectMocks
 	private AccountTransferService service;
@@ -108,6 +119,15 @@ class AccountTransferServiceTests {
 		given(accountRepository.findByIdForUpdate(to.getAccountId())).willReturn(Optional.of(to));
 	}
 
+	// 사용 등록까지 마친 OTP가 있는 회원
+	private void givenOtpActive() {
+		given(otpService.findCurrent(MY_ID)).willReturn(Optional.of(otpDevice(OtpStatus.ACTIVE)));
+	}
+
+	private OtpDeviceInfo otpDevice(OtpStatus status) {
+		return new OtpDeviceInfo("0123456789", status, 0, LocalDateTime.now(), LocalDateTime.now());
+	}
+
 	private void givenRecordable() {
 		given(memberRepository.findById(MY_ID)).willReturn(Optional.of(member("홍길동")));
 		given(memberRepository.findById(OTHER_ID)).willReturn(Optional.of(member("김철수")));
@@ -123,7 +143,7 @@ class AccountTransferServiceTests {
 		givenTransferable(from, to);
 		givenRecordable();
 
-		TransferReceipt receipt = service.transfer(MY_ID, 1L, "1234", "TEST-0002", 30_000L, null, null);
+		TransferReceipt receipt = service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", 30_000L, null, null);
 
 		// 잔액과 오늘 이체 누적
 		assertThat(from.getBalance()).isEqualTo(70_000L);
@@ -168,7 +188,7 @@ class AccountTransferServiceTests {
 		givenTransferable(from, to);
 		givenRecordable();
 
-		TransferReceipt receipt = service.transfer(MY_ID, 1L, "1234", "TEST-0002", 10_000L, "월세", "10월 월세");
+		TransferReceipt receipt = service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", 10_000L, "월세", "10월 월세");
 
 		assertThat(receipt.senderMemo()).isEqualTo("월세");
 		assertThat(receipt.receiverMemo()).isEqualTo("10월 월세");
@@ -182,7 +202,7 @@ class AccountTransferServiceTests {
 		givenTransferable(from, to);
 		givenRecordable();
 
-		service.transfer(MY_ID, 2L, "1234", "TEST-0001", 10_000L, null, null);
+		service.transfer(MY_ID, 2L, "1234", null, "TEST-0001", 10_000L, null, null);
 
 		InOrder order = inOrder(accountPasswordVerifier, accountRepository);
 		order.verify(accountPasswordVerifier).verify(2L, MY_ID, "1234");	// 비밀번호 확인이 잠금보다 먼저
@@ -196,7 +216,7 @@ class AccountTransferServiceTests {
 	void transferFailsWhenRecipientNotFound() {
 		given(accountRepository.findByAccountNumber("NONE")).willReturn(Optional.empty());
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", "NONE", 10_000L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "NONE", 10_000L, null, null))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("입금계좌를 찾을 수 없습니다");
 		verify(accountPasswordVerifier, never()).verify(anyLong(), anyLong(), anyString());
@@ -207,7 +227,7 @@ class AccountTransferServiceTests {
 		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.PENDING, 0L);
 		given(accountRepository.findByAccountNumber("TEST-0002")).willReturn(Optional.of(to));
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", "TEST-0002", 10_000L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", 10_000L, null, null))
 				.hasMessageContaining("입금할 수 없는 계좌");
 	}
 
@@ -216,7 +236,7 @@ class AccountTransferServiceTests {
 		Account mine = account(1L, MY_ID, "TEST-0001", AccountStatus.ACTIVE, 100_000L);
 		given(accountRepository.findByAccountNumber("TEST-0001")).willReturn(Optional.of(mine));
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", "TEST-0001", 10_000L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "TEST-0001", 10_000L, null, null))
 				.hasMessageContaining("같은 계좌");
 	}
 
@@ -226,7 +246,7 @@ class AccountTransferServiceTests {
 		given(accountRepository.findByAccountNumber("TEST-0002")).willReturn(Optional.of(to));
 		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());	// 1회 기본 100만 원
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", "TEST-0002", 1_000_001L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", 1_000_001L, null, null))
 				.hasMessageContaining("1회 이체한도");
 		verify(accountPasswordVerifier, never()).verify(anyLong(), anyLong(), anyString());
 	}
@@ -239,7 +259,7 @@ class AccountTransferServiceTests {
 		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());
 		given(accountPasswordVerifier.verify(1L, MY_ID, "0000")).willReturn(false);
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "0000", "TEST-0002", 10_000L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "0000", null, "TEST-0002", 10_000L, null, null))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("비밀번호");
 		verify(accountRepository, never()).findByIdForUpdate(anyLong());
@@ -255,8 +275,9 @@ class AccountTransferServiceTests {
 		ReflectionTestUtils.setField(from, "lastTransactionAt", java.time.LocalDateTime.now());	// 오늘 450만 원 이체함
 		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
 		givenTransferable(from, to);
+		givenOtpActive();	// 60만 원 → OTP 필요
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", "TEST-0002", 600_000L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", OTP_CODE, "TEST-0002", 600_000L, null, null))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("1일 이체한도")
 				.hasMessageContaining("500,000원");
@@ -272,7 +293,7 @@ class AccountTransferServiceTests {
 		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
 		givenTransferable(from, to);
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", "TEST-0002", 10_000L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", 10_000L, null, null))
 				.hasMessageContaining("잔액");
 		assertThat(to.getBalance()).isZero();
 		verify(transactionHistoryRepository, never()).save(any());
@@ -304,5 +325,116 @@ class AccountTransferServiceTests {
 		assertThat(info.onceLimit()).isEqualTo(500_000L);
 		assertThat(info.todayUsed()).isEqualTo(300_000L);
 		assertThat(info.remaining()).isEqualTo(1_700_000L);
+	}
+
+	// ---------- 이체 인증 : 기준 금액(10만 원) 이하 비밀번호만 / 초과 비밀번호 + OTP ----------
+
+	// 기준 금액과 같으면 OTP를 묻지 않는다 (OTP가 없는 회원도 이체 가능)
+	@Test
+	void transferAtOtpLineNeedsPasswordOnly() {
+		Account from = account(1L, MY_ID, "TEST-0001", AccountStatus.ACTIVE, 500_000L);
+		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
+		givenTransferable(from, to);
+		givenRecordable();
+
+		service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", OTP_LINE, null, null);
+
+		assertThat(from.getBalance()).isEqualTo(400_000L);
+		verify(otpService, never()).findCurrent(anyLong());
+		verify(otpService, never()).verify(anyLong(), any());
+	}
+
+	// 기준 금액을 넘으면 비밀번호 → OTP → 잠금 순서로 확인한다
+	@Test
+	void transferOverOtpLineVerifiesOtpBeforeLocking() {
+		Account from = account(1L, MY_ID, "TEST-0001", AccountStatus.ACTIVE, 500_000L);
+		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
+		givenTransferable(from, to);
+		givenRecordable();
+		givenOtpActive();
+
+		service.transfer(MY_ID, 1L, "1234", OTP_CODE, "TEST-0002", OTP_LINE + 1, null, null);
+
+		assertThat(to.getBalance()).isEqualTo(OTP_LINE + 1);
+		InOrder order = inOrder(accountPasswordVerifier, otpService, accountRepository);
+		order.verify(accountPasswordVerifier).verify(1L, MY_ID, "1234");
+		order.verify(otpService).verify(MY_ID, OTP_CODE);
+		order.verify(accountRepository).findByIdForUpdate(1L);
+	}
+
+	// OTP가 없는 회원의 기준 금액 초과 이체 : 비밀번호도 확인하지 않고 막는다 (오류 횟수가 늘지 않게)
+	@Test
+	void transferOverOtpLineFailsWhenOtpNotRegistered() {
+		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
+		given(accountRepository.findByAccountNumber("TEST-0002")).willReturn(Optional.of(to));
+		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());
+		given(otpService.findCurrent(MY_ID)).willReturn(Optional.empty());
+
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", OTP_CODE, "TEST-0002", OTP_LINE + 1, null, null))
+				.isInstanceOf(OtpRequiredException.class)
+				.hasMessageContaining("100,000원을 넘는 이체는 OTP 등록이 필요해요");
+		verify(accountPasswordVerifier, never()).verify(anyLong(), anyLong(), anyString());
+		verify(otpService, never()).verify(anyLong(), any());
+		verify(accountRepository, never()).findByIdForUpdate(anyLong());
+	}
+
+	// 발급만 받고 사용 등록을 하지 않은 OTP도 미등록으로 본다
+	@Test
+	void transferOverOtpLineFailsWhenOtpOnlyIssued() {
+		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
+		given(accountRepository.findByAccountNumber("TEST-0002")).willReturn(Optional.of(to));
+		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());
+		given(otpService.findCurrent(MY_ID)).willReturn(Optional.of(otpDevice(OtpStatus.ISSUED)));
+
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", OTP_CODE, "TEST-0002", OTP_LINE + 1, null, null))
+				.isInstanceOf(OtpRequiredException.class);
+	}
+
+	// 화면을 거치지 않고 OTP 번호 없이 보내도 서버에서 막는다
+	@Test
+	void transferOverOtpLineFailsWhenOtpCodeMissing() {
+		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
+		given(accountRepository.findByAccountNumber("TEST-0002")).willReturn(Optional.of(to));
+		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());
+		givenOtpActive();
+
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", OTP_LINE + 1, null, null))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("OTP 번호 6자리");
+		verify(accountPasswordVerifier, never()).verify(anyLong(), anyLong(), anyString());
+	}
+
+	// OTP가 틀리면 팀1 OtpService 의 예외가 그대로 나가고 계좌는 잠그지 않는다
+	@Test
+	void transferOverOtpLineFailsWhenOtpWrong() {
+		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
+		given(accountRepository.findByAccountNumber("TEST-0002")).willReturn(Optional.of(to));
+		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());
+		given(accountPasswordVerifier.verify(1L, MY_ID, "1234")).willReturn(true);
+		givenOtpActive();
+		willThrow(new BusinessException("OTP 번호가 올바르지 않습니다. (오류 1/10회)"))
+				.given(otpService).verify(MY_ID, "999999");
+
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", "999999", "TEST-0002", OTP_LINE + 1, null, null))
+				.isInstanceOf(BusinessException.class)
+				.hasMessageContaining("OTP 번호가 올바르지 않습니다");
+		verify(accountRepository, never()).findByIdForUpdate(anyLong());
+		verify(transactionHistoryRepository, never()).save(any());
+	}
+
+	// 본인 계좌끼리는 기준 금액을 넘어도 OTP를 묻지 않는다
+	@Test
+	void transferToOwnAccountSkipsOtp() {
+		Account from = account(1L, MY_ID, "TEST-0001", AccountStatus.ACTIVE, 900_000L);
+		Account to = account(2L, MY_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
+		givenTransferable(from, to);
+		given(memberRepository.findById(MY_ID)).willReturn(Optional.of(member("홍길동")));
+		given(transactionSqnoGenerator.generate(any())).willReturn(SQNO);
+
+		service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", 500_000L, null, null);
+
+		assertThat(to.getBalance()).isEqualTo(500_000L);
+		verify(otpService, never()).findCurrent(anyLong());
+		verify(otpService, never()).verify(anyLong(), any());
 	}
 }

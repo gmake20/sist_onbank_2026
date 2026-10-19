@@ -313,4 +313,112 @@ class BackOfficeLoginTests {
 		mockMvc.perform(get("/mybank").session(loginEmployee(staffNo)))
 				.andExpect(redirectedUrl("/login"));
 	}
+
+	// ---------- 임시 비밀번호 변경 강제 ----------
+
+	private final String newPassword = "NewPass12!";
+
+	private void makeTempPassword(String employeeNo) {
+		jdbcTemplate.update("UPDATE employee SET temp_pw_yn = 'Y' WHERE employee_no = ?", employeeNo);
+		entityManager.clear();	// 위 UPDATE를 엔티티가 다시 읽도록
+	}
+
+	private ResultActions changeEmployeePassword(MockHttpSession session, String current, String next, String confirm)
+			throws Exception {
+		return mockMvc.perform(post("/employee/password").session(session).with(csrf())
+				.param("currentPassword", current)
+				.param("newPassword", next)
+				.param("newPasswordConfirm", confirm));
+	}
+
+	// 임시 비밀번호로 로그인하면 홈이 아니라 비밀번호 변경 화면으로
+	@Test
+	void tempPasswordLoginRedirectsToPasswordPage() throws Exception {
+		makeTempPassword(staffNo);
+		employeeLogin(staffNo, rawPassword)
+				.andExpect(authenticated())
+				.andExpect(redirectedUrl("/employee/password"));
+
+		jdbcTemplate.update("UPDATE admin SET temp_pw_yn = 'Y' WHERE login_id = ?", adminId);
+		entityManager.clear();
+		adminLogin(rawPassword)
+				.andExpect(authenticated())
+				.andExpect(redirectedUrl("/admin/password"));
+	}
+
+	// 바꾸기 전에는 다른 화면·API를 쓸 수 없다. 변경 화면은 열린다
+	@Test
+	void tempPasswordBlocksOtherPages() throws Exception {
+		makeTempPassword(staffNo);
+		MockHttpSession session = loginEmployee(staffNo);
+
+		mockMvc.perform(get("/employee").session(session)).andExpect(redirectedUrl("/employee/password"));
+		mockMvc.perform(get("/employee/api/test").session(session)).andExpect(status().isForbidden());
+		mockMvc.perform(get("/employee/password").session(session)).andExpect(status().isOk());
+	}
+
+	// 변경 성공 → 로그아웃되고 로그인 화면(?changed). 새 비밀번호로 로그인하면 홈으로
+	@Test
+	void changeTempPassword() throws Exception {
+		makeTempPassword(staffNo);
+		MockHttpSession session = loginEmployee(staffNo);
+
+		changeEmployeePassword(session, rawPassword, newPassword, newPassword)
+				.andExpect(redirectedUrl("/employee/login?changed"))
+				.andExpect(unauthenticated());
+
+		Employee employee = employeeRepository.findByEmployeeNo(staffNo).orElseThrow();
+		assertThat(employee.isTempPassword()).isFalse();
+		assertThat(passwordEncoder.matches(newPassword, employee.getPassword())).isTrue();
+
+		employeeLogin(staffNo, rawPassword).andExpect(unauthenticated());
+		employeeLogin(staffNo, newPassword)
+				.andExpect(authenticated())
+				.andExpect(redirectedUrl("/employee"));
+	}
+
+	// 현재 비밀번호 오류, 확인 불일치, 규칙 위반, 같은 비밀번호 → 화면에 오류, 비밀번호는 그대로
+	@Test
+	void changePasswordValidation() throws Exception {
+		makeTempPassword(staffNo);
+		MockHttpSession session = loginEmployee(staffNo);
+
+		changeEmployeePassword(session, "wrong", newPassword, newPassword)
+				.andExpect(status().isOk());
+		changeEmployeePassword(session, rawPassword, newPassword, "Different1!")
+				.andExpect(status().isOk());
+		changeEmployeePassword(session, rawPassword, "short", "short")
+				.andExpect(status().isOk());
+		changeEmployeePassword(session, rawPassword, rawPassword, rawPassword)
+				.andExpect(status().isOk());
+
+		Employee employee = employeeRepository.findByEmployeeNo(staffNo).orElseThrow();
+		assertThat(employee.isTempPassword()).isTrue();
+		assertThat(passwordEncoder.matches(rawPassword, employee.getPassword())).isTrue();
+	}
+
+	// 관리자도 같은 흐름
+	@Test
+	void changeAdminTempPassword() throws Exception {
+		jdbcTemplate.update("UPDATE admin SET temp_pw_yn = 'Y' WHERE login_id = ?", adminId);
+		entityManager.clear();
+		MockHttpSession session = loginAdmin();
+
+		mockMvc.perform(get("/admin/system/employees").session(session)).andExpect(redirectedUrl("/admin/password"));
+		mockMvc.perform(post("/admin/password").session(session).with(csrf())
+						.param("currentPassword", rawPassword)
+						.param("newPassword", newPassword)
+						.param("newPasswordConfirm", newPassword))
+				.andExpect(redirectedUrl("/admin/login?changed"));
+
+		assertThat(adminRepository.findByLoginId(adminId).orElseThrow().isTempPassword()).isFalse();
+		adminLogin(newPassword).andExpect(authenticated()).andExpect(redirectedUrl("/admin"));
+	}
+
+	// 임시 비밀번호가 아니어도 직접 들어가서 바꿀 수 있다
+	@Test
+	void normalAccountCanOpenPasswordPage() throws Exception {
+		mockMvc.perform(get("/employee/password").session(loginEmployee(staffNo))).andExpect(status().isOk());
+		mockMvc.perform(get("/admin/password").session(loginAdmin())).andExpect(status().isOk());
+	}
 }

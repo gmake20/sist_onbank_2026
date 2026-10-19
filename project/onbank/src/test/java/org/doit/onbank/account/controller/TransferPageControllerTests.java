@@ -36,6 +36,8 @@ import org.doit.onbank.account.repository.RecentDepositAccount;
 import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
+import org.doit.onbank.account.service.OtpRequiredException;
+import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.admin.security.AdminDetailsService;
 import org.doit.onbank.admin.security.AdminLoginAttemptRecorder;
 import org.doit.onbank.config.SecurityConfig;
@@ -236,7 +238,7 @@ class TransferPageControllerTests {
 
 	@Test
 	void transferSuccessRedirectsToResult() throws Exception {
-		given(accountTransferService.transfer(MEMBER_ID, 1L, "1234", "TEST-9999", 30_000L, "", ""))
+		given(accountTransferService.transfer(MEMBER_ID, 1L, "1234", null, "TEST-9999", 30_000L, "", ""))
 				.willReturn(receipt());
 
 		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
@@ -253,7 +255,7 @@ class TransferPageControllerTests {
 
 	@Test
 	void transferRejectedShowsMessageAndKeepsInput() throws Exception {
-		given(accountTransferService.transfer(MEMBER_ID, 1L, "1234", "TEST-9999", 30_000L, null, null))
+		given(accountTransferService.transfer(MEMBER_ID, 1L, "1234", null, "TEST-9999", 30_000L, null, null))
 				.willThrow(new IllegalStateException("1일 이체한도를 초과했습니다."));
 
 		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
@@ -281,7 +283,85 @@ class TransferPageControllerTests {
 						containsString("이체금액은 1원 이상이어야 합니다."),
 						containsString("입금계좌번호를 입력하세요."))));
 		verify(accountTransferService, never())
-				.transfer(anyLong(), anyLong(), anyString(), anyString(), anyLong(), any(), any());
+				.transfer(anyLong(), anyLong(), anyString(), any(), anyString(), anyLong(), any(), any());
+	}
+
+	// ---------- 이체 인증 (OTP) ----------
+
+	@Test
+	void formHasOtpGuideValues() throws Exception {
+		given(accountTransferService.isOtpReady(MEMBER_ID)).willReturn(true);
+
+		mockMvc.perform(get("/mybank/transfer").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("data-otp-required-amount=\"" + AccountTransferService.OTP_REQUIRED_AMOUNT + "\""),
+						containsString("data-otp-ready=\"true\""),
+						containsString("name=\"otpCode\""))));
+	}
+
+	@Test
+	void transferPassesOtpCodeToService() throws Exception {
+		given(accountTransferService.transfer(MEMBER_ID, 1L, "1234", "123456", "TEST-9999", 300_000L, null, null))
+				.willReturn(receipt());
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("otpCode", "123456")
+						.param("amount", "300000")
+						.param("toAccountNumber", "TEST-9999"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/mybank/transfer/result"));
+	}
+
+	// OTP 미등록 회원의 기준 금액 초과 이체 : 안내 문구 + [OTP 등록하기]
+	@Test
+	void transferWithoutOtpShowsRegisterLink() throws Exception {
+		given(accountTransferService.transfer(MEMBER_ID, 1L, "1234", null, "TEST-9999", 300_000L, null, null))
+				.willThrow(new OtpRequiredException("100,000원을 넘는 이체는 OTP 등록이 필요해요."));
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("amount", "300000")
+						.param("toAccountNumber", "TEST-9999"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("100,000원을 넘는 이체는 OTP 등록이 필요해요."),
+						containsString("<a class=\"btn-sm\" href=\"/mybank/security/otp\">OTP 등록하기</a>"))));
+	}
+
+	// OTP 번호 오류 (팀1 OtpService 의 BusinessException) : 문구를 보여 주고 OTP 번호는 남기지 않는다
+	@Test
+	void transferWithWrongOtpShowsMessage() throws Exception {
+		given(accountTransferService.transfer(MEMBER_ID, 1L, "1234", "999999", "TEST-9999", 300_000L, null, null))
+				.willThrow(new BusinessException("OTP 번호가 올바르지 않습니다. (오류 1/10회)"));
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("otpCode", "999999")
+						.param("amount", "300000")
+						.param("toAccountNumber", "TEST-9999"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("OTP 번호가 올바르지 않습니다. (오류 1/10회)"),
+						not(containsString("value=\"999999\"")))));
+	}
+
+	@Test
+	void transferRejectsMalformedOtpCode() throws Exception {
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("otpCode", "12ab")
+						.param("amount", "300000")
+						.param("toAccountNumber", "TEST-9999"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("OTP 번호는 숫자 6자리입니다.")));
+		verify(accountTransferService, never())
+				.transfer(anyLong(), anyLong(), anyString(), any(), anyString(), anyLong(), any(), any());
 	}
 
 	@Test

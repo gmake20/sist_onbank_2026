@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 자산관리 : 지난달 대비 문구. 색만으로 구분하지 않도록 ▲▼와 문장을 함께 쓴다 -->
+    <th:block th:fragment="diffText(diff)">
+        <p class="diff" th:if="${diff > 0}" th:text="|▲ 지난달보다 ${#numbers.formatInteger(diff, 1, 'COMMA')}원 늘었어요|"></p>
+        <p class="diff" th:if="${diff < 0}" th:text="|▼ 지난달보다 ${#numbers.formatInteger(-diff, 1, 'COMMA')}원 줄었어요|"></p>
+        <p class="diff" th:if="${diff == 0}">지난달과 같아요</p>
+    </th:block>
+</body>
+</html>
