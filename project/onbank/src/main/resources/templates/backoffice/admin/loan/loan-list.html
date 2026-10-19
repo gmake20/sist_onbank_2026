@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>대출 목록</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 대출 / 대출 목록</div>
+<h1 layout:fragment="page-title">대출 목록</h1>
+<main layout:fragment="content">
+
+    <form class="adm-search" method="get" th:action="@{/admin/loans}">
+        <div class="adm-field">
+            <label for="status">상태</label>
+            <select id="status" name="status">
+                <option value="">전체</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${statusLabels.get(s)}" th:selected="${s == status}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="memberLoginId">회원 아이디</label>
+            <input type="text" id="memberLoginId" name="memberLoginId" th:value="${memberLoginId}" placeholder="정확히 일치">
+        </div>
+        <div class="adm-field">
+            <label for="from">신청 시작일</label>
+            <input type="date" id="from" name="from" th:value="${from}">
+        </div>
+        <div class="adm-field">
+            <label for="to">신청 종료일</label>
+            <input type="date" id="to" name="to" th:value="${to}">
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/loans}">초기화</a>
+        </div>
+    </form>
+
+    <section class="adm-card">
+        <!-- 건수는 상태 조건을 빼고 기간·회원 조건으로 센다 -->
+        <div class="adm-card-head">
+            <span>전체 <b th:text="${totalCount}">0</b>건</span>
+            <span>승인 <b th:text="${approvedCount}">0</b>건</span>
+            <span>거절 <b th:text="${rejectedCount}">0</b>건</span>
+            <span>승인율 <b th:text="${approvalRate != null} ? | ${approvalRate}%| : '-'">-</b></span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>신청일</th><th>회원</th><th>상품</th><th>신청 금액</th><th>상태</th><th>거절 사유</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="loan : ${loans}">
+                    <td th:text="${#temporals.format(loan.createdAt, 'yyyy-MM-dd HH:mm')}">YYYY-MM-DD HH:mm</td>
+                    <td th:text="|${loan.member.loginId} (${loan.member.name})|">user01 (이름)</td>
+                    <td th:text="${loan.product.name}">상품명</td>
+                    <td th:text="|${#numbers.formatInteger(loan.requestedAmount, 1, 'COMMA')}원|">10,000,000원</td>
+                    <td><span class="adm-badge" th:text="${statusLabels.get(loan.status)}">심사대기</span></td>
+                    <td class="adm-cell-long" th:text="${loan.rejectionReason} ?: '-'" th:title="${loan.rejectionReason}">-</td>
+                </tr>
+                <tr th:if="${loans.totalElements == 0}">
+                    <td colspan="6" class="adm-empty">조건에 맞는 대출 신청이 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : logs.html과 같은 방식. 링크마다 검색 조건을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${loans.totalPages > 1}"
+             th:with="start=${loans.number > 4 ? loans.number - 4 : 0},
+                      end=${start + 9 < loans.totalPages - 1 ? start + 9 : loans.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${loans.hasPrevious()}"
+               th:href="@{/admin/loans(status=${status}, memberLoginId=${memberLoginId}, from=${from}, to=${to}, page=${loans.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == loans.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == loans.number}" th:text="${p + 1}"
+                   th:href="@{/admin/loans(status=${status}, memberLoginId=${memberLoginId}, from=${from}, to=${to}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${loans.hasNext()}"
+               th:href="@{/admin/loans(status=${status}, memberLoginId=${memberLoginId}, from=${from}, to=${to}, page=${loans.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">조회만 됩니다. 심사(접수·승인·거절)는 직원 화면에서 합니다. 기간을 비우면 최근 30일.</p>
+</main>
+</body>
+</html>
