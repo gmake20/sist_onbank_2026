@@ -9,7 +9,6 @@ import org.doit.onbank.employee.security.EmployeePrincipal;
 import org.doit.onbank.loan.entity.LoanApplication;
 import org.doit.onbank.loan.entity.LoanApplicationStatus;
 import org.doit.onbank.loan.repository.LoanApplicationRepository;
-
 import org.doit.onbank.loan.service.LoanExecutionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +17,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import lombok.RequiredArgsConstructor;
 
@@ -152,19 +153,42 @@ public class LoanReviewPageController {
     @GetMapping("/execute/{id}")
     @PreAuthorize("hasRole('MANAGER')")
     public String executePage(
-            @PathVariable Long id,
+            @PathVariable("id") Long id,
             Model model) {
 
         LoanApplication application =
                 loanExecutionService.findApprovedApplication(id);
 
-//        Account account = accountRepository
-//                .findById(application.getDisbursementAccountId())
-//                .orElseThrow();
-
-        model.addAttribute("application", application);
-//        model.addAttribute("recipientAccount", account);
+        Account account = application.getDisbursementAccount();
+        
+        model.addAttribute("loanApplication", application);
+        model.addAttribute("recipientAccount", account);
 
         return "employee/loan/employee-loan-execute";
+    }
+    
+    @PostMapping("/execute/{id}")
+    @PreAuthorize("hasRole('MANAGER')")
+    public String executeLoan(
+            @PathVariable("id") Long id,
+            @AuthenticationPrincipal EmployeePrincipal employee,
+            RedirectAttributes redirectAttributes) {
+
+        if (employee == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "직원 로그인이 필요합니다."
+            );
+        }
+
+        
+        loanExecutionService.execute(id, employee.getEmployeeId());
+
+        redirectAttributes.addFlashAttribute(
+                "successMessage",
+                "대출 실행 요청이 처리되었습니다."
+        );
+
+        return "redirect:/employee/loans/review?id=" + id;
     }
 }

@@ -176,7 +176,8 @@ public class LoanApplicationService {
                 amount,
                 months,
                 repaymentMethod,
-                form.isAgreedToTerms()
+                form.isAgreedToTerms(),
+                account
         );
 
         // 대출 신청 저장

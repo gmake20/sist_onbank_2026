@@ -6,11 +6,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
+import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.employee.entity.Employee;
 import org.doit.onbank.employee.entity.EmployeeRole;
 import org.doit.onbank.employee.entity.EmployeeStatus;
 import org.doit.onbank.member.entity.Member;
-
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,7 +24,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -89,13 +88,10 @@ public class LoanApplication {
     private boolean agreedToTerms;
 
     // 대출금을 받을 입출금계좌
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "disbursement_account_id")
-//    private Account disbursementAccount;
-
-//    ALTER TABLE LOAN_APPLICATION
-//    ADD COLUMN disbursement_account_id BIGINT;
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "disbursement_account_id")
+    private Account disbursementAccount;
+    
     // ======================================
     // 5. 심사 상태
     // ======================================
@@ -176,49 +172,49 @@ public class LoanApplication {
             BigDecimal requestedAmount,
             Integer requestedMonths,
             String repaymentMethod,
-            boolean agreedToTerms) {
+            boolean agreedToTerms,
+            Account disbursementAccount) {
 
         if (member == null || product == null) {
             throw new IllegalArgumentException(
-                "회원과 대출 상품 정보가 필요합니다."
-            );
+                    "회원과 대출 상품 정보가 필요합니다.");
+        }
+
+        if (disbursementAccount == null) {
+            throw new IllegalArgumentException(
+                    "대출금 수령 계좌가 필요합니다.");
         }
 
         if (applicantUsername == null
                 || applicantUsername.isBlank()) {
             throw new IllegalArgumentException(
-                "신청자 정보가 필요합니다."
-            );
+                    "신청자 정보가 필요합니다.");
         }
 
         if (requestedAmount == null
                 || requestedAmount.signum() <= 0
                 || requestedAmount.scale() > 0) {
             throw new IllegalArgumentException(
-                "대출 신청금액이 올바르지 않습니다."
-            );
+                    "대출 신청금액이 올바르지 않습니다.");
         }
 
         if (requestedMonths == null
                 || requestedMonths < 1
                 || requestedMonths > 600) {
             throw new IllegalArgumentException(
-                "대출 기간이 올바르지 않습니다."
-            );
+                    "대출 기간이 올바르지 않습니다.");
         }
 
         if (!Set.of(
                 "EQUAL", "PRINCIPAL", "BULLET"
         ).contains(repaymentMethod)) {
             throw new IllegalArgumentException(
-                "지원하지 않는 상환방식입니다."
-            );
+                    "지원하지 않는 상환방식입니다.");
         }
 
         if (!agreedToTerms) {
             throw new IllegalArgumentException(
-                "필수 약관에 동의해야 합니다."
-            );
+                    "필수 약관에 동의해야 합니다.");
         }
 
         this.member = member;
@@ -228,6 +224,9 @@ public class LoanApplication {
         this.requestedMonths = requestedMonths;
         this.repaymentMethod = repaymentMethod;
         this.agreedToTerms = agreedToTerms;
+
+        // 대출금 수령 계좌 저장
+        this.disbursementAccount = disbursementAccount;
 
         this.status = LoanApplicationStatus.PENDING;
 
@@ -424,5 +423,15 @@ public class LoanApplication {
                 "사유는 1~500자로 입력해야 합니다."
             );
         }
+    }
+    
+    public void markExecuted() {
+        if (this.status != LoanApplicationStatus.APPROVED) {
+            throw new IllegalStateException(
+                "승인된 대출만 실행할 수 있습니다."
+            );
+        }
+
+        this.status = LoanApplicationStatus.EXECUTED;
     }
 }
