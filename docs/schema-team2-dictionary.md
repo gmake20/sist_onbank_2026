@@ -137,7 +137,7 @@
 | 컬럼 | 타입 / 제약 | 설명 |
 |---|---|---|
 | `asset_report_id` | BIGINT, PK, 자동 증가 | 자산 리포트 식별자 |
-| `account_id` | BIGINT | 기준 계좌 (또는 회원) |
+| `account_id` | BIGINT | 기준 계좌 (또는 회원). **자산 리포트는 회원 단위라 `member_id`를 저장한다 (10-19)** |
 | `recent_deposit_amount` | BIGINT | 최근 입금액 |
 | `recent_withdrawal_amount`| BIGINT | 최근 출금액 |
 | `savings_amount` | BIGINT | 저축금액 |

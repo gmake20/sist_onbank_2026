@@ -1,0 +1,478 @@
+/* 자산관리 리포트 전용 스타일 - account.css(네이비 테마) 위에 카드·그래프만 더한다 */
+
+.asset-report {
+    /* 그래프 색 : 계열 1~3 은 색각 이상 검사를 통과한 조합 (흰 배경 기준), 단일 계열은 ONBANK 네이비 */
+    --series-1: #2a78d6;    /* 입출금 / 입금 */
+    --series-2: #eb6834;    /* 예금 / 출금 */
+    --series-3: #1baf7a;    /* 적금 */
+    --series-brand: #003366;
+    --track: #eef1f5;
+    --line: #e6e9ee;
+    --ink: #333;
+    --ink-sub: #666;
+    --ink-muted: #8a8f98;
+}
+
+.series-1 { background-color: var(--series-1); stroke: var(--series-1); }
+.series-2 { background-color: var(--series-2); stroke: var(--series-2); }
+.series-3 { background-color: var(--series-3); stroke: var(--series-3); }
+.series-brand { background-color: var(--series-brand); }
+
+.muted { color: var(--ink-muted); }
+.num { text-align: right; white-space: nowrap; }
+
+/* 타이틀 + 월 선택 */
+.asset-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 14px;
+}
+
+.asset-head .page-title {
+    margin-bottom: 6px;
+}
+
+.asset-sub {
+    margin: 0;
+    color: var(--ink-sub);
+    font-size: 14px;
+}
+
+.month-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.month-label {
+    font-size: 14px;
+    color: var(--ink-sub);
+}
+
+/* 1. 요약 카드 */
+.stat-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px 20px;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--ink-sub);
+}
+
+.stat-value {
+    font-size: 22px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-note {
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.stat-hero {
+    background-color: #003366;
+    border-color: #003366;
+}
+
+.stat-hero .stat-label,
+.stat-hero .stat-note {
+    color: #c9d6e6;
+}
+
+.stat-hero .stat-value {
+    color: #fff;
+    font-size: 26px;
+}
+
+/* 카드 공통 */
+.asset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.asset-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 22px 24px;
+    background-color: #fff;
+    margin-bottom: 20px;
+}
+
+.card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-title {
+    font-size: 17px;
+    color: #003366;
+    margin: 0 0 18px 0;
+}
+
+.card-head .card-title {
+    margin-bottom: 0;
+}
+
+.card-note {
+    margin: 14px 0 0 0;
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.card-empty {
+    padding: 30px 0;
+    text-align: center;
+    color: var(--ink-sub);
+    font-size: 14px;
+}
+
+.card-empty p {
+    margin: 0 0 12px 0;
+}
+
+/* 범례 */
+.legend {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--ink-sub);
+}
+
+.legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: -1px;
+}
+
+/* 2. 자산 구성 도넛 */
+.donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.donut {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    flex-shrink: 0;
+}
+
+.donut svg {
+    width: 100%;
+    height: 100%;
+}
+
+.donut-seg {
+    fill: none;
+    stroke-width: 4.2;
+    cursor: default;
+}
+
+.donut-seg:hover {
+    stroke-width: 5;
+}
+
+.donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.donut-center span {
+    font-size: 12px;
+    color: var(--ink-muted);
+}
+
+.donut-center strong {
+    font-size: 15px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.legend-table {
+    flex: 1;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.legend-table td {
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.legend-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* 가로 막대 (입금·출금, 항목, 진행률) */
+.hbar-track {
+    height: 10px;
+    border-radius: 5px;
+    background-color: var(--track);
+    overflow: hidden;
+}
+
+.hbar {
+    height: 100%;
+    border-radius: 0 5px 5px 0;
+    min-width: 0;
+}
+
+/* 3. 기준월 입금·출금 */
+.flow-row {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.flow-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--ink-sub);
+}
+
+.flow-top strong {
+    color: var(--ink);
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+}
+
+.diff {
+    margin: 6px 0 0 0;
+    font-size: 12px;
+    color: var(--ink-sub);
+}
+
+/* 4. 6개월 추이 (세로 묶음 막대) */
+.trend {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.trend-scale {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink-muted);
+    text-align: right;
+    height: 180px;
+    min-width: 70px;
+}
+
+.trend-plot {
+    flex: 1;
+    display: flex;
+    border-bottom: 1px solid #c9ced6;
+    background-image: linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 100% 50%;
+}
+
+.trend-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    border-radius: 6px;
+}
+
+.trend-col:hover,
+.trend-col.selected {
+    background-color: #f5f7fa;
+}
+
+.trend-bars {
+    height: 180px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.vbar {
+    width: 18px;
+    border-radius: 4px 4px 0 0;
+}
+
+.trend-label {
+    position: absolute;
+    bottom: -24px;
+    font-size: 12px;
+    color: var(--ink-sub);
+}
+
+.trend-col.selected .trend-label {
+    color: #003366;
+    font-weight: bold;
+}
+
+.table-view {
+    margin-top: 36px;
+    font-size: 13px;
+}
+
+.table-view summary {
+    cursor: pointer;
+    color: var(--ink-sub);
+}
+
+.table-view .account-table {
+    margin-top: 10px;
+}
+
+/* 5. 항목별 현황 */
+.item-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.item {
+    display: grid;
+    grid-template-columns: 120px 1fr 130px;
+    grid-template-areas:
+        "label bar value"
+        ". note note";
+    align-items: center;
+    column-gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.item:last-child {
+    border-bottom: none;
+}
+
+.item-label { grid-area: label; font-size: 14px; color: var(--ink); }
+.item .hbar-track { grid-area: bar; }
+.item-value { grid-area: value; text-align: right; font-size: 15px; font-variant-numeric: tabular-nums; }
+.item-note { grid-area: note; font-size: 12px; color: var(--ink-muted); margin-top: 4px; }
+
+.item-badge {
+    grid-area: value;
+    justify-self: end;
+    font-size: 12px;
+    color: var(--ink-sub);
+    border: 1px solid #ccd3dc;
+    border-radius: 10px;
+    padding: 2px 10px;
+}
+
+.item.disconnected .item-label {
+    color: var(--ink-muted);
+}
+
+/* 6·7. 대출·예적금 진행률 */
+.progress-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.progress-list li {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.progress-list li:first-child {
+    padding-top: 0;
+}
+
+.progress-list li:last-child {
+    border-bottom: none;
+}
+
+.progress-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.progress-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+    margin: 10px 0 0 0;
+    font-size: 13px;
+}
+
+.progress-meta div {
+    display: flex;
+    justify-content: space-between;
+}
+
+.progress-meta dt {
+    color: var(--ink-muted);
+}
+
+.progress-meta dd {
+    margin: 0;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.type-badge {
+    font-size: 12px;
+    color: #003366;
+    border: 1px solid #003366;
+    border-radius: 10px;
+    padding: 1px 8px;
+}
+
+.report-footnote {
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.6;
+}
+
+/* 그래프 안내 (마우스를 올린 막대·조각의 값) */
+.chart-tooltip {
+    position: fixed;
+    z-index: 100;
+    pointer-events: none;
+    background-color: #1f2a37;
+    color: #fff;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.chart-tooltip[hidden] {
+    display: none;
+}
