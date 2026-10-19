@@ -105,4 +105,10 @@ public class Admin {
 			status = AdminStatus.ACTIVE;
 		}
 	}
+
+	// 비밀번호 변경 (본인이 변경 화면에서). 임시 비밀번호 표시도 해제한다
+	public void changePassword(String encodedPassword) {
+		this.password = encodedPassword;
+		this.tempPassword = false;
+	}
 }

@@ -693,7 +693,9 @@ adminLogService.write(me.getActorType(), me.getActorId(), "ACCOUNT_FREEZE", ...)
 
 - **관리자 테이블은 `updated_at`이 없어서** `BaseEntity`를 상속하지 않고 `created_at`만 직접 둡니다.
 - **직원·관리자 계정은 회원가입으로 만들지 않습니다.** 시드 데이터(`data-team1-mysql.sql`의 E0001~E0003, `data-admin-mysql.sql`의 `admin`) 또는 관리자의 직원 관리 화면에서 만듭니다.
-- 다음 단계: 임시 비밀번호(`temp_pw_yn = 'Y'`)면 로그인 직후 비밀번호 변경 화면으로 보내고, 변경 전에는 다른 화면을 쓰지 못하게 막습니다. `EmployeePrincipal`·`AdminPrincipal`의 `isTempPassword()`로 판단합니다.
+- **임시 비밀번호 변경 강제** ✅: 임시 비밀번호(`temp_pw_yn = 'Y'`)면 로그인 직후 비밀번호 변경 화면(`/employee/password`, `/admin/password`, 공용 화면 `backoffice/password.html`)으로 보냅니다(`LoginSuccessHandler`). 변경 전에는 다른 화면은 변경 화면으로 redirect, API는 403입니다(`TempPasswordFilter`). `BackOfficeUser.isTempPassword()`로 판단합니다.
+  - 변경에 성공하면 로그아웃시키고 `?changed`로 로그인 화면에 보냅니다. 세션에 저장된 로그인 정보(`EmployeePrincipal`·`AdminPrincipal`)에 임시 비밀번호 표시가 남아 있기 때문입니다.
+  - 새 비밀번호 규칙은 고객 회원가입과 같고(영문·숫자·특수문자 8~20자), 현재 비밀번호와 같은 값은 쓸 수 없습니다(`BackOfficePasswordService`).
 
 ---
 
@@ -809,7 +811,7 @@ otpService.verify(memberId, otpCode);
 2. ✅ `SecurityConfig` 최소 버전 작성 (`formLogin`, `logout`, 권한 규칙)
 3. ✅ 시드 계정(고객 `user1`)으로 로그인/로그아웃 동작 확인
 4. ✅ 직원·관리자 로그인: `Employee`·`Admin` 엔티티, 필터 체인 3개, 영역 분리 (3장 ⑧). 시드 계정 직원 `E0001`~`E0003`, 관리자 `admin`
-5. 임시 비밀번호 변경 강제 (직원·관리자)
+5. ✅ 임시 비밀번호 변경 강제 (직원·관리자) (3장 ⑧)
 6. 회원가입 폼, 검증, 서비스 구현
 7. 휴대폰 인증 구현
    - 먼저 `ConsoleSmsSender`(local)로 인증 흐름과 발송 제한을 완성

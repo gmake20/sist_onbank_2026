@@ -6,6 +6,7 @@ import org.doit.onbank.admin.security.AdminDetailsService;
 import org.doit.onbank.admin.security.AdminLoginAttemptRecorder;
 import org.doit.onbank.common.security.LoginFailureHandler;
 import org.doit.onbank.common.security.LoginSuccessHandler;
+import org.doit.onbank.common.security.TempPasswordFilter;
 import org.doit.onbank.employee.security.EmployeeDetailsService;
 import org.doit.onbank.employee.security.EmployeeLoginAttemptRecorder;
 import org.doit.onbank.member.security.MemberDetailsService;
@@ -25,6 +26,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.access.DelegatingAccessDeniedHandler;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
@@ -38,7 +40,9 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 // - 직원·관리자는 로그인 정보를 세션에 다른 이름으로 저장한다 → 고객 로그인으로 직원 화면에 들어갈 수 없고,
 //   같은 브라우저에서 고객과 직원으로 함께 로그인해도 섞이지 않음
 // - 로그인 성공/실패 핸들러 : 비밀번호 5회 오류 잠금 (LoginSuccessHandler, LoginFailureHandler)
-// 다음 단계 : 로그인 이력 기록, 임시 비밀번호 변경 강제, 세션 타임아웃, 중복 로그인 제한
+// - 임시 비밀번호 변경 강제 (직원·관리자) : 로그인 직후 변경 화면으로 이동(LoginSuccessHandler),
+//   바꾸기 전에는 다른 화면 차단(TempPasswordFilter)
+// 다음 단계 : 로그인 이력 기록, 세션 타임아웃, 중복 로그인 제한
 @Configuration
 public class SecurityConfig {
 
@@ -71,6 +75,9 @@ public class SecurityConfig {
 			.userDetailsService(adminDetailsService)
 			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_ADMIN")))
 			.requestCache(cache -> cache.requestCache(requestCache))
+			// 권한 검사를 통과한 뒤에 확인 (로그인하지 않은 요청은 먼저 로그인 화면으로)
+			.addFilterAfter(new TempPasswordFilter("/admin/password", "/admin/logout", "/admin/api/**"),
+					AuthorizationFilter.class)
 			.exceptionHandling(ex -> ex
 				.accessDeniedHandler(accessDeniedHandler("/admin/login"))
 				.authenticationEntryPoint(entryPoint("/admin/login", "/admin/api/**")))
@@ -83,7 +90,7 @@ public class SecurityConfig {
 				.loginProcessingUrl("/admin/login")
 				.usernameParameter("loginId")
 				.passwordParameter("password")
-				.successHandler(new LoginSuccessHandler(adminLoginAttemptRecorder, "/admin", requestCache))
+				.successHandler(new LoginSuccessHandler(adminLoginAttemptRecorder, "/admin", requestCache, "/admin/password"))
 				.failureHandler(new LoginFailureHandler(adminLoginAttemptRecorder, "loginId", "/admin/login"))
 				.permitAll())
 			.logout(logout -> logout
@@ -106,6 +113,9 @@ public class SecurityConfig {
 			.userDetailsService(employeeDetailsService)
 			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_EMPLOYEE")))
 			.requestCache(cache -> cache.requestCache(requestCache))
+			// 권한 검사를 통과한 뒤에 확인 (로그인하지 않은 요청은 먼저 로그인 화면으로)
+			.addFilterAfter(new TempPasswordFilter("/employee/password", "/employee/logout", "/employee/api/**"),
+					AuthorizationFilter.class)
 			.exceptionHandling(ex -> ex
 				.accessDeniedHandler(accessDeniedHandler("/employee/login"))
 				.authenticationEntryPoint(entryPoint("/employee/login", "/employee/api/**")))
@@ -125,7 +135,7 @@ public class SecurityConfig {
 				.loginProcessingUrl("/employee/login")
 				.usernameParameter("employeeNo")
 				.passwordParameter("password")
-				.successHandler(new LoginSuccessHandler(employeeLoginAttemptRecorder, "/employee", requestCache))
+				.successHandler(new LoginSuccessHandler(employeeLoginAttemptRecorder, "/employee", requestCache, "/employee/password"))
 				.failureHandler(new LoginFailureHandler(employeeLoginAttemptRecorder, "employeeNo", "/employee/login"))
 				.permitAll())
 			.logout(logout -> logout

@@ -24,7 +24,7 @@ public class AdminPrincipal implements UserDetails, CredentialsContainer, BackOf
 	private final String loginId;
 	private final String name;
 	private final AdminRole role;
-	private final boolean tempPassword;	// 다음 단계 : true면 비밀번호 변경 화면으로 보냄
+	private final boolean tempPassword;	// true면 비밀번호 변경 화면으로 보냄 (LoginSuccessHandler, TempPasswordFilter)
 	private final AdminStatus status;
 	private String password;			// 로그인 성공 후 eraseCredentials()로 지움
 
