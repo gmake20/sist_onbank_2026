@@ -29,10 +29,10 @@ public class EmployeeManageController {
     private final EmployeeManageService employeeManageService;
 
     @GetMapping
-    public String list(@RequestParam(required = false) String keyword,
-                       @RequestParam(required = false) Long branchId,
-                       @RequestParam(required = false) EmployeeRole role,
-                       @RequestParam(required = false) EmployeeStatus status,
+    public String list(@RequestParam(name = "keyword", required = false) String keyword,
+                       @RequestParam(name = "branchId", required = false) Long branchId,
+                       @RequestParam(name = "role", required = false) EmployeeRole role,
+                       @RequestParam(name = "status", required = false) EmployeeStatus status,
                        Model model
                        ){
         model.addAttribute("employees", employeeManageService.searchEmployees(keyword, branchId, role, status));

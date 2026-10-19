@@ -28,11 +28,11 @@ public class AdminLoanController {
 
     // select에서 "전체"(빈 값)를 고르면 enum은 null로 들어온다
     @GetMapping
-    public String list(@RequestParam(required = false) LoanApplicationStatus status,
-                       @RequestParam(required = false) String memberLoginId,
-                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-                       @RequestParam(defaultValue = "0") int page,
+    public String list(@RequestParam(name = "status", required = false) LoanApplicationStatus status,
+                       @RequestParam(name = "memberLoginId", required = false) String memberLoginId,
+                       @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                       @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                       @RequestParam(name = "page", defaultValue = "0") int page,
                        Model model) {
         if (to == null) {
             to = LocalDate.now();
