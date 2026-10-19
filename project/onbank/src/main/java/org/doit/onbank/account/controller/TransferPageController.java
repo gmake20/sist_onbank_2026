@@ -19,6 +19,8 @@ import org.doit.onbank.account.entity.AccountFavorite;
 import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
+import org.doit.onbank.account.service.OtpRequiredException;
+import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.member.security.LoginMember;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -67,21 +69,33 @@ public class TransferPageController {
 			@Valid @ModelAttribute("form") TransferForm form, BindingResult bindingResult,
 			Model model, RedirectAttributes redirectAttributes) {
 		if (bindingResult.hasErrors()) {
-			form.setPassword(null);
+			clearSecrets(form);
 			return showForm(me, model);
 		}
 
 		try {
 			TransferReceipt receipt = accountTransferService.transfer(me.getMemberId(), form.getFromAccountId(),
-					form.getPassword(), form.getToAccountNumber(), form.getAmount(),
+					form.getPassword(), form.getOtpCode(), form.getToAccountNumber(), form.getAmount(),
 					form.getSenderMemo(), form.getReceiverMemo());
 			redirectAttributes.addFlashAttribute("receipt", receipt);
 			return "redirect:/mybank/transfer/result";	// PRG : 새로고침해도 다시 이체되지 않음
-		} catch (IllegalArgumentException | IllegalStateException | NoSuchElementException e) {
+		} catch (OtpRequiredException e) {
 			model.addAttribute("errorMessage", e.getMessage());
-			form.setPassword(null);	// 비밀번호는 다시 입력받는다
+			model.addAttribute("otpRegisterNeeded", true);	// 오류 문구 옆에 [OTP 등록하기] 버튼
+			clearSecrets(form);
+			return showForm(me, model);
+		} catch (IllegalArgumentException | IllegalStateException | NoSuchElementException | BusinessException e) {
+			// BusinessException : 팀1 OtpService.verify 의 OTP 오류·정지 안내
+			model.addAttribute("errorMessage", e.getMessage());
+			clearSecrets(form);
 			return showForm(me, model);
 		}
+	}
+
+	// 비밀번호·OTP 번호는 화면을 다시 그릴 때 남기지 않고 다시 입력받는다
+	private void clearSecrets(TransferForm form) {
+		form.setPassword(null);
+		form.setOtpCode(null);
 	}
 
 	// ---------- 3. 결과 ----------
@@ -156,6 +170,9 @@ public class TransferPageController {
 		model.addAttribute("otherFavorites", favoriteGroups.otherAccounts());
 		model.addAttribute("recentAccounts", accountFavoriteService.getRecentDepositAccounts(me.getMemberId()));
 		model.addAttribute("today", LocalDate.now());
+		// 금액 입력 중 안내 문구용 (실제 판단은 이체할 때 서버가 다시 한다)
+		model.addAttribute("otpRequiredAmount", AccountTransferService.OTP_REQUIRED_AMOUNT);
+		model.addAttribute("otpReady", accountTransferService.isOtpReady(me.getMemberId()));
 		return "account/transfer";
 	}
 }

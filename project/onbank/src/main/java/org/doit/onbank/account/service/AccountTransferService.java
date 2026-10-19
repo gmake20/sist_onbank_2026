@@ -20,6 +20,8 @@ import org.doit.onbank.account.repository.MemberTransferLimit;
 import org.doit.onbank.account.repository.TransactionHistoryRepository;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.repository.MemberRepository;
+import org.doit.onbank.otp.entity.OtpStatus;
+import org.doit.onbank.otp.service.OtpService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,17 +38,23 @@ public class AccountTransferService {
 	public static final long DEFAULT_DAILY_LIMIT = 5_000_000L;
 	public static final long DEFAULT_ONCE_LIMIT = 1_000_000L;
 
+	// 이 금액을 넘는 이체는 계좌 비밀번호에 더해 OTP 6자리를 요구한다 (2026-10-19 사용자 결정)
+	// 이하는 계좌 비밀번호만, ONBANK 본인 계좌끼리 이체는 금액과 관계없이 OTP 생략
+	public static final long OTP_REQUIRED_AMOUNT = 100_000L;
+
 	private final AccountRepository accountRepository;
 	private final AccountTransferRepository accountTransferRepository;
 	private final TransactionHistoryRepository transactionHistoryRepository;
 	private final MemberRepository memberRepository;
 	private final AccountPasswordVerifier accountPasswordVerifier;
 	private final TransactionSqnoGenerator transactionSqnoGenerator;
+	private final OtpService otpService;
 
 	// 이체 (기획서 11-1장 순서)
+	// otpCode : 기준 금액을 넘는 타인 계좌 이체일 때만 확인한다 (그 외에는 null 이어도 됨)
 	@Transactional
-	public TransferReceipt transfer(Long memberId, Long fromAccountId, String rawPassword, String toAccountNumber,
-			long amount, String senderMemo, String receiverMemo) {
+	public TransferReceipt transfer(Long memberId, Long fromAccountId, String rawPassword, String otpCode,
+			String toAccountNumber, long amount, String senderMemo, String receiverMemo) {
 		// 1. 입력 검증 (잠그기 전에 할 수 있는 것)
 		if (amount <= 0) {
 			throw new IllegalArgumentException("이체금액은 0보다 커야 합니다.");
@@ -60,6 +68,18 @@ public class AccountTransferService {
 			throw new IllegalArgumentException("1회 이체한도("
 					+ String.format("%,d", limit.onceLimit()) + "원)를 초과했습니다.");
 		}
+		// OTP가 필요한지는 화면이 보낸 값이 아니라 서버가 금액·받는 분으로 판단한다
+		// 등록 여부는 비밀번호 확인 전에 본다 (OTP가 없어 어차피 못 하는 이체로 비밀번호 오류 횟수가 늘지 않게)
+		boolean otpRequired = requiresOtp(memberId, toAccountInfo.getMemberId(), amount);
+		if (otpRequired) {
+			if (!isOtpReady(memberId)) {
+				throw new OtpRequiredException(String.format("%,d", OTP_REQUIRED_AMOUNT)
+						+ "원을 넘는 이체는 OTP 등록이 필요해요.");
+			}
+			if (otpCode == null || !otpCode.matches("\\d{6}")) {
+				throw new IllegalArgumentException("OTP 번호 6자리를 입력하세요.");
+			}
+		}
 
 		// 2. 계좌 비밀번호 검증 (REQUIRES_NEW) : 계좌를 잠그기 전에 한다
 		//    순서가 바뀌면 이 트랜잭션이 잡은 잠금을 REQUIRES_NEW 트랜잭션이 기다리며 멈춘다
@@ -67,7 +87,11 @@ public class AccountTransferService {
 			throw new IllegalArgumentException("계좌 비밀번호가 일치하지 않습니다.");
 		}
 
-		// 3. OTP 검증 : 팀1 OTP 기능이 나오기 전까지 건너뜀 (2026-10-15 사용자 결정)
+		// 3. OTP 검증 (팀1 OtpService) : 틀리면 BusinessException. 오류 횟수는 팀1이 별도 트랜잭션으로 저장
+		//    비밀번호와 같은 이유로 계좌를 잠그기 전에 한다
+		if (otpRequired) {
+			otpService.verify(memberId, otpCode);
+		}
 
 		// 4. 두 계좌를 ID 오름차순으로 잠근다 (서로 반대 방향 이체가 동시에 와도 데드락이 나지 않게)
 		Long toAccountId = toAccountInfo.getAccountId();
@@ -144,6 +168,19 @@ public class AccountTransferService {
 			todayUsed = account.getTodayTransferAmountOn(LocalDate.now());
 		}
 		return new TransferLimitInfo(daily, once, todayUsed);
+	}
+
+	// 이체에 OTP가 필요한지 : 기준 금액 초과 + 다른 회원 계좌로 보낼 때
+	public boolean requiresOtp(Long memberId, Long toAccountMemberId, long amount) {
+		return amount > OTP_REQUIRED_AMOUNT && !Objects.equals(memberId, toAccountMemberId);
+	}
+
+	// 바로 쓸 수 있는 OTP가 있는지 (사용 등록까지 마친 ACTIVE). 정지된 OTP는 검증할 때 팀1 문구로 안내된다
+	@Transactional(readOnly = true)
+	public boolean isOtpReady(Long memberId) {
+		return otpService.findCurrent(memberId)
+				.map(device -> device.status() == OtpStatus.ACTIVE || device.status() == OtpStatus.SUSPENDED)
+				.orElse(false);
 	}
 
 	// 입금받을 수 있는 계좌인지 확인 (없는 계좌, 개설대기·해지 계좌는 이체 불가)
