@@ -424,4 +424,14 @@ public class LoanApplication {
             );
         }
     }
+    
+    public void markExecuted() {
+        if (this.status != LoanApplicationStatus.APPROVED) {
+            throw new IllegalStateException(
+                "승인된 대출만 실행할 수 있습니다."
+            );
+        }
+
+        this.status = LoanApplicationStatus.EXECUTED;
+    }
 }

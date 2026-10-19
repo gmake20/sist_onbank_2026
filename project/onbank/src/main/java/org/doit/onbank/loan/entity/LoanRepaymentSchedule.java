@@ -1,10 +1,13 @@
+
 package org.doit.onbank.loan.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -12,15 +15,23 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "loan_repayment_schedule")
+@Table(name = "loan_repayment_schedule",
+    uniqueConstraints = @UniqueConstraint(
+        name = "UK_LOAN_SCHEDULE_ROUND",
+        columnNames = {"LOAN_ACCOUNT_ID", "INSTALLMENT_NO"}
+    )
+)
 @Getter
 @Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class LoanRepaymentSchedule {
 
     @Id
@@ -28,35 +39,52 @@ public class LoanRepaymentSchedule {
     @Column(name = "SCHEDULE_ID")
     private Long scheduleId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "APPLICATION_ID", nullable = false)
-    private LoanApplication loanApplication;
-    
-    @Column(name = "INSTALLMENT_NO")
-    private Short installmentNo;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "LOAN_ACCOUNT_ID", nullable = false)
+    private LoanAccount loanAccount;
 
-    @Column(name = "DUE_DATE")
+    @Column(name = "INSTALLMENT_NO", nullable = false)
+    private Integer installmentNo;
+
+    @Column(name = "DUE_DATE", nullable = false)
     private LocalDate dueDate;
 
-    @Column(name = "PRINCIPAL_AMOUNT")
-    private Long principalAmount;
+    @Column(name = "PRINCIPAL_AMOUNT",
+            nullable = false, precision = 19, scale = 0)
+    private BigDecimal principalAmount;
 
-    @Column(name = "INTEREST_AMOUNT")
-    private Long interestAmount;
+    @Column(name = "INTEREST_AMOUNT",
+            nullable = false, precision = 19, scale = 0)
+    private BigDecimal interestAmount;
 
-    @Column(name = "TOTAL_AMOUNT")
-    private Long totalAmount;
+    @Column(name = "TOTAL_AMOUNT",
+            nullable = false, precision = 19, scale = 0)
+    private BigDecimal totalAmount;
 
-    @Column(name = "STATUS", length = 20)
-    private String status;
+    @Column(name = "REMAINING_BALANCE",
+            nullable = false, precision = 19, scale = 0)
+    private BigDecimal remainingBalance;
 
-    @Column(name = "PAID_AT")
-    private LocalDateTime paidAt;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "STATUS", nullable = false, length = 20)
+    private LoanRepaymentStatus status;
 
-    @Column(name = "CREATED_AT")
-    private LocalDateTime createdAt;
+    @Builder
+    public LoanRepaymentSchedule(
+            LoanAccount loanAccount,
+            Integer installmentNo,
+            LocalDate dueDate,
+            BigDecimal principalAmount,
+            BigDecimal interestAmount,
+            BigDecimal remainingBalance) {
 
-    @Column(name = "UPDATED_AT")
-    private LocalDateTime updatedAt;
-
+        this.loanAccount = loanAccount;
+        this.installmentNo = installmentNo;
+        this.dueDate = dueDate;
+        this.principalAmount = principalAmount;
+        this.interestAmount = interestAmount;
+        this.totalAmount = principalAmount.add(interestAmount);
+        this.remainingBalance = remainingBalance;
+        this.status = LoanRepaymentStatus.PENDING;
+    }
 }

@@ -8,5 +8,6 @@ public enum LoanApplicationStatus {
 	   APPROVED,           // 승인
 	   REJECTED,           // 거절
 	   CANCELLED,          // 고객 취소
-	   EXPIRED             // 승인 유효기간 경과
+	   EXPIRED,            // 승인 유효기간 경과
+	   EXECUTED			   // 대출금 입금
 }

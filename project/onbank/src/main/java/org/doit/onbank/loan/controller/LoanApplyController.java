@@ -58,7 +58,7 @@ public class LoanApplyController {
                 accountService.getDisbursementAccounts(memberId)
         );
 
-        return "loan/loan-apply2";
+        return "loan/loan-apply";
     }
 
     // 대출 신청서 저장
@@ -83,7 +83,7 @@ public class LoanApplyController {
                     "required",
                     "상품을 선택하세요."
             );
-            return "loan/loan-apply2";
+            return "loan/loan-apply";
         }
 
         var product = loanProductService.findById(
@@ -92,7 +92,7 @@ public class LoanApplyController {
         model.addAttribute("product", product);
 
         if (bindingResult.hasErrors()) {
-            return "loan/loan-apply2";
+            return "loan/loan-apply";
         }
 
         if (product.getMaxTermMonths() != null
@@ -106,7 +106,7 @@ public class LoanApplyController {
                     "해당 상품의 최대 대출 기간을 초과했습니다."
             );
 
-            return "loan/loan-apply2";
+            return "loan/loan-apply";
         }
         
         // 대출금 수령 계좌 선택 여부 검사
