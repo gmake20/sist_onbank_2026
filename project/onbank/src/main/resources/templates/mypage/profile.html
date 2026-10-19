@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>회원정보 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">회원정보 <span class="sub-text">(마이페이지)</span></h2>
+
+        <div class="transfer-section">
+            <div class="section-title-wrap">
+                <h3>기본 정보</h3>
+            </div>
+            <table class="transfer-form-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 80%;">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>아이디</th>
+                        <td th:text="${info.loginId()}">onbank01</td>
+                    </tr>
+                    <tr>
+                        <th>이름</th>
+                        <td th:text="${info.name()}">홍길동</td>
+                    </tr>
+                    <tr>
+                        <th>생년월일</th>
+                        <td th:text="${#temporals.format(info.birthDate(), 'yyyy.MM.dd')}">1990.01.01</td>
+                    </tr>
+                    <tr>
+                        <th>휴대폰 번호</th>
+                        <td th:text="${info.formattedPhone()}">010-1234-5678</td>
+                    </tr>
+                    <tr>
+                        <th>이메일</th>
+                        <td th:text="${info.email()}">user@onbank.com</td>
+                    </tr>
+                    <tr>
+                        <th>본인확인</th>
+                        <td th:switch="${info.verificationStatus().name()}">
+                            <span th:case="'NONE'" class="status-badge status-closed">미확인</span>
+                            <span th:case="'PENDING'" class="status-badge status-pending">심사중</span>
+                            <span th:case="'VERIFIED'" class="status-badge">완료</span>
+                            <span th:case="'REJECTED'" class="status-badge status-frozen">반려</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>마케팅 수신</th>
+                        <td th:text="${info.marketingAgree()} ? '동의' : '동의 안 함'">동의</td>
+                    </tr>
+                    <tr>
+                        <th>가입일</th>
+                        <td th:text="${#temporals.format(info.joinedAt(), 'yyyy.MM.dd')}">2026.10.17</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TODO 회원정보 수정, 비밀번호 변경, 회원 탈퇴 버튼 (화면 29번 나머지) -->
+        <div class="submit-action">
+            <a class="btn-outline" th:href="@{/mybank/accounts}">내 계좌</a>
+            <a class="btn-submit" th:href="@{/mybank/security/otp}">보안설정 (OTP)</a>
+        </div>
+
+        <div class="notice-section">
+            <div class="notice-header">📄 알아두세요!</div>
+            <div class="notice-content">
+                <ul>
+                    <li>아이디는 변경할 수 없습니다.</li>
+                    <li>본인확인 상태는 입출금 계좌 개설 신청 시 진행되는 본인확인 심사 결과입니다.</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+</body>
+</html>
