@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const current = Number(amountInput.value) || 0;
                 amountInput.value = current + Number(button.dataset.add);
             }
+            amountInput.dispatchEvent(new Event('input'));	// 직접 입력할 때와 같이 안내 문구 등을 갱신
             amountInput.focus();
         });
     });

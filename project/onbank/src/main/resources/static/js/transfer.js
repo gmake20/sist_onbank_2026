@@ -16,8 +16,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputAction = form.querySelector('.js-input-action');
     const confirmError = form.querySelector('.js-confirm-error');
 
+    const confirmButton = form.querySelector('.js-confirm');
+    const confirmOtpLink = form.querySelector('.js-confirm-otp-link');
+    const otpRow = form.querySelector('.js-otp-row');
+    const otpInput = form.querySelector('.js-otp-code');
+
+    // OTP 기준 금액·등록 여부 : 안내 문구용. 실제 판단은 이체할 때 서버가 다시 한다
+    const otpRequiredAmount = Number(form.dataset.otpRequiredAmount) || 0;
+    const otpReady = form.dataset.otpReady === 'true';
+    let onceLimit = null;	// 1회 이체한도 (화면을 열 때 한 번 조회)
+
+    // 내 계좌번호 : 본인 계좌끼리 이체는 OTP를 생략한다
+    const myAccountNumbers = new Set(Array.from(document.querySelectorAll('.js-mine-row .js-pick'))
+        .map((button) => button.dataset.accountNumber));
+
     const won = (value) => Number(value).toLocaleString('ko-KR') + '원';
     const selectedOption = () => fromSelect && fromSelect.selectedOptions[0];
+    const needsOtp = () => Number(amountInput.value) > otpRequiredAmount
+        && !myAccountNumbers.has(toAccountInput.value.trim());
+
+    // 한글 금액 : 1234500 → "123만 4,500원"
+    const koreanAmount = (value) => {
+        let rest = Math.floor(Number(value));
+        if (!(rest >= 1) || rest >= 1e16) {
+            return '';
+        }
+        const parts = [];
+        ['', '만', '억', '조'].forEach((unit) => {
+            const chunk = rest % 10000;
+            if (chunk > 0) {
+                parts.unshift(chunk.toLocaleString('ko-KR') + unit);
+            }
+            rest = Math.floor(rest / 10000);
+        });
+        return parts.join(' ') + '원';
+    };
 
     // 선택한 출금계좌의 잔액을 "전액" 버튼에 넣는다
     const syncAllAmount = () => {
@@ -32,9 +65,48 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelector('.js-balance-text').textContent = '';
             form.querySelector('.js-fail-count-text').textContent = '';
             form.querySelector('.js-limit-text').textContent = '';
+            updateAmountGuide();
         });
     }
     syncAllAmount();
+
+    // 금액 입력 즉시 안내 : 한글 금액, 잔액 초과 / 1회 한도 초과 / OTP 미등록 (실제 차단은 서버에서)
+    // 입금계좌번호와 금액을 모두 넣어야 [확인] 버튼을 누를 수 있다
+    function updateAmountGuide() {
+        const amount = Number(amountInput.value);
+        const option = selectedOption();
+        form.querySelector('.js-amount-korean').textContent = koreanAmount(amount);
+
+        let message = '';
+        let otpLink = false;
+        if (amount >= 1 && option && amount > Number(option.dataset.balance)) {
+            message = '출금 가능 금액을 초과했어요';
+        } else if (amount >= 1 && onceLimit !== null && amount > onceLimit) {
+            message = '1회 이체 한도(' + won(onceLimit) + ')를 초과했어요';
+        } else if (needsOtp() && !otpReady) {
+            message = won(otpRequiredAmount) + '을 넘는 이체는 OTP 등록이 필요해요';
+            otpLink = true;
+        }
+        form.querySelector('.js-amount-warning-text').textContent = message;
+        form.querySelector('.js-amount-warning').hidden = !message;
+        form.querySelector('.js-otp-register-link').hidden = !otpLink;
+
+        confirmButton.disabled = !(toAccountInput.value.trim() && amount >= 1);
+    }
+    amountInput.addEventListener('input', updateAmountGuide);
+    toAccountInput.addEventListener('input', updateAmountGuide);
+    updateAmountGuide();
+
+    // 1회 이체한도를 미리 받아 둔다 (못 받으면 한도 안내만 빠지고 서버가 다시 검사)
+    fetch(form.dataset.limitUrl)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data) => {
+            if (data) {
+                onceLimit = data.onceLimit;
+                updateAmountGuide();
+            }
+        })
+        .catch(() => {});
 
     // 잔액조회
     form.querySelector('.js-show-balance').addEventListener('click', () => {
@@ -67,11 +139,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 확인 : 입력값 확인 → 받는 분 이름 조회 → 확인 영역 표시 (2단계)
-    form.querySelector('.js-confirm').addEventListener('click', async () => {
+    confirmButton.addEventListener('click', async () => {
         confirmError.textContent = '';
+        confirmOtpLink.hidden = true;
         const message = checkInput();
         if (message) {
             confirmError.textContent = message;
+            return;
+        }
+        // 기준 금액을 넘는 타인 계좌 이체인데 OTP가 없으면 확인 단계로 가지 않는다
+        if (needsOtp() && !otpReady) {
+            confirmError.textContent = won(otpRequiredAmount) + '을 넘는 이체는 OTP 등록이 필요해요.';
+            confirmOtpLink.hidden = false;
             return;
         }
 
@@ -87,7 +166,18 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelector('.js-confirm-to').textContent = data.accountNumber;
             form.querySelector('.js-confirm-name').textContent = data.name;
             form.querySelector('.js-confirm-amount').textContent = won(amountInput.value);
+
+            // OTP 입력칸 : 필요할 때만 보이고 전송된다
+            const otp = needsOtp();
+            otpRow.hidden = !otp;
+            otpInput.disabled = !otp;
+            otpInput.value = '';
+            form.querySelector('.js-otp-guide').textContent =
+                otp ? won(otpRequiredAmount) + '을 넘는 이체는 OTP 앱의 인증번호 6자리가 필요해요' : '';
             showStep(2);
+            if (otp) {
+                otpInput.focus();
+            }
         } catch (e) {
             confirmError.textContent = '입금계좌를 확인하지 못했습니다. 잠시 후 다시 시도하세요.';
         }
@@ -102,13 +192,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // 이체실행 : OTP가 필요한데 6자리가 아니면 보내지 않는다
+    // (submit 이벤트에서 막으면 account.js 의 중복 제출 방지가 먼저 버튼을 잠그므로 click 에서 막는다)
+    confirmBox.querySelector('button[type="submit"]').addEventListener('click', (event) => {
+        if (!otpInput.disabled && !/^\d{6}$/.test(otpInput.value)) {
+            event.preventDefault();
+            form.querySelector('.js-otp-guide').textContent = 'OTP 인증번호 숫자 6자리를 입력하세요';
+            otpInput.focus();
+        }
+    });
+
     // 수정 : 확인 영역을 닫고 입력 단계로
     form.querySelector('.js-edit').addEventListener('click', () => showStep(1));
 
     // 확인 단계에서 입력값을 바꾸면 다시 확인받도록 입력 단계로 되돌린다
     form.querySelectorAll('input, select').forEach((field) => {
         field.addEventListener('input', () => {
-            if (!confirmBox.hidden && field !== passwordInput) {
+            if (!confirmBox.hidden && field !== passwordInput && field !== otpInput) {
                 showStep(1);
             }
         });

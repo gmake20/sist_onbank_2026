@@ -3,14 +3,14 @@
 > Claude에게 이어서 작업을 요청할 때 이 파일을 먼저 읽게 하세요.
 > 예: "docs/team2-progress.md 읽고 이어서 작업하자"
 
-마지막 정리: 2026-10-17
+마지막 정리: 2026-10-19
 
 ---
 
 ## 1. 내 역할
 
 - 팀원2. 담당: 계좌, 입출금, 이체, 거래내역, 자산관리 (기획서 [README.md](README.md) 12장)
-- 현재 상태: 입출금·당행 즉시이체·계좌 개설·즐겨찾기 구현 완료. **다음 목표: 6.1 전체 거래내역 조회 (제안, 사용자 확인 필요)**
+- 현재 상태: 입출금·당행 즉시이체·계좌 개설·즐겨찾기 구현 완료. **10-19 이체 OTP 연결·자산 리포트 구현 (커밋 전, 브라우저 확인 전)**. 다음 후보: 사기계좌 확인 (팀4 답 대기). 6.1 거래내역 페이징·필터는 사용자가 건너뛰기로 함
 - 세션 인수인계: [team2-handoff.md](team2-handoff.md) (최근 작업 상태, 다음에 할 일, 주의할 점). **10-16 이후 결정(계좌 유형 값, 계좌번호 규칙, 한도 기본값, 즐겨찾기 등)은 handoff 1-1이 기준**
 - 처리 규칙의 기준은 기획서 11-1장 (비밀번호 검증 → 비관적 락 → 검증 → 잔액 갱신 → 원장 기록 → 커밋 후 이벤트)
 
@@ -26,9 +26,11 @@
 | 입출금 코드·화면 (`org.doit.onbank.account` 아래 `entity / repository / service / controller / dto`, `templates/account/list, detail, deposit, withdraw.html`, `static/js/account.js`) | 10-15 작성, main 머지됨, 브라우저 확인 완료 |
 | 이체 코드·화면 (`AccountTransferService`, `TransferPageController`, `transfer.html`, `transfer-result.html`, `static/js/transfer.js`) | 10-16 작성, main 머지됨, 브라우저 확인 완료 |
 | 계좌 개설·상태 변경 (`AccountOpenService`, `AccountManageService`, `AccountNumberGenerator`, `open.html`, `open-result.html`) | 10-16 작성, main 머지됨 (PR #33), 브라우저 확인 전 |
-| 즐겨찾기 (`AccountFavoriteService`, `FavoritePageController`, `favorites.html`, `favorite-edit.html`, `favorite-toggle.html`) | 10-16 작성, main 머지됨 (PR #33), 브라우저 확인 전. 10-17 이체 화면 내 계좌 / 상대계좌 구분 추가 (`account` 브랜치, main PR 전) |
+| 즐겨찾기 (`AccountFavoriteService`, `FavoritePageController`, `favorites.html`, `favorite-edit.html`, `favorite-toggle.html`) | 10-16 작성, 10-17 내 계좌 / 상대계좌 구분 추가. main 머지됨 (PR #33, #36), **브라우저 확인 완료 (10-19)** |
+| 이체 OTP 연결 (`AccountTransferService`, `OtpRequiredException`, `TransferForm`, `TransferPageController`, `transfer.html`, `transfer.js`) | 10-19 작성, 커밋 전, 브라우저 확인 전 (팀1 OTP 키 필요) |
+| 자산 리포트 (`AssetReportService`, `AssetReportRepository`, `AssetReportPageController`, `AssetReportView`, `assets.html`, `asset.css`, `asset.js`) | 10-19 작성, 커밋 전, 브라우저 확인 전 (팀3 공용 DB 타입 문제로 서버 시작 실패 중) |
 | [team2-account-number-rule.md](team2-account-number-rule.md) | 팀3 공유용 계좌번호 규칙·예적금 계좌 생성 방법 |
-| 테스트 (`src/test/java/org/doit/onbank/account/`) | **146개 통과** (10-17) + `contextLoads` 통과 |
+| 테스트 (`src/test/java/org/doit/onbank/account/`) | **170개 통과** (10-19). `contextLoads`는 팀3 공용 DB 타입 문제로 실패 중 |
 
 담당 테이블 6개: `financial_institution_code`, `account`, `account_transfer`, `transaction_history`, `account_favorite`, `asset_report`
 
@@ -67,6 +69,8 @@
 15. **거래 상태 `transaction_status`**: 지금은 `COMPLETED` 하나. 실패한 거래는 롤백되어 행이 남지 않는다. 거래 취소 기능이 생기면 값을 추가한다
 16. **거래 번호 `transaction_sqno`**: `yyyyMMddHHmmss-난수6자리` (예: `20261015143012-482915`). 두 번 클릭으로 인한 중복 처리는 이 번호가 아니라 버튼 중복 클릭 방지 + PRG 패턴으로 막는다
 17. **현금 출금은 이체 한도와 별개**: `today_transfer_amount`에는 이체(`TRANSFER_OUT`)만 누적한다. 입금·출금은 `touchTransaction`으로 날짜만 갱신한다
+18. **(10-19) 이체 인증**: 10만 원 이하 계좌 비밀번호만 / 초과 계좌 비밀번호 + OTP(팀1). 본인 계좌끼리는 OTP 생략. PIN은 만들지 않고 계좌 비밀번호가 간편 인증 역할. OTP 미등록 회원도 10만 원 이하는 이체 가능. 판단은 모두 서버에서 (handoff 1-1)
+19. **(10-19) 자산 리포트**: 조회할 때 계산 + 최근 6개월 `asset_report` 저장(회원·기준년월당 1행, `account_id`에 member_id). 공과금·관리비는 거래 메모 키워드, 투자는 출처 없음. 대출은 팀3 승인 건 기준 (handoff 2-000)
 
 ## 4. Account 엔티티 메서드
 
@@ -113,9 +117,17 @@
 - [x] 즐겨찾기 (관리 화면, 전계좌조회 ☆/★, 이체 화면 선택 창, 이체 완료 [즐겨찾기 추가]). 브라우저 확인 전
 - [x] (10-17) 이체 화면 [내 계좌 즐겨찾기](출금계좌) / [상대계좌 즐겨찾기](입금계좌) 구분. 브라우저 확인 전
 
+**이체 OTP·자산 리포트 (10-19)**
+- [x] 이체 OTP 연결 (팀1 `OtpService.verify`, 10만 원 초과 타인 이체). 화면: 한글 금액, 금액 즉시 안내, [확인] 비활성, OTP 입력칸
+- [x] 자산 리포트 `/mybank/assets` (요약 카드, 자산 구성 도넛, 6개월 추이, 항목별 현황, 대출·예적금 진행률)
+- [x] 즐겨찾기 브라우저 확인 (사용자)
+- [ ] 팀3 공용 DB 타입 문제 해결 후 브라우저 확인: OTP 이체, 자산 리포트, 계좌 개설
+- [ ] 커밋·PR (사용자 지시 후)
+
 **그 다음**
-- [ ] 계좌 개설·즐겨찾기 브라우저 확인 (handoff 4-1, 5-1)
-- [ ] 다음 기능 고르기 (사용자 확인): 제안은 6.1 전체 거래내역 조회 (기간/유형 검색·필터·페이징) → 6.2 거래내역 상세
+- [ ] 사기계좌 확인 (팀4 `fds_transfer_block` 협의 후)
+- [ ] 다건이체 (사용자 검토 중)
+- [ ] ~~6.1 거래내역 페이징·필터~~ 10-19 사용자가 건너뛰기로 함
 - [ ] 시드 데이터 `data-team2-mysql.sql`에 금융기관 코드(우리 은행 OnBank 포함) 추가. 테스트 계좌 3개는 작성 완료
 - [ ] 동시 이체 테스트 작성
 - [ ] 이체 완료 이벤트 (팀4 알림용, 아래 6장 8번)
@@ -134,7 +146,7 @@
 - **이체 순서**
   1. 입력 검증 (금액 > 0, 출금계좌 ≠ 입금계좌, 출금계좌가 내 계좌인지, 1회 한도)
   2. 계좌 비밀번호 검증 (REQUIRES_NEW)
-  3. OTP 검증: `otpService.verify(memberId, otpCode)` (팀1 제공 예정. 지금은 건너뜀)
+  3. OTP 검증: `otpService.verify(memberId, otpCode)` (10-19 연결. 10만 원 초과 타인 이체만, 계좌 잠금 전)
   4. 계좌 2개를 **ID 오름차순으로** `PESSIMISTIC_WRITE` 잠금 (데드락 방지)
   5. 상태 검사: 출금 계좌는 `ACTIVE`, 입금 계좌는 `ACTIVE`·`FROZEN` (`Account.withdraw()`, `deposit()` 안에서 확인)
   6. 잔액 검사, 1일 한도 검사: `touchTransaction(now)` 후 출금 계좌의 `today_transfer_amount + 이번 금액 ≤ members.daily_transfer_limit`
@@ -147,7 +159,10 @@
 
 ## 7. 팀원과 합의가 필요한 것
 
-- 팀1: OTP를 등록하지 않은 회원의 이체 정책 (전부 막을지, 소액만 허용할지)
+- ~~팀1: OTP를 등록하지 않은 회원의 이체 정책~~ → 10-19 사용자 결정: 10만 원 이하는 허용, 초과는 OTP 등록 안내 (팀원 공유 예정)
+- 팀1: OTP 암호화 키 공유
+- 팀3: 공용 DB `loan_repayment_schedule` 금액 컬럼 타입 불일치 (서버 시작 실패)
+- 팀4: `fds_transfer_block` 사기계좌 검사를 이체에서 호출할지
 - 팀3: 대출금 입금 메서드 시그니처. 예: `accountService.deposit(accountId, amount, "대출금 입금")`
 - 팀3: 예약이체·정기이체에서 호출할 이체 메서드 시그니처
 - 팀4: 동결·해제 화면에서 호출할 메서드 (`FROZEN` 상태 사용)

@@ -63,4 +63,16 @@ public class AssetReport {
 		this.maintenanceFeeAmount = maintenanceFeeAmount;
 		this.standardYearMonth = standardYearMonth;
 	}
+
+	// 같은 회원·기준년월 리포트를 다시 계산했을 때 값만 바꾼다 (AssetReportService)
+	public void update(Long recentDepositAmount, Long recentWithdrawalAmount, Long savingsAmount,
+			Long loanInterestRepaymentAmount, Long investmentAmount, Long utilityBillAmount, Long maintenanceFeeAmount) {
+		this.recentDepositAmount = recentDepositAmount;
+		this.recentWithdrawalAmount = recentWithdrawalAmount;
+		this.savingsAmount = savingsAmount;
+		this.loanInterestRepaymentAmount = loanInterestRepaymentAmount;
+		this.investmentAmount = investmentAmount;
+		this.utilityBillAmount = utilityBillAmount;
+		this.maintenanceFeeAmount = maintenanceFeeAmount;
+	}
 }
