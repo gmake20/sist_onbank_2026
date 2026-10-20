@@ -23,7 +23,14 @@ public interface AdminLogRepository extends JpaRepository<AdminLog, Long> {
                      AND l.actorId IN (SELECT e.employeeId FROM Employee e WHERE e.employeeNo = :actorLoginId)))
             AND (:actionType IS NULL OR l.actionType = :actionType)
             AND (:targetType IS NULL OR l.targetType = :targetType)
-            AND (:targetId IS NULL OR l.targetId = :targetId)
+            AND (:targetId IS NULL
+                 OR l.targetId = :targetId
+                 OR (l.targetType = 'ADMIN'
+                     AND l.targetId IN (SELECT CAST(a.adminId AS String) FROM Admin a WHERE a.loginId = :targetId))
+                 OR (l.targetType = 'EMPLOYEE'
+                     AND l.targetId IN (SELECT CAST(e.employeeId AS String) FROM Employee e WHERE e.employeeNo = :targetId))
+                 OR (l.targetType = 'MEMBER'
+                     AND l.targetId IN (SELECT CAST(m.memberId AS String) FROM Member m WHERE m.loginId = :targetId)))
             AND l.createdAt >= :from AND l.createdAt < :to
             """;
 
