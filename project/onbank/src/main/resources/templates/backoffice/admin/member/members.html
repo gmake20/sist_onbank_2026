@@ -45,6 +45,8 @@
     </form>
 
     <div class="adm-alert" role="alert" th:if="${periodError}" th:text="${periodError}"></div>
+    <div class="adm-alert" role="alert" th:if="${error != null}" th:text="${error}"></div>
+    <p class="adm-note" role="status" th:if="${message != null}" th:text="${message}"></p>
 
     <section class="adm-card">
         <div class="adm-card-head">
@@ -54,7 +56,7 @@
         <div class="adm-table-wrap">
             <table class="adm-table">
                 <thead>
-                <tr><th>회원번호</th><th>아이디</th><th>이름</th><th>휴대폰</th><th>상태</th><th>가입일</th></tr>
+                <tr><th>회원번호</th><th>아이디</th><th>이름</th><th>휴대폰</th><th>상태</th><th>가입일</th><th>관리</th></tr>
                 </thead>
                 <tbody>
                 <!-- 아이디 링크는 회원 상세(S-06, MEM-002)가 생기면 건다 -->
@@ -65,9 +67,18 @@
                     <td th:text="${m.maskedPhone} ?: '–'">010-****-5678</td>
                     <td><span class="adm-badge" th:text="${statusLabels.get(m.status)}">정상</span></td>
                     <td th:text="${#temporals.format(m.createdAt, 'yyyy-MM-dd')}">YYYY-MM-DD</td>
+                    <td th:with="label=${m.memberId + ' · ' + m.loginId + ' · ' + m.name}, statusText=${statusLabels.get(m.status)}">
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${m.status.name() == 'LOCKED'}"
+                                data-status-action="unlock" th:attr="data-id=${m.memberId}, data-label=${label}, data-status=${statusText}">로그인 잠금 해제</button>
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${m.status.name() == 'ACTIVE' or m.status.name() == 'LOCKED'}"
+                                data-status-action="restrict" th:attr="data-id=${m.memberId}, data-label=${label}, data-status=${statusText}">이용 제한</button>
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${m.status.name() == 'SUSPENDED'}"
+                                data-status-action="unrestrict" th:attr="data-id=${m.memberId}, data-label=${label}, data-status=${statusText}">이용 제한 해제</button>
+                        <th:block th:if="${m.status.name() == 'WITHDRAWN'}">탈퇴</th:block>
+                    </td>
                 </tr>
                 <tr th:if="${members.totalElements == 0}">
-                    <td colspan="6" class="adm-empty">검색 결과가 없습니다.</td>
+                    <td colspan="7" class="adm-empty">검색 결과가 없습니다.</td>
                 </tr>
                 </tbody>
             </table>
@@ -90,6 +101,68 @@
     </section>
 
     <p class="adm-note">휴대폰은 가운데를 가려서 보여 줍니다. 휴대폰 검색은 하이픈 없이 숫자로 비교합니다. 기간을 비우면 전체 기간.</p>
+
+    <!-- 로그인 잠금 해제 / 이용 제한 / 이용 제한 해제 : 회원 상세(S-06)를 미뤄서 목록 "관리" 열에서 연다
+         모달 하나를 버튼에 따라 문구·주소만 바꿔 쓴다 (employees.html과 같은 방식) -->
+    <div class="adm-modal-backdrop" id="statusModal" hidden>
+        <form class="adm-modal" id="statusForm" method="post" th:action="@{/admin/members}"
+              role="dialog" aria-modal="true" aria-labelledby="statusTitle">
+            <div class="adm-modal-head">
+                <h2 id="statusTitle"></h2>
+                <p id="statusDesc"></p>
+            </div>
+            <dl>
+                <dt>대상</dt><dd id="stTarget"></dd>
+                <dt>현재 상태</dt><dd id="stStatus"></dd>
+            </dl>
+            <div class="adm-field">
+                <label for="statusReason">사유 (필수)</label>
+                <input type="text" id="statusReason" name="reason" maxlength="200" required>
+            </div>
+            <div class="adm-modal-btns">
+                <button type="button" class="adm-btn" id="statusCancel">취소</button>
+                <button type="submit" class="adm-btn-primary" id="statusOk"></button>
+            </div>
+        </form>
+    </div>
+    <script>
+        (function () {
+            var modal = document.getElementById('statusModal');
+            var form = document.getElementById('statusForm');
+            var base = form.getAttribute('action');
+            var reason = document.getElementById('statusReason');
+            var texts = {
+                unlock:     { title: '회원의 로그인 잠금을 해제할까요?', ok: '로그인 잠금 해제', ph: '예: 본인 확인 후 해제',
+                    desc: '비밀번호 5회 오류로 잠긴 계정입니다. 해제하면 다시 로그인할 수 있고, 로그인 실패 횟수는 0으로 돌아갑니다.' },
+                restrict:   { title: '이용 제한할까요?', ok: '이용 제한', ph: '예: 명의도용 의심 신고 접수',
+                    desc: '이용 제한 중에는 로그인할 수 없습니다. 로그인 잠금 해제로는 풀리지 않고, 이용 제한 해제로만 풀립니다.' },
+                unrestrict: { title: '이용 제한을 해제할까요?', ok: '이용 제한 해제', ph: '예: 본인 확인 완료',
+                    desc: '해제하면 정상 회원으로 돌아가 다시 로그인할 수 있습니다. 로그인 실패 횟수는 0으로 돌아갑니다.' }
+            };
+            var opener = null;
+
+            function close() { modal.hidden = true; if (opener) { opener.focus(); } }
+
+            document.querySelectorAll('[data-status-action]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var t = texts[btn.dataset.statusAction];
+                    opener = btn;
+                    form.setAttribute('action', base + '/' + btn.dataset.id + '/' + btn.dataset.statusAction);
+                    document.getElementById('statusTitle').textContent = t.title;
+                    document.getElementById('statusDesc').textContent = t.desc;
+                    document.getElementById('statusOk').textContent = t.ok;
+                    document.getElementById('stTarget').textContent = btn.dataset.label;
+                    document.getElementById('stStatus').textContent = btn.dataset.status;
+                    reason.value = '';
+                    reason.placeholder = t.ph;
+                    modal.hidden = false;
+                    reason.focus();
+                });
+            });
+            document.getElementById('statusCancel').addEventListener('click', close);
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { close(); } });
+        })();
+    </script>
 </main>
 </body>
 </html>
