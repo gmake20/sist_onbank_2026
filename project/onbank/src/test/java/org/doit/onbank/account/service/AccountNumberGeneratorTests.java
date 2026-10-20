@@ -55,8 +55,16 @@ class AccountNumberGeneratorTests {
 	}
 
 	@Test
-	void rejectsUnknownType() {
-		assertThatThrownBy(() -> accountNumberGenerator.generate("UNKNOWN"))
+	void rejectsMissingType() {
+		assertThatThrownBy(() -> accountNumberGenerator.generate(null))
 				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void normalizeAddsHyphensToThirteenDigits() {
+		assertThat(AccountNumberGenerator.normalize(" 1002482915307 ")).isEqualTo("1002-482-915307");
+		assertThat(AccountNumberGenerator.normalize("1002-482-915307")).isEqualTo("1002-482-915307");
+		assertThat(AccountNumberGenerator.normalize("TEST-0001")).isEqualTo("TEST-0001");	// 테스트 계좌는 그대로
+		assertThat(AccountNumberGenerator.normalize("10024829")).isEqualTo("10024829");		// 자릿수가 다르면 그대로
 	}
 }

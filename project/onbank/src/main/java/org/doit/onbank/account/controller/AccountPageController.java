@@ -41,16 +41,7 @@ public class AccountPageController {
 	private final AccountService accountService;
 	private final AccountFavoriteService accountFavoriteService;
 
-	// 화면에 보여 줄 한글 이름 (DB에는 영문 값 저장)
-	@ModelAttribute("statusNames")
-	public Map<String, String> statusNames() {
-		return Map.of(
-				AccountStatus.ACTIVE, "정상",
-				AccountStatus.PENDING, "개설대기",
-				AccountStatus.FROZEN, "거래정지",
-				AccountStatus.CLOSED, "해지");
-	}
-
+	// 거래 유형의 한글 이름 (DB에는 영문 값 저장). 계좌 상태 이름은 AccountStatus.label 을 쓴다
 	@ModelAttribute("typeNames")
 	public Map<String, String> typeNames() {
 		return Map.of(
@@ -69,7 +60,7 @@ public class AccountPageController {
 		// account_type 이 비어 있는 계좌(테스트 계좌 등)는 입출금으로 본다
 		List<Account> checking = accounts.stream()
 				.filter(account -> account.getAccountType() == null
-						|| AccountType.CHECKING.equals(account.getAccountType()))
+						|| account.getAccountType() == AccountType.CHECKING)
 				.toList();
 		List<Account> deposits = ofType(accounts, AccountType.DEPOSIT);
 		List<Account> savings = ofType(accounts, AccountType.SAVINGS);
@@ -86,14 +77,14 @@ public class AccountPageController {
 		return "account/list";
 	}
 
-	private List<Account> ofType(List<Account> accounts, String accountType) {
-		return accounts.stream().filter(account -> accountType.equals(account.getAccountType())).toList();
+	private List<Account> ofType(List<Account> accounts, AccountType accountType) {
+		return accounts.stream().filter(account -> account.getAccountType() == accountType).toList();
 	}
 
 	// 해지 계좌는 합계에서 제외
 	private long totalBalance(List<Account> accounts) {
 		return accounts.stream()
-				.filter(account -> !AccountStatus.CLOSED.equals(account.getAccountStatus()))
+				.filter(account -> account.getAccountStatus() != AccountStatus.CLOSED)
 				.mapToLong(account -> account.getBalance() == null ? 0L : account.getBalance())
 				.sum();
 	}

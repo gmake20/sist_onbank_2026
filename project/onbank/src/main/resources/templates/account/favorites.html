@@ -114,8 +114,9 @@
                                     <select class="form-select" style="width: 150px;">
                                         <option selected>ONBANK</option>
                                     </select>
-                                    <input type="text" class="form-input" style="width: 300px;" maxlength="30"
-                                           th:field="*{recipientAccountNumber}" placeholder="입금계좌번호 입력">
+                                    <!-- js-account-number : 숫자만 입력하면 하이픈 자동 입력 (account.js) -->
+                                    <input type="text" class="form-input js-account-number" style="width: 300px;" maxlength="30"
+                                           th:field="*{recipientAccountNumber}" placeholder="숫자만 입력 (예: 1002482915307)" autocomplete="off">
                                 </div>
                                 <p class="field-error" th:if="${#fields.hasErrors('recipientAccountNumber')}" th:errors="*{recipientAccountNumber}"></p>
                             </td>

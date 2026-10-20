@@ -49,7 +49,7 @@ class AccountServiceTests {
 	@InjectMocks
 	private AccountService accountService;
 
-	private Account account(String status, long balance) {
+	private Account account(AccountStatus status, long balance) {
 		Account account = Account.builder()
 				.memberId(OWNER_ID)
 				.accountNumber("TEST-0001")

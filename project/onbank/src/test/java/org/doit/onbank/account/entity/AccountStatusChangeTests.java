@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 // Account 개설·상태 변경 단위 테스트 : Spring, DB 없이 자바 객체만으로 실행
 class AccountStatusChangeTests {
 
-	private Account account(String status, long balance) {
+	private Account account(AccountStatus status, long balance) {
 		return Account.builder()
 				.memberId(1L)
 				.accountNumber("TEST-0001")
@@ -62,7 +62,7 @@ class AccountStatusChangeTests {
 
 	@Test
 	void activateAndRejectOnlyWhenPending() {
-		for (String status : new String[] { AccountStatus.ACTIVE, AccountStatus.FROZEN, AccountStatus.CLOSED }) {
+		for (AccountStatus status : new AccountStatus[] { AccountStatus.ACTIVE, AccountStatus.FROZEN, AccountStatus.CLOSED }) {
 			Account account = account(status, 0L);
 
 			assertThatThrownBy(account::activate).isInstanceOf(IllegalStateException.class);
@@ -102,7 +102,7 @@ class AccountStatusChangeTests {
 
 	@Test
 	void closeWhenBalanceZero() {
-		for (String status : new String[] { AccountStatus.ACTIVE, AccountStatus.FROZEN }) {
+		for (AccountStatus status : new AccountStatus[] { AccountStatus.ACTIVE, AccountStatus.FROZEN }) {
 			Account account = account(status, 0L);
 
 			account.close();
@@ -123,7 +123,7 @@ class AccountStatusChangeTests {
 
 	@Test
 	void closeRejectedWhenPendingOrClosed() {
-		for (String status : new String[] { AccountStatus.PENDING, AccountStatus.CLOSED }) {
+		for (AccountStatus status : new AccountStatus[] { AccountStatus.PENDING, AccountStatus.CLOSED }) {
 			Account account = account(status, 0L);
 
 			assertThatThrownBy(account::close).isInstanceOf(IllegalStateException.class);

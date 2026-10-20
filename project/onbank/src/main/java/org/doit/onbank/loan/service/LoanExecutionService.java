@@ -100,29 +100,17 @@ public class LoanExecutionService {
 					);
 		}
 
-		if (!"CHECKING".equals(account.getAccountType())) {
+		if (account.getAccountType() != AccountType.CHECKING) {
 			throw new IllegalStateException(
 					"입출금계좌만 대출금을 수령할 수 있습니다."
 					);
 		}
 
-		//        if (account.getAccountType() != AccountType.CHECKING) {
-		//            throw new IllegalStateException(
-		//                "입출금계좌만 대출금을 수령할 수 있습니다."
-		//            );
-		//        }
-		
-		if (!"ACTIVE".equals(account.getAccountStatus())) {
+		if (account.getAccountStatus() != AccountStatus.ACTIVE) {
 			throw new IllegalStateException(
 					"정상 계좌가 아닙니다."
 					);
 		}
-
-//		if (account.getAccountStatus() != AccountStatus.ACTIVE) {
-//			throw new IllegalStateException(
-//					"정상 계좌가 아닙니다."
-//					);
-//		}
 
 		// 여기까지는 실행 조건 검증 단계입니다.
 		// 실제 지급은 Loan/Account/거래원장 연동 후 구현해야 합니다.

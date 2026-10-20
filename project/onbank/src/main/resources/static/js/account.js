@@ -22,6 +22,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // 계좌번호 하이픈 자동 입력 : 숫자만 치면 4-3-6 형식으로 넣는다 (1002-482-915307)
+    // 영문이 섞인 값(TEST-0001 같은 테스트 계좌)은 그대로 둔다
+    document.querySelectorAll('.js-account-number').forEach((input) => {
+        input.addEventListener('input', () => {
+            const value = input.value;
+            if (!/^[\d-]*$/.test(value)) {
+                return;
+            }
+            const digits = value.replace(/-/g, '').slice(0, 13);
+            const formatted = [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join('-');
+            if (formatted === value) {
+                return;
+            }
+            // 커서 위치 유지 : 커서 앞에 있던 숫자 개수만큼 지난 자리로 옮긴다
+            const digitsBeforeCaret = value.slice(0, input.selectionStart).replace(/-/g, '').length;
+            input.value = formatted;
+            let caret = 0;
+            for (let count = 0; caret < formatted.length && count < digitsBeforeCaret; caret++) {
+                if (formatted[caret] !== '-') {
+                    count++;
+                }
+            }
+            input.setSelectionRange(caret, caret);
+        });
+    });
+
     // 버튼 중복 클릭 방지 : 한 번 제출하면 제출 버튼을 잠근다 (두 번 입출금되는 것 방지)
     document.querySelectorAll('.js-once-form').forEach((form) => {
         form.addEventListener('submit', (event) => {

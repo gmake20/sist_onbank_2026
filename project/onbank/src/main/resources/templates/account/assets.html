@@ -53,7 +53,7 @@
             <div class="stat-card">
                 <span class="stat-label">대출 잔액</span>
                 <strong class="stat-value" th:text="|${#numbers.formatInteger(r.loanBalance, 1, 'COMMA')}원|">0원</strong>
-                <span class="stat-note" th:text="|승인된 대출 ${#lists.size(r.loans)}건 기준|">승인된 대출 0건 기준</span>
+                <span class="stat-note" th:text="|실행된 대출 ${#lists.size(r.loans)}건 기준|">실행된 대출 0건 기준</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label" th:text="|${r.month.monthValue}월 순입출금|">10월 순입출금</span>
@@ -123,7 +123,7 @@
                         <p class="diff" th:replace="~{account/asset-diff :: diffText(${r.summary.outDiff})}"></p>
                     </div>
                 </div>
-                <p class="card-note">본인 계좌끼리 옮긴 금액은 입금·출금에 넣지 않습니다.</p>
+                <p class="card-note">본인 계좌끼리 옮긴 금액과 대출금 지급은 입금·출금에 넣지 않고, 대출 상환은 출금에 넣습니다.</p>
             </section>
         </div>
 
@@ -208,7 +208,7 @@
                         </div>
                         <dl class="progress-meta">
                             <div><dt>남은 원금</dt><dd th:text="|${#numbers.formatInteger(loan.remaining, 1, 'COMMA')}원|">0원</dd></div>
-                            <div><dt>대출 원금</dt><dd th:text="|${#numbers.formatInteger(loan.approvedAmount, 1, 'COMMA')}원|">0원</dd></div>
+                            <div><dt>대출 원금</dt><dd th:text="|${#numbers.formatInteger(loan.principalAmount, 1, 'COMMA')}원|">0원</dd></div>
                             <div><dt>월 예상 이자</dt><dd th:text="|${#numbers.formatInteger(loan.monthlyInterestEstimate, 1, 'COMMA')}원|">0원</dd></div>
                             <div><dt>만기일</dt><dd th:text="${loan.maturityDate ?: '-'}">2028-10-19</dd></div>
                             <div th:if="${loan.nextDueDate}"><dt>다음 납부일</dt><dd th:text="${loan.nextDueDate}">2026-11-19</dd></div>
@@ -216,7 +216,7 @@
                     </li>
                 </ul>
                 <div class="card-empty" th:if="${#lists.isEmpty(r.loans)}">
-                    <p>승인된 대출이 없습니다.</p>
+                    <p>이용 중인 대출이 없습니다.</p>
                 </div>
                 <p class="card-note">월 예상 이자는 남은 원금 × 연 금리 ÷ 12로 단순 계산한 값입니다.</p>
             </section>
@@ -249,8 +249,8 @@
         </div>
 
         <p class="report-footnote">
-            리포트는 이 화면을 열 때 계산되며, 최근 6개월 값이 월별로 저장됩니다.
-            대출은 팀 대출 실행 기능 연동 전이라 승인된 대출 기준으로 표시합니다.
+            이번 달 값은 이 화면을 열 때마다 새로 계산하고, 지난달 값은 월별로 저장된 기록을 보여 줍니다.
+            대출금은 지급된 계좌의 잔액(총자산)에 포함되고, 남은 원금은 대출 잔액으로 따로 뺍니다.
         </p>
     </main>
 

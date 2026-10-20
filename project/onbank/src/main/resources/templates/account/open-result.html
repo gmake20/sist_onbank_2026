@@ -16,7 +16,7 @@
         <!-- 개설 결과 (리다이렉트 직후 한 번만 보임) -->
         <div class="receipt-box">
             <strong class="receipt-title"
-                    th:text="${receipt.accountStatus() == 'PENDING'} ? '계좌 개설을 신청했습니다. (심사중)' : '계좌가 개설되었습니다.'">계좌가 개설되었습니다.</strong>
+                    th:text="${receipt.accountStatus()?.name() == 'PENDING'} ? '계좌 개설을 신청했습니다. (심사중)' : '계좌가 개설되었습니다.'">계좌가 개설되었습니다.</strong>
             <table class="transfer-form-table">
                 <colgroup>
                     <col style="width: 20%;">

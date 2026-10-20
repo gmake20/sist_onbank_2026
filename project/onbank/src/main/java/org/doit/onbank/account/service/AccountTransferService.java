@@ -201,7 +201,7 @@ public class AccountTransferService {
 		if (isBlank(toAccountNumber)) {
 			throw new IllegalArgumentException("입금계좌번호를 입력하세요.");
 		}
-		Account account = accountRepository.findByAccountNumber(toAccountNumber.trim())
+		Account account = accountRepository.findByAccountNumber(AccountNumberGenerator.normalize(toAccountNumber))
 				.orElseThrow(() -> new IllegalArgumentException("입금계좌를 찾을 수 없습니다. 계좌번호를 확인하세요."));
 		if (!account.canDeposit()) {
 			throw new IllegalArgumentException("입금할 수 없는 계좌입니다.");
@@ -257,18 +257,11 @@ public class AccountTransferService {
 	    }
 
 	    
-	    if (!"CHECKING".equals(account.getAccountType())
-	            || !"ACTIVE".equals(account.getAccountStatus())) {
+	    if (account.getAccountType() != AccountType.CHECKING
+	            || account.getAccountStatus() != AccountStatus.ACTIVE) {
 	        throw new IllegalStateException(
 	                "대출금을 지급할 수 없는 계좌입니다.");
 	    }
-	    
-	    // enum 처리 요망
-//	    if (account.getAccountType() != AccountType.CHECKING
-//	            || account.getAccountStatus() != AccountStatus.ACTIVE) {
-//	        throw new IllegalStateException(
-//	                "대출금을 지급할 수 없는 계좌입니다.");
-//	    }
 
 
 	    if (accountTransactionRepository

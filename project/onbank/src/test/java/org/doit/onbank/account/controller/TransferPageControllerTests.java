@@ -129,7 +129,7 @@ class TransferPageControllerTests {
 				.build();
 	}
 
-	private Account account(Long id, String number, String status, long balance) {
+	private Account account(Long id, String number, AccountStatus status, long balance) {
 		Account account = Account.builder()
 				.memberId(MEMBER_ID)
 				.accountNumber(number)
@@ -329,7 +329,7 @@ class TransferPageControllerTests {
 				.andExpect(status().isOk())
 				.andExpect(content().string(allOf(
 						containsString("100,000원을 넘는 이체는 OTP 등록이 필요해요."),
-						containsString("<a class=\"btn-sm\" href=\"/mybank/security/otp\">OTP 등록하기</a>"))));
+						containsString("<a class=\"btn-sm js-otp-register\" href=\"/mybank/security/otp\">OTP 등록하기</a>"))));
 	}
 
 	// OTP 번호 오류 (팀1 OtpService 의 BusinessException) : 문구를 보여 주고 OTP 번호는 남기지 않는다
