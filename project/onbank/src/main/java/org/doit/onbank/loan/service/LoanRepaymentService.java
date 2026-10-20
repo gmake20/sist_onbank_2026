@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.entity.AccountTransaction;
 import org.doit.onbank.account.entity.AccountTransactionType;
 import org.doit.onbank.account.repository.AccountRepository;
@@ -149,18 +150,12 @@ public class LoanRepaymentService {
                     "본인 명의의 계좌만 사용할 수 있습니다.");
         }
         
-        if (!"CHECKING".equals( account.getAccountType() )
-                || !"ACTIVE".equals(account.getAccountStatus())) {
+        if (account.getAccountType() != AccountType.CHECKING
+                || account.getAccountStatus()
+                    != AccountStatus.ACTIVE) {
             throw new IllegalStateException(
                     "상환금을 출금할 수 없는 계좌입니다.");
         }
-
-//        if (account.getAccountType() != AccountType.CHECKING
-//                || account.getAccountStatus()
-//                    != AccountStatus.ACTIVE) {
-//            throw new IllegalStateException(
-//                    "상환금을 출금할 수 없는 계좌입니다.");
-//        }
 
         // =====================================
         // 9. 실제 출금

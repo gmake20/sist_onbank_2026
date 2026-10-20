@@ -1,6 +1,7 @@
 -- ============================================================
 -- 팀원2 계좌/이체 파트 DDL (MySQL 8.0 이상)
--- 소유: financial_institution_code, account, transaction_history, account_transfer, account_favorite, asset_report
+-- 소유: financial_institution_code, account, transaction_history, account_transfer, account_favorite, asset_report,
+--       scheduled_transfer (10-20 추가)
 -- 컬럼 설명: docs/schema-team2-dictionary.md (테이블을 바꾸면 이 파일 + 데이터 사전 + 엔티티를 함께 고친다)
 -- 테이블 변경: 이 파일 수정 + 맨 아래 "변경 이력"에 ALTER 문 추가 → 공용 DB에 ALTER 실행 → 엔티티 수정
 -- 실행 순서: 01_auth_ddl.sql → 이 파일 → 02_admin_ddl.sql
@@ -10,7 +11,7 @@
 -- ============================================================
 
 -- 재실행용 삭제 (공용 DB에서는 팀 공지 후에만! 02_admin_ddl.sql 의 FK가 있으면 그 테이블을 먼저 삭제)
--- DROP TABLE IF EXISTS asset_report, account_favorite, account_transfer, transaction_history,
+-- DROP TABLE IF EXISTS scheduled_transfer, asset_report, account_favorite, account_transfer, transaction_history,
 --                      account, financial_institution_code;
 
 SET NAMES utf8mb4;
@@ -129,8 +130,34 @@ CREATE TABLE asset_report (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '자산 리포트';
 
 
+-- ---------------------------------------------------------------------
+-- 7. scheduled_transfer : 예약·정기이체 (10-20 추가)
+--    등록할 때 계좌 비밀번호(·OTP)를 확인하고, 실행은 스케줄러가 인증 없이 한다
+--    실행된 이체는 account_transfer·transaction_history 에 transfer_type SCHEDULED/RECURRING 으로 기록
+-- ---------------------------------------------------------------------
+CREATE TABLE scheduled_transfer (
+    scheduled_transfer_id       BIGINT          NOT NULL AUTO_INCREMENT,
+    member_id                   BIGINT                   COMMENT '등록한 회원 ID (members 참조)',
+    account_id                  BIGINT                   COMMENT '출금 계좌 ID (account 참조)',
+    deposit_account_number      VARCHAR(30)              COMMENT '입금 계좌번호',
+    transfer_amount             BIGINT                   COMMENT '이체 금액',
+    sender_memo                 VARCHAR(100)             COMMENT '보내는 분 통장 표시 내용',
+    receiver_memo               VARCHAR(100)             COMMENT '받는 분 통장 표시 내용',
+    schedule_type               VARCHAR(20)              COMMENT '유형 (SCHEDULED 예약 / RECURRING 정기)',
+    next_execute_at             DATETIME(6)              COMMENT '다음 실행 일시 (예약: 실행 일시 / 정기: 다음 회차 일시)',
+    transfer_day                INT                      COMMENT '정기: 매월 실행일 1~31 (그 달에 없는 날이면 말일)',
+    end_date                    DATE                     COMMENT '정기: 종료일 (NULL 이면 해지할 때까지)',
+    status                      VARCHAR(20)              COMMENT '상태 (WAITING 대기 / COMPLETED 완료 / FAILED 실패 / CANCELLED 취소 / PAUSED 정기 중지)',
+    last_executed_at            DATETIME(6)              COMMENT '마지막 실행 일시',
+    last_result                 VARCHAR(200)             COMMENT '마지막 실행 결과 (실패 사유 등)',
+    created_at                  DATETIME(6)              COMMENT '등록 일시',
+    updated_at                  DATETIME(6)              COMMENT '수정 일시',
+    CONSTRAINT pk_scheduled_transfer PRIMARY KEY (scheduled_transfer_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '예약·정기이체';
+
+
 -- =====================================================================
 -- 변경 이력 (공용 DB에 이미 테이블이 있으면 아래 ALTER만 실행)
 -- 형식: -- [날짜] 작성자 - 내용  다음 줄에 ALTER 문
 -- =====================================================================
--- (아직 없음)
+-- [2026-10-20] 팀원2 - 예약·정기이체 테이블 추가 : 위 "7. scheduled_transfer" 의 CREATE TABLE 문을 그대로 실행

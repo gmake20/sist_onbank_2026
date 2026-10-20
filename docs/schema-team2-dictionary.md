@@ -1,6 +1,6 @@
 # 팀원2 테이블 데이터 사전
 
-[03_account_ddl.sql](../project/onbank/src/main/resources/db/03_account_ddl.sql)에 정의된 테이블 6개의 컬럼 설명입니다.
+[03_account_ddl.sql](../project/onbank/src/main/resources/db/03_account_ddl.sql)에 정의된 테이블 7개의 컬럼 설명입니다. (10-20 `scheduled_transfer` 추가)
 기준은 팀원2 데이터 사전 원본이며, 원본에 없는 컬럼은 `account.password_fail_count` 하나만 추가했습니다. SQL 파일을 수정하면 이 문서와 엔티티(`org.doit.onbank.account.entity`)도 함께 고칩니다.
 
 - 금액은 모두 `BIGINT`(원 단위)이며 엔티티에서는 `Long`으로 매핑합니다. 이자율은 `DECIMAL(7,4)` ↔ `BigDecimal`입니다.
@@ -22,7 +22,7 @@
 | 구분 | 테이블 |
 |---|---|
 | 계좌 | [account](#1-account--계좌), [account_favorite](#4-account_favorite--계좌-즐겨찾기), [asset_report](#5-asset_report--자산-리포트) |
-| 거래/이체 | [transaction_history](#2-transaction_history--거래-내역), [account_transfer](#3-account_transfer--계좌-이체) |
+| 거래/이체 | [transaction_history](#2-transaction_history--거래-내역), [account_transfer](#3-account_transfer--계좌-이체), [scheduled_transfer](#7-scheduled_transfer--예약정기이체) |
 | 공통코드 | [financial_institution_code](#6-financial_institution_code--금융기관-코드) |
 
 ---
@@ -155,3 +155,27 @@
 | `financial_institution_id` | BIGINT, PK, 자동 증가 | 기관 식별자 |
 | `financial_institution_name`| VARCHAR(100) | 기관명 (예: 신한은행, 국민은행) |
 | `financial_institution_category_code`| VARCHAR(20) | 기관 분류 코드 (은행, 증권 등) |
+
+## 7. scheduled_transfer — 예약·정기이체
+예약이체(지정 일시 1회)와 정기이체(매월 반복)를 등록해 두는 테이블입니다. (10-20 추가)
+등록할 때 계좌 비밀번호(10만 원 초과 타인 이체면 OTP도)를 확인하고, 실행은 스케줄러가 인증 없이 합니다.
+실행된 이체는 `account_transfer`·`transaction_history`에 `transfer_type` = `SCHEDULED`/`RECURRING`으로 기록합니다.
+
+| 컬럼 | 타입 / 제약 | 설명 |
+|---|---|---|
+| `scheduled_transfer_id` | BIGINT, PK, 자동 증가 | 예약·정기이체 식별자 |
+| `member_id` | BIGINT | 등록한 회원 ID (`members` 참조) |
+| `account_id` | BIGINT | 출금 계좌 ID (`account` 참조) |
+| `deposit_account_number` | VARCHAR(30) | 입금 계좌번호 |
+| `transfer_amount` | BIGINT | 이체 금액 |
+| `sender_memo` | VARCHAR(100) | 보내는 분 통장 표시 내용 |
+| `receiver_memo` | VARCHAR(100) | 받는 분 통장 표시 내용 |
+| `schedule_type` | VARCHAR(20) | `SCHEDULED` 예약 / `RECURRING` 정기 (enum `ScheduleType`) |
+| `next_execute_at` | DATETIME(6) | 다음 실행 일시. 예약은 실행 일시, 정기는 다음 회차 일시 (실행할 때마다 다음 달로 바뀜) |
+| `transfer_day` | INT | 정기: 매월 실행일 1~31. 그 달에 없는 날(예: 2월 30일)이면 말일에 실행 |
+| `end_date` | DATE | 정기: 종료일. NULL이면 해지할 때까지 |
+| `status` | VARCHAR(20) | `WAITING` 대기 / `COMPLETED` 완료 / `FAILED` 실패 / `CANCELLED` 취소 / `PAUSED` 정기 중지 (enum `ScheduledTransferStatus`). 정기이체는 한 회차가 실패해도 `WAITING`을 유지하고 `last_result`에 사유를 남긴다 |
+| `last_executed_at` | DATETIME(6) | 마지막 실행 일시 |
+| `last_result` | VARCHAR(200) | 마지막 실행 결과 (실패 사유 등) |
+| `created_at` | DATETIME(6) | 등록 일시 |
+| `updated_at` | DATETIME(6) | 수정 일시 |

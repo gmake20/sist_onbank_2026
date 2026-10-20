@@ -37,6 +37,8 @@ import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
 import org.doit.onbank.account.service.OtpRequiredException;
+import org.doit.onbank.account.service.ScheduledTransferService;
+import org.doit.onbank.account.entity.ScheduledTransfer;
 import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.admin.security.AdminDetailsService;
 import org.doit.onbank.admin.security.AdminLoginAttemptRecorder;
@@ -75,6 +77,9 @@ class TransferPageControllerTests {
 
 	@MockitoBean
 	private AccountFavoriteService accountFavoriteService;
+
+	@MockitoBean
+	private ScheduledTransferService scheduledTransferService;
 
 	// OnbankApplication 의 @EnableJpaAuditing 이 JPA 설정을 찾으므로 가짜로 채운다
 	@MockitoBean
@@ -438,5 +443,46 @@ class TransferPageControllerTests {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.dailyLimit").value(5_000_000))
 				.andExpect(jsonPath("$.remaining").value(4_700_000));
+	}
+
+	// ---------- 예약이체 등록 ----------
+
+	// 일시를 보내면 이체하지 않고 예약만 등록한 뒤 예약 목록으로
+	@Test
+	void scheduledTransferReservesAndRedirectsToList() throws Exception {
+		LocalDateTime at = LocalDateTime.of(2026, 12, 1, 9, 30);
+		given(scheduledTransferService.reserve(MEMBER_ID, 1L, "1234", null, "TEST-9999", 50_000L, null, null, at))
+				.willReturn(ScheduledTransfer.reserve(MEMBER_ID, 1L, "TEST-9999", 50_000L, null, null, at, LocalDateTime.now()));
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("amount", "50000")
+						.param("toAccountNumber", "TEST-9999")
+						.param("executeDate", "2026-12-01")
+						.param("executeTime", "09:30"))
+				.andExpect(redirectedUrl("/mybank/transfer/scheduled"))
+				.andExpect(flash().attribute("successMessage", "예약이체를 등록했습니다. 2026.12.01 09:30에 50,000원이 이체됩니다."));
+		verify(accountTransferService, never()).transfer(anyLong(), anyLong(), any(), any(), any(), anyLong(), any(), any());
+	}
+
+	// 등록 실패 : 문구를 보여 주고, 입력했던 예약 일시는 남겨 다시 예약 모드로 열리게 한다
+	@Test
+	void scheduledTransferFailureKeepsExecuteAt() throws Exception {
+		given(scheduledTransferService.reserve(anyLong(), anyLong(), any(), any(), any(), anyLong(), any(), any(), any()))
+				.willThrow(new IllegalArgumentException("예약 일시는 지금 이후로 선택하세요."));
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("amount", "50000")
+						.param("toAccountNumber", "TEST-9999")
+						.param("executeDate", "2026-01-01")
+						.param("executeTime", "09:30"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("예약 일시는 지금 이후로 선택하세요."),
+						containsString("value=\"2026-01-01\""),
+						containsString("value=\"09:30\""))));
 	}
 }

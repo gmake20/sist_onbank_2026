@@ -1,5 +1,11 @@
 package org.doit.onbank.account.dto;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
+import org.springframework.format.annotation.DateTimeFormat;
+
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,7 +14,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-// 이체 화면 입력값 (당행 즉시이체)
+// 이체 화면 입력값 (당행 즉시이체 / 예약이체)
 @Getter
 @Setter
 public class TransferForm {
@@ -37,4 +43,20 @@ public class TransferForm {
 
 	@Size(max = 10, message = "받는분 통장표시내용은 10자까지 입력할 수 있습니다.")
 	private String receiverMemo;	// 받는 분 통장에 찍히는 내용 (비우면 내 이름)
+
+	// 예약이체 일시 : [예약이체일지정]을 눌렀을 때만 전송된다 (둘 다 비어 있으면 즉시이체)
+	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+	private LocalDate executeDate;		// <input type="date"> : 2026-10-21
+
+	@DateTimeFormat(pattern = "HH:mm")	// 브라우저가 보내는 형식 그대로 (ISO.TIME 은 초·시간대까지 붙여 다시 그릴 때 어긋남)
+	private LocalTime executeTime;		// <input type="time"> : 09:30
+
+	public boolean isScheduled() {
+		return executeDate != null || executeTime != null;
+	}
+
+	// 날짜·시각 중 하나라도 비어 있으면 null (Service 가 "예약 일시를 선택하세요"로 안내)
+	public LocalDateTime getExecuteAt() {
+		return (executeDate == null || executeTime == null) ? null : LocalDateTime.of(executeDate, executeTime);
+	}
 }
