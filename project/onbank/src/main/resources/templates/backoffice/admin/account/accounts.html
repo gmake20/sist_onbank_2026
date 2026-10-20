@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>계좌 관리</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 고객 · 계좌 / 계좌 관리</div>
+<h1 layout:fragment="page-title">계좌 관리</h1>
+<main layout:fragment="content">
+
+    <form class="adm-search" method="get" th:action="@{/admin/accounts}">
+        <div class="adm-field">
+            <label for="accountNumber">계좌번호</label>
+            <input type="text" id="accountNumber" name="accountNumber" th:value="${accountNumber}" placeholder="일부만 입력 가능">
+        </div>
+        <div class="adm-field">
+            <label for="memberLoginId">회원 아이디</label>
+            <input type="text" id="memberLoginId" name="memberLoginId" th:value="${memberLoginId}" placeholder="아이디 일부">
+        </div>
+        <div class="adm-field">
+            <label for="status">계좌 상태</label>
+            <select id="status" name="status">
+                <option value="">전체</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}" th:selected="${s == status}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="type">계좌 종류</label>
+            <select id="type" name="type">
+                <option value="">전체</option>
+                <option th:each="t : ${types}" th:value="${t}" th:text="${t.label}" th:selected="${t == type}"></option>
+            </select>
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/accounts}">초기화</a>
+        </div>
+    </form>
+
+    <div class="adm-alert" role="alert" th:if="${error != null}" th:text="${error}"></div>
+    <p class="adm-note" role="status" th:if="${message != null}" th:text="${message}"></p>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>전체 <b th:text="${accounts.totalElements}">0</b>건</span>
+            <span>최근 개설 순 · 20건씩 보기</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>계좌번호</th><th>회원</th><th>종류</th><th>상태</th><th>잔액</th><th>최종 거래일</th><th>관리</th></tr>
+                </thead>
+                <tbody>
+                <!-- 이력 링크는 ACC-004 조각에서 관리 칸에 추가 -->
+                <tr th:each="a : ${accounts}">
+                    <td th:text="${a.accountNumber}">1002-482-915307</td>
+                    <td th:text="|${a.memberName} (${a.memberLoginId})|">이름 (member01)</td>
+                    <td th:text="${a.accountType?.label ?: '–'}">입출금</td>
+                    <td><span class="adm-badge" th:text="${a.accountStatus?.label ?: '–'}">정상</span></td>
+                    <td th:text="${a.balance != null} ? |${#numbers.formatInteger(a.balance, 1, 'COMMA')}원| : '–'">0원</td>
+                    <td th:text="${a.lastTransactionAt != null} ? ${#temporals.format(a.lastTransactionAt, 'yyyy-MM-dd HH:mm')} : '–'">YYYY-MM-DD HH:mm</td>
+                    <!-- 정상 → 거래정지 / 거래정지 → 해제. 개설대기·해지는 버튼 없음 (서버도 팀원2 메서드가 막는다) -->
+                    <td th:with="st=${a.accountStatus?.name()}">
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${st == 'ACTIVE'}" data-account-action="freeze"
+                                th:attr="data-id=${a.accountId}, data-number=${a.accountNumber}, data-member=|${a.memberName} (${a.memberLoginId})|, data-status=${a.accountStatus.label}">거래정지</button>
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${st == 'FROZEN'}" data-account-action="unfreeze"
+                                th:attr="data-id=${a.accountId}, data-number=${a.accountNumber}, data-member=|${a.memberName} (${a.memberLoginId})|, data-status=${a.accountStatus.label}">해제</button>
+                        <th:block th:if="${st != 'ACTIVE' and st != 'FROZEN'}">–</th:block>
+                    </td>
+                </tr>
+                <tr th:if="${accounts.totalElements == 0}">
+                    <td colspan="7" class="adm-empty">검색 결과가 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : members.html과 같은 방식. 링크마다 검색 조건을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${accounts.totalPages > 1}"
+             th:with="start=${accounts.number > 4 ? accounts.number - 4 : 0},
+                      end=${start + 9 < accounts.totalPages - 1 ? start + 9 : accounts.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${accounts.hasPrevious()}"
+               th:href="@{/admin/accounts(accountNumber=${accountNumber}, memberLoginId=${memberLoginId}, status=${status}, type=${type}, page=${accounts.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == accounts.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == accounts.number}" th:text="${p + 1}"
+                   th:href="@{/admin/accounts(accountNumber=${accountNumber}, memberLoginId=${memberLoginId}, status=${status}, type=${type}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${accounts.hasNext()}"
+               th:href="@{/admin/accounts(accountNumber=${accountNumber}, memberLoginId=${memberLoginId}, status=${status}, type=${type}, page=${accounts.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">계좌번호는 하이픈 없이 입력해도 찾습니다. 개설일은 계좌 테이블에 생성일 칸이 없어 표시하지 않습니다. 계좌번호가 TEST- 로 시작하는 계좌는 테스트 데이터입니다.</p>
+
+    <!-- M-01 거래정지·해제 사유 : admins.html M-04·M-05 와 같은 방식. 모달 하나를 버튼에 따라 문구·주소만 바꿔 쓴다
+         hidden 칸 = 지금 보던 검색 조건 → 처리 후 같은 목록으로 돌아온다 -->
+    <div class="adm-modal-backdrop" id="accountModal" hidden>
+        <form class="adm-modal" id="accountForm" method="post" th:action="@{/admin/accounts}"
+              role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+            <input type="hidden" name="accountNumber" th:value="${accountNumber}">
+            <input type="hidden" name="memberLoginId" th:value="${memberLoginId}">
+            <input type="hidden" name="status" th:value="${status}">
+            <input type="hidden" name="type" th:value="${type}">
+            <input type="hidden" name="page" th:value="${accounts.number}">
+            <div class="adm-modal-head">
+                <h2 id="accountTitle"></h2>
+                <p id="accountDesc"></p>
+            </div>
+            <dl>
+                <dt>계좌번호</dt><dd id="acNumber"></dd>
+                <dt>회원</dt><dd id="acMember"></dd>
+                <dt>현재 상태</dt><dd id="acStatus"></dd>
+            </dl>
+            <div class="adm-field">
+                <label for="accountReason">사유 (필수)</label>
+                <input type="text" id="accountReason" name="reason" maxlength="200" required>
+            </div>
+            <div class="adm-modal-btns">
+                <button type="button" class="adm-btn" id="accountCancel">취소</button>
+                <button type="submit" class="adm-btn-primary" id="accountOk"></button>
+            </div>
+        </form>
+    </div>
+    <script>
+        (function () {
+            var modal = document.getElementById('accountModal');
+            var form = document.getElementById('accountForm');
+            var base = form.getAttribute('action');
+            var reason = document.getElementById('accountReason');
+            var texts = {
+                freeze:   { title: '이 계좌를 거래정지할까요?', ok: '거래정지', ph: '예: 보이스피싱 피해 신고 접수',
+                    desc: '거래정지하면 출금·이체가 막히고 입금은 계속 받습니다. 처리 내용과 사유는 활동 로그에 남습니다.' },
+                unfreeze: { title: '거래정지를 해제할까요?', ok: '해제', ph: '예: 본인 확인 완료',
+                    desc: '해제하면 다시 출금·이체할 수 있습니다. 처리 내용과 사유는 활동 로그에 남습니다.' }
+            };
+            var opener = null;
+
+            function close() { modal.hidden = true; if (opener) { opener.focus(); } }
+
+            document.querySelectorAll('[data-account-action]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var t = texts[btn.dataset.accountAction];
+                    opener = btn;
+                    form.setAttribute('action', base + '/' + btn.dataset.id + '/' + btn.dataset.accountAction);
+                    document.getElementById('accountTitle').textContent = t.title;
+                    document.getElementById('accountDesc').textContent = t.desc;
+                    document.getElementById('accountOk').textContent = t.ok;
+                    document.getElementById('acNumber').textContent = btn.dataset.number;
+                    document.getElementById('acMember').textContent = btn.dataset.member;
+                    document.getElementById('acStatus').textContent = btn.dataset.status;
+                    reason.value = '';
+                    reason.placeholder = t.ph;
+                    modal.hidden = false;
+                    reason.focus();
+                });
+            });
+            document.getElementById('accountCancel').addEventListener('click', close);
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { close(); } });
+        })();
+    </script>
+</main>
+</body>
+</html>
