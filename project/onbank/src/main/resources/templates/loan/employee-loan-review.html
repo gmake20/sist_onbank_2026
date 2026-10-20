@@ -6,6 +6,7 @@
 <title>대출 심사 관리 - ONBANK EMPLOYEE</title>
 <link rel="stylesheet" th:href="@{/css/index.css}">
 <link rel="stylesheet" th:href="@{/css/loan/employee-loan-review.css}">
+<link rel="stylesheet" th:href="@{/css/loan/employee-loan-review-completed.css}">
 </head>
 <body>
 	<div th:replace="~{fragments/header :: headerFragment}"></div>
@@ -42,7 +43,7 @@
 							<option value="">전체 상태</option>
 							<option th:each="s : ${statusValues}" th:value="${s.name()}"
 								th:selected="${currentStatus == s}"
-								th:text="${s.name() == 'PENDING' ? '심사대기' : s.name() == 'REVIEWING' ? '심사중' : s.name() == 'ADDITIONAL_INFO' ? '서류보완 요청' : s.name() == 'APPROVED' ? '승인완료' : s.name() == 'REJECTED' ? '심사거절' : s.name() == 'CANCELLED' ? '신청취소' : '승인기간 만료'}">
+								th:text="${s.name() == 'PENDING' ? '심사대기' : s.name() == 'REVIEWING' ? '심사중' : s.name() == 'ADDITIONAL_INFO' ? '서류보완 요청' : s.name() == 'APPROVED' ? '승인완료' : s.name() == 'REJECTED' ? '심사거절' : s.name() == 'CANCELLED' ? '신청취소' : s.name() == 'EXECUTED' ? '대출 실행완료' : '승인기간 만료'}">
 								상태</option>
 						</select>
 					</form>
@@ -70,10 +71,10 @@
 								<td th:text="${#temporals.format(app.createdAt, 'yyyy.MM.dd')}">-</td>
 								<td><span class="review-status"
 									th:classappend="|status-${app.status.name().toLowerCase()}|"
-									th:text="${app.status.name() == 'PENDING' ? '심사대기' : app.status.name() == 'REVIEWING' ? '심사중' : app.status.name() == 'ADDITIONAL_INFO' ? '서류보완 요청' : app.status.name() == 'APPROVED' ? '승인완료' : app.status.name() == 'REJECTED' ? '심사거절' : app.status.name() == 'CANCELLED' ? '신청취소' : '승인기간 만료'}">
+									th:text="${app.status.name() == 'PENDING' ? '심사대기' : app.status.name() == 'REVIEWING' ? '심사중' : app.status.name() == 'ADDITIONAL_INFO' ? '서류보완 요청' : app.status.name() == 'APPROVED' ? '승인완료' : app.status.name() == 'REJECTED' ? '심사거절' : app.status.name() == 'CANCELLED' ? '신청취소' : app.status.name() == 'EXECUTED' ? '대출 실행완료' : '승인기간 만료'}">
 										상태 </span></td>
 								<td><a class="review-detail-btn"
-									th:href="@{/employee/loans/review(id=${app.id},status=${currentStatus})}">심사
+									th:href="@{/employee/loans/review/{id}(id=${app.id})}">심사
 										상세</a></td>
 							</tr>
 							<tr th:if="${#lists.isEmpty(applications)}">
@@ -83,149 +84,7 @@
 					</table>
 				</div>
 			</section>
-			<section id="review-detail" class="review-detail-section"
-				th:if="${selected != null}" th:with="s=${selected.status.name()}">
-				<div class="review-section-header">
-					<h2>대출 심사 상세</h2>
-					<span class="review-status"
-						th:classappend="|status-${s.toLowerCase()}|"
-						th:text="${s == 'PENDING' ? '심사대기' : s == 'REVIEWING' ? '심사중' : s == 'ADDITIONAL_INFO' ? '서류보완 요청' : s == 'APPROVED' ? '승인완료' : s == 'REJECTED' ? '심사거절' : s == 'CANCELLED' ? '신청취소' : '승인기간 만료'}">
-						상태 </span>
-				</div>
-				<div class="review-detail-grid">
-					<div>
-						<span>신청번호</span><strong th:text="${selected.id}">-</strong>
-					</div>
-					<div>
-						<span>신청회원</span><strong th:text="${selected.member.name}">-</strong>
-					</div>
-					<div>
-						<span>회원 ID</span><strong th:text="${selected.member.memberId}">-</strong>
-					</div>
-					<div>
-						<span>대출 상품</span><strong th:text="${selected.product.name}">-</strong>
-					</div>
-					<div>
-						<span>신청금액</span><strong
-							th:text="|${#numbers.formatDecimal(selected.requestedAmount,1,'COMMA',0,'POINT')}원|">-</strong>
-					</div>
-					<div>
-						<span>신청기간</span><strong th:text="|${selected.requestedMonths}개월|">-</strong>
-					</div>
-					<div>
-						<span>신청일시</span><strong
-							th:text="${#temporals.format(selected.createdAt,'yyyy.MM.dd HH:mm')}">-</strong>
-					</div>
-					<div>
-						<span>현재 상태</span><strong th:text="${s}">-</strong>
-					</div>
-				</div>
-				<!-- 1. 심사 시작 -->
-				<form th:if="${s == 'PENDING'}" class="review-action-form"
-					th:action="@{/employee/loans/review/{id}/start(id=${selected.id})}"
-					method="post">
-					<input type="hidden" th:if="${_csrf != null}"
-						th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-					<p>신청 내용을 확인한 후 심사를 시작하세요.</p>
-					<button type="submit" class="btn-review"
-						onclick="return confirm('심사를 시작하시겠습니까?')">심사 시작</button>
-				</form>
-				<!-- 2. 심사중: 승인, 서류보완, 거절 -->
-				<div class="review-action-area" th:if="${s == 'REVIEWING'}">
-					<h3>대출 승인 심사</h3>
-					<form class="approval-form"
-						th:action="@{/employee/loans/review/{id}/approve(id=${selected.id})}"
-						method="post">
-						<input type="hidden" th:if="${_csrf != null}"
-							th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-						<div class="form-grid">
-							<label>승인금액 (원) <input type="number"
-								name="approvedAmount" min="1" step="1"
-								th:max="${selected.requestedAmount}" required>
-							</label> <label>승인금리 (연 %) <input type="number"
-								name="approvedInterestRate" min="0" max="100" step="0.0001"
-								required>
-							</label> <label>상환방식 <span
-								th:text="${selected.repaymentMethod == 'EQUAL' ? '원리금균등상환' : selected.repaymentMethod == 'PRINCIPAL' ? '원금균등상환' : selected.repaymentMethod == 'BULLET' ? '만기일시상환' : '미지정'}">-</span>
-							</label> <label>대출 시작일시 <input type="datetime-local"
-								name="startDate" required>
-							</label>
-						</div>
-						<button type="submit" class="btn-approve"
-							onclick="return confirm('대출 심사를 승인하시겠습니까?')">대출 승인</button>
-					</form>
-					<div class="review-reason-grid">
-						<form class="review-reason-form"
-							th:action="@{/employee/loans/review/{id}/request-info(id=${selected.id})}"
-							method="post">
-							<input type="hidden" th:if="${_csrf != null}"
-								th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-							<label for="additionalReason">추가 서류 요청 사유</label>
-							<textarea id="additionalReason" name="reason" rows="4"
-								maxlength="500" placeholder="예: 최근 3개월 급여명세서를 제출해 주세요." required></textarea>
-							<button type="submit" class="btn-info"
-								onclick="return confirm('추가 서류를 요청하시겠습니까?')">추가 서류 요청</button>
-						</form>
-						<form class="review-reason-form"
-							th:action="@{/employee/loans/review/{id}/reject(id=${selected.id})}"
-							method="post">
-							<input type="hidden" th:if="${_csrf != null}"
-								th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-							<label for="rejectionReason">대출 거절 사유 (고객 안내용)</label>
-							<textarea id="rejectionReason" name="reason" rows="4"
-								maxlength="500" placeholder="고객에게 안내할 거절 사유를 입력하세요." required></textarea>
-							<button type="submit" class="btn-reject"
-								onclick="return confirm('대출 심사를 거절하시겠습니까?')">심사 거절</button>
-						</form>
-					</div>
-				</div>
-				<!-- 3. 추가 서류 요청 중 -->
-				<div th:if="${s == 'ADDITIONAL_INFO'}"
-					class="review-result info-result">
-					<h3>추가 서류 요청 중입니다.</h3>
-					<p
-						th:text="${selected.additionalInfoReason ?: '추가 서류 요청 사유가 없습니다.'}">-</p>
-					<form
-						th:action="@{/employee/loans/review/{id}/resume(id=${selected.id})}"
-						method="post" class="review-resume-form">
-						<input type="hidden" th:if="${_csrf != null}"
-							th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-						<p>필요한 서류가 실제로 제출되었는지 확인한 후 심사를 재개하세요.</p>
-						<button type="submit" class="btn-review"
-							onclick="return confirm('서류를 확인하고 심사를 재개하시겠습니까?')">심사 재개</button>
-					</form>
-				</div>
-				<!-- 4. 승인 결과 -->
-				<div th:if="${s == 'APPROVED'}"
-					class="review-result approved-result">
-					<h3>대출 심사가 승인되었습니다.</h3>
-					<p th:if="${selected.approvedAmount != null}"
-						th:text="|승인금액: ${#numbers.formatDecimal(selected.approvedAmount,1,'COMMA',0,'POINT')}원|">-</p>
-					<p th:if="${selected.approvedInterestRate != null}"
-						th:text="|승인금리: 연 ${selected.approvedInterestRate}%|">-</p>
-					<p th:if="${selected.reviewedAt != null}"
-						th:text="|승인일시: ${#temporals.format(selected.reviewedAt,'yyyy.MM.dd HH:mm')}|">-</p>
-					<!-- 대출 실행 페이지 이동 -->
-					<a class="btn-loan-execute"
-					   th:href="@{/employee/loans/execute/{id}(id=${selected.id})}">
-						대출 실행하기
-					</a>
-				</div>
-				<!-- 5. 거절 결과 -->
-				<div th:if="${s == 'REJECTED'}"
-					class="review-result rejected-result">
-					<h3>대출 심사가 거절되었습니다.</h3>
-					<p th:text="${selected.rejectionReason ?: '거절 사유가 등록되지 않았습니다.'}">-</p>
-				</div>
-				<!-- 6. 취소·만료 -->
-				<div th:if="${s == 'CANCELLED' or s == 'EXPIRED'}"
-					class="review-result closed-result">
-					<h3
-						th:text="${s == 'CANCELLED' ? '고객이 대출 신청을 취소했습니다.' : '승인 유효기간이 만료되었습니다.'}">처리
-						종료</h3>
-					<p>이 신청 건은 현재 직원 심사 대상이 아닙니다.</p>
-				</div>
-			</section>
+
 		</div>
 	</main>
 	<div th:replace="~{fragments/footer :: footerFragment}"></div>

@@ -34,12 +34,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 
 // 계좌 이체 (당행 즉시이체)
 // 잔액 변경, 거래내역 2행(보냄/받음), 이체 1행 기록을 한 트랜잭션에서 한다
 // 이체 1건의 세 행은 같은 거래 번호(transaction_sqno)로 묶는다
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class AccountTransferService {
 
 	// members 한도 컬럼이 비어 있을 때 쓰는 기본 한도 (2026-10-15 사용자 결정)
@@ -254,11 +256,20 @@ public class AccountTransferService {
 	                "대출 실행 금액이 일치하지 않습니다.");
 	    }
 
-	    if (account.getAccountType() != AccountType.CHECKING
-	            || account.getAccountStatus() != AccountStatus.ACTIVE) {
+	    
+	    if (!"CHECKING".equals(account.getAccountType())
+	            || !"ACTIVE".equals(account.getAccountStatus())) {
 	        throw new IllegalStateException(
 	                "대출금을 지급할 수 없는 계좌입니다.");
 	    }
+	    
+	    // enum 처리 요망
+//	    if (account.getAccountType() != AccountType.CHECKING
+//	            || account.getAccountStatus() != AccountStatus.ACTIVE) {
+//	        throw new IllegalStateException(
+//	                "대출금을 지급할 수 없는 계좌입니다.");
+//	    }
+
 
 	    if (accountTransactionRepository
 	            .existsByLoanAccountIdAndTransactionType(

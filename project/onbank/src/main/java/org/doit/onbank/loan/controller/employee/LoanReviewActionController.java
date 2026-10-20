@@ -131,9 +131,7 @@ public class LoanReviewActionController {
         return redirect(id);
     }
 
-    // 6. 심사 상세 페이지로 이동
     private String redirect(Long id) {
-
-        return "redirect:/employee/loans/review?id=" + id;
+    	return "redirect:/employee/loans/review/" + id;
     }
 }

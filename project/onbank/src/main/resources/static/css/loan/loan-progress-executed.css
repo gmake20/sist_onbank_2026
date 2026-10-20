@@ -1,0 +1,10 @@
+/* ONBANK 고객용 대출 진행현황 - 실행완료 상태 추가 */
+.summary-card-executed { border: 1px solid #b9dfc8; background: #effaf3; }
+.summary-card-executed strong { color: #167b43; }
+.status-badge.status-executed { background: #e9f7ee; color: #166c3e; border: 1px solid #bce0c9; }
+.progress-message.message-executed { border: 1px solid #bce0c9; background: #f2fbf5; color: #175e3c; }
+.execution-success-panel { display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; margin-top: 18px; background: #f0faf4; border: 1px solid #bce0c9; border-radius: 12px; color: #164c30; }
+.execution-success-icon { display: inline-grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 50%; background: #20894c; color: #fff; font-weight: 800; }
+.execution-success-panel strong { display: block; margin-bottom: 6px; font-size: 16px; }
+.execution-success-panel p { margin: 0; line-height: 1.6; font-size: 14px; }
+@media (max-width: 640px) { .execution-success-panel { padding: 15px; gap: 10px; } }

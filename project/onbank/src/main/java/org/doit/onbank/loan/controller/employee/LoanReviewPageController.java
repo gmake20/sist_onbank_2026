@@ -31,164 +31,188 @@ import lombok.RequiredArgsConstructor;
 @PreAuthorize("hasAnyRole('STAFF', 'MANAGER')")
 public class LoanReviewPageController {
 
-    private final LoanApplicationRepository applicationRepository;
-    private final LoanExecutionService loanExecutionService;
-    private final AccountRepository accountRepository;
+	private final LoanApplicationRepository applicationRepository;
+	private final LoanExecutionService loanExecutionService;
+	private final AccountRepository accountRepository;
 
-    
-    @GetMapping("/review")
-    public String reviewPage(
-            @RequestParam(name = "id", required = false)
-            Long id,
 
-            @RequestParam(name = "status", required = false)
-            LoanApplicationStatus status,
+	@GetMapping("/review")
+	public String reviewPage(
+			@RequestParam(name = "id", required = false)
+			Long id,
 
-            @AuthenticationPrincipal
-            EmployeePrincipal employee,
+			@RequestParam(name = "status", required = false)
+			LoanApplicationStatus status,
 
-            Model model) {
+			@AuthenticationPrincipal
+			EmployeePrincipal employee,
 
-        // 1. 직원 로그인 정보 확인
-        if (employee == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "은행 직원 로그인이 필요합니다."
-            );
-        }
+			Model model) {
 
-        // 2. 대출 신청 목록 조회
-        List<LoanApplication> all =
-                applicationRepository
-                        .findAllByOrderByCreatedAtDesc();
+		// 1. 직원 로그인 정보 확인
+		if (employee == null) {
+			throw new ResponseStatusException(
+					HttpStatus.FORBIDDEN,
+					"은행 직원 로그인이 필요합니다."
+					);
+		}
 
-        // 3. 상태별 필터링
-        List<LoanApplication> filtered =
-                status == null
-                    ? all
-                    : all.stream()
-                        .filter(application ->
-                                application.getStatus() == status
-                        )
-                        .toList();
+		// 2. 대출 신청 목록 조회
+		List<LoanApplication> all =
+				applicationRepository
+				.findAllByOrderByCreatedAtDesc();
 
-        // 4. 선택한 대출 신청 상세 조회
-        LoanApplication selected = null;
+		// 3. 상태별 필터링
+		List<LoanApplication> filtered =
+				status == null
+				? all
+						: all.stream()
+						.filter(application ->
+						application.getStatus() == status
+								)
+						.toList();
 
-        if (id != null) {
+		// 4. 선택한 대출 신청 상세 조회
+		LoanApplication selected = null;
 
-            selected = all.stream()
-                    .filter(application ->
-                            id.equals(application.getId())
-                    )
-                    .findFirst()
-                    .orElseThrow(() ->
-                            new ResponseStatusException(
-                                    HttpStatus.NOT_FOUND,
-                                    "대출 신청이 존재하지 않습니다."
-                            )
-                    );
-        }
+		if (id != null) {
 
-        // 5. 신청 목록 및 상세 정보
-        model.addAttribute("applications", filtered);
-        model.addAttribute("selected", selected);
+			selected = all.stream()
+					.filter(application ->
+					id.equals(application.getId())
+							)
+					.findFirst()
+					.orElseThrow(() ->
+					new ResponseStatusException(
+							HttpStatus.NOT_FOUND,
+							"대출 신청이 존재하지 않습니다."
+							)
+							);
+		}
 
-        // 6. 현재 필터 상태
-        model.addAttribute("currentStatus", status);
-        model.addAttribute(
-                "statusValues",
-                LoanApplicationStatus.values()
-        );
+		// 5. 신청 목록 및 상세 정보
+		model.addAttribute("applications", filtered);
+		model.addAttribute("selected", selected);
 
-        // 7. 상태별 건수
-        model.addAttribute("totalCount", all.size());
+		// 6. 현재 필터 상태
+		model.addAttribute("currentStatus", status);
+		model.addAttribute(
+				"statusValues",
+				LoanApplicationStatus.values()
+				);
 
-        model.addAttribute(
-                "pendingCount",
-                count(all, LoanApplicationStatus.PENDING)
-        );
+		// 7. 상태별 건수
+		model.addAttribute("totalCount", all.size());
 
-        model.addAttribute(
-                "reviewingCount",
-                count(all, LoanApplicationStatus.REVIEWING)
-        );
+		model.addAttribute(
+				"pendingCount",
+				count(all, LoanApplicationStatus.PENDING)
+				);
 
-        model.addAttribute(
-                "additionalCount",
-                count(all, LoanApplicationStatus.ADDITIONAL_INFO)
-        );
+		model.addAttribute(
+				"reviewingCount",
+				count(all, LoanApplicationStatus.REVIEWING)
+				);
 
-        model.addAttribute(
-                "approvedCount",
-                count(all, LoanApplicationStatus.APPROVED)
-        );
+		model.addAttribute(
+				"additionalCount",
+				count(all, LoanApplicationStatus.ADDITIONAL_INFO)
+				);
 
-        model.addAttribute(
-                "rejectedCount",
-                count(all, LoanApplicationStatus.REJECTED)
-        );
+		model.addAttribute(
+				"approvedCount",
+				count(all, LoanApplicationStatus.APPROVED)
+				);
 
-        // 8. 직원 정보
-        model.addAttribute("employeeName", employee.getName());
-        model.addAttribute("employeeRole", employee.getRole());
-        model.addAttribute("employeeId", employee.getEmployeeId());
+		model.addAttribute(
+				"rejectedCount",
+				count(all, LoanApplicationStatus.REJECTED)
+				);
 
-        // 9. 페이지 반환
-        return "loan/employee-loan-review";
-    }
+		model.addAttribute("executedCount",
+				applicationRepository.countByStatus(
+						LoanApplicationStatus.EXECUTED));
 
-    // 상태별 건수 계산
-    private long count(
-            List<LoanApplication> applications,
-            LoanApplicationStatus status) {
+		// 8. 직원 정보
+		model.addAttribute("employeeName", employee.getName());
+		model.addAttribute("employeeRole", employee.getRole());
+		model.addAttribute("employeeId", employee.getEmployeeId());
 
-        return applications.stream()
-                .filter(application ->
-                        application.getStatus() == status
-                )
-                .count();
-    }
+		// 9. 페이지 반환
+		return "loan/employee-loan-review";
+	}
 
-    @GetMapping("/execute/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
-    public String executePage(
-            @PathVariable("id") Long id,
-            Model model) {
 
-        LoanApplication application =
-                loanExecutionService.findApprovedApplication(id);
+	@GetMapping("/review/{id}")
+	public String reviewDetail(
+	        @PathVariable("id") Long id,
+	        Model model) {
 
-        Account account = application.getDisbursementAccount();
-        
-        model.addAttribute("loanApplication", application);
-        model.addAttribute("recipientAccount", account);
+	    LoanApplication selected = applicationRepository
+	            .findById(id)
+	            .orElseThrow(() ->
+	                new IllegalArgumentException(
+	                    "대출 신청 내역이 없습니다."
+	                )
+	            );
 
-        return "employee/loan/employee-loan-execute";
-    }
-    
-    @PostMapping("/execute/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
-    public String executeLoan(
-            @PathVariable("id") Long id,
-            @AuthenticationPrincipal EmployeePrincipal employee,
-            RedirectAttributes redirectAttributes) {
+	    model.addAttribute("selected", selected);
 
-        if (employee == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "직원 로그인이 필요합니다."
-            );
-        }
+	    return "loan/employee-loan-review-detail";
+	}
 
-        
-        loanExecutionService.execute(id, employee.getEmployeeId());
 
-        redirectAttributes.addFlashAttribute(
-                "successMessage",
-                "대출 실행 요청이 처리되었습니다."
-        );
+	// 상태별 건수 계산
+	private long count(
+			List<LoanApplication> applications,
+			LoanApplicationStatus status) {
 
-        return "redirect:/employee/loans/review?id=" + id;
-    }
+		return applications.stream()
+				.filter(application ->
+				application.getStatus() == status
+						)
+				.count();
+	}
+
+	@GetMapping("/execute/{id}")
+	@PreAuthorize("hasRole('MANAGER')")
+	public String executePage(
+			@PathVariable("id") Long id,
+			Model model) {
+
+		LoanApplication application =
+				loanExecutionService.findApprovedApplication(id);
+
+		Account account = application.getDisbursementAccount();
+
+		model.addAttribute("loanApplication", application);
+		model.addAttribute("recipientAccount", account);
+
+		return "employee/loan/employee-loan-execute";
+	}
+
+	@PostMapping("/execute/{id}")
+	@PreAuthorize("hasRole('MANAGER')")
+	public String executeLoan(
+			@PathVariable("id") Long id,
+			@AuthenticationPrincipal EmployeePrincipal employee,
+			RedirectAttributes redirectAttributes) {
+
+		if (employee == null) {
+			throw new ResponseStatusException(
+					HttpStatus.UNAUTHORIZED,
+					"직원 로그인이 필요합니다."
+					);
+		}
+
+
+		loanExecutionService.execute(id, employee.getEmployeeId());
+
+		redirectAttributes.addFlashAttribute(
+				"successMessage",
+				"대출 실행 요청이 처리되었습니다."
+				);
+
+		return "redirect:/employee/loans/review?id=" + id;
+	}
 }

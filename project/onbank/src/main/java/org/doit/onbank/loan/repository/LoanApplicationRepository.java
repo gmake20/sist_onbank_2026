@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.doit.onbank.loan.entity.LoanApplication;
+import org.doit.onbank.loan.entity.LoanApplicationStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -40,5 +41,5 @@ public interface LoanApplicationRepository
     List<LoanApplication> findAllByOrderByCreatedAtDesc();
     
     
- 
+    long countByStatus(LoanApplicationStatus status);
 }

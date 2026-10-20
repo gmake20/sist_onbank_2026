@@ -1,0 +1,18 @@
+/* ONBANK - 대출 심사 상세 전용 스타일. 기존 review.css는 유지합니다. */
+.loan-review-detail-page .admin-loan-container { max-width: 1080px; margin: 0 auto; }
+.loan-review-detail-page .admin-loan-heading { margin-bottom: 28px; }
+.detail-back-link { display: inline-flex; align-items: center; margin-top: 20px; padding: 10px 16px; border: 1px solid #dce3ed; border-radius: 10px; background: #fff; color: #324761; font-size: 14px; font-weight: 600; text-decoration: none; transition: background .15s, border-color .15s; }
+.detail-back-link:hover { background: #f3f7fc; border-color: #b4c6dd; }
+.loan-review-detail-page .review-detail-section { display: block; margin-top: 16px; }
+.loan-review-detail-page .review-detail-grid { margin-bottom: 24px; }
+.loan-review-detail-page .review-action-form,
+.loan-review-detail-page .review-action-area,
+.loan-review-detail-page .review-result { margin-top: 22px; }
+.loan-review-detail-page .review-status.status-executed { color: #166534; background: #dcfce7; border: 1px solid #86efac; }
+@media (max-width: 640px) {
+  .loan-review-detail-page .admin-loan-container { padding-left: 16px; padding-right: 16px; }
+  .loan-review-detail-page .review-detail-grid,
+  .loan-review-detail-page .form-grid,
+  .loan-review-detail-page .review-reason-grid { grid-template-columns: 1fr; }
+  .detail-back-link { width: 100%; justify-content: center; }
+}
