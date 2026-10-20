@@ -11,7 +11,7 @@ public record AssetReportView(
 		YearMonth month,					// 기준년월
 		List<YearMonth> selectableMonths,	// 월 선택 목록 (최근 12개월, 최신순)
 		long totalAssets,					// 총자산 : 입출금 + 예금 + 적금 잔액
-		long loanBalance,					// 대출 잔액 : 승인된 대출 원금 - 갚은 원금
+		long loanBalance,					// 대출 잔액 : 실행된 대출의 남은 원금 합계
 		long netAssets,						// 순자산 : 총자산 - 대출 잔액
 		Summary summary,					// 기준월 입출금 (지난달 대비)
 		List<Slice> composition,			// 자산 구성 (도넛)
@@ -45,7 +45,7 @@ public record AssetReportView(
 	public record ItemBar(String label, long amount, double width, String note, boolean connected) {
 	}
 
-	public record LoanRow(String productName, long approvedAmount, long remaining, double repaidPercent,
+	public record LoanRow(String productName, long principalAmount, long remaining, double repaidPercent,
 			BigDecimal interestRate, long monthlyInterestEstimate, String maturityDate, String nextDueDate) {
 	}
 

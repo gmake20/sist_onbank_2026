@@ -112,7 +112,7 @@ class AccountPageControllerTests {
 		given(accountService.getMyAccount(MEMBER_ID, ACCOUNT_ID)).willReturn(account);
 	}
 
-	private Account account(String status, long balance) {
+	private Account account(AccountStatus status, long balance) {
 		Account account = Account.builder()
 				.memberId(MEMBER_ID)
 				.accountNumber("TEST-0001")

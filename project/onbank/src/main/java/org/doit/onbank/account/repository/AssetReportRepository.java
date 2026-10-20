@@ -11,7 +11,8 @@ import org.springframework.data.repository.query.Param;
 
 // 자산 리포트 저장 + 리포트에 쓰는 집계 조회
 // asset_report.account_id 에는 회원 ID(member_id)를 넣는다 (데이터 사전 "기준 계좌 (또는 회원)", 리포트는 회원 단위)
-// 팀3 테이블(loan_application, loan_repayment_schedule, product_subscription, product, productcard, card_usage_history)은
+// 팀3 테이블(loan_account, loan_application, loan_product, loan_repayment_schedule, account_loan_transaction,
+// product_subscription, product, productcard, card_usage_history)은
 // 팀3 엔티티를 고치지 않고 SQL로 읽기만 한다. 팀3 테이블 구조가 바뀌면 이 SQL도 맞춰야 한다
 public interface AssetReportRepository extends JpaRepository<AssetReport, Long> {
 
@@ -39,11 +40,15 @@ public interface AssetReportRepository extends JpaRepository<AssetReport, Long> 
 	List<MonthlyCashFlow> findMonthlyCashFlows(@Param("memberId") Long memberId,
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-	// 월별 대출 상환액 (팀3) : 납부한 회차의 원금 + 이자
-	@Query(value = "SELECT DATE_FORMAT(s.PAID_AT, '%Y%m') AS ym, CAST(COALESCE(SUM(s.TOTAL_AMOUNT), 0) AS SIGNED) AS amount"
-			+ " FROM loan_repayment_schedule s JOIN loan_application la ON la.APPLICATION_ID = s.APPLICATION_ID"
-			+ " WHERE la.MEMBER_ID = :memberId AND s.PAID_AT >= :from AND s.PAID_AT < :to"
-			+ " GROUP BY DATE_FORMAT(s.PAID_AT, '%Y%m')", nativeQuery = true)
+	// 월별 대출 상환액 (팀3) : 대출 상환으로 출금된 금액 (원금 + 이자)
+	// 상환 스케줄의 PAID_AT 은 채워지지 않아 상환 거래 기록(account_loan_transaction)으로 센다
+	@Query(value = "SELECT DATE_FORMAT(t.TRANSACTED_AT, '%Y%m') AS ym, CAST(COALESCE(SUM(t.AMOUNT), 0) AS SIGNED) AS amount"
+			+ " FROM account_loan_transaction t"
+			+ " JOIN loan_account la ON la.LOAN_ACCOUNT_ID = t.LOAN_ACCOUNT_ID"
+			+ " JOIN loan_application ap ON ap.APPLICATION_ID = la.APPLICATION_ID"
+			+ " WHERE ap.MEMBER_ID = :memberId AND t.TRANSACTION_TYPE = 'LOAN_REPAYMENT'"
+			+ " AND t.TRANSACTED_AT >= :from AND t.TRANSACTED_AT < :to"
+			+ " GROUP BY DATE_FORMAT(t.TRANSACTED_AT, '%Y%m')", nativeQuery = true)
 	List<MonthlyAmount> findMonthlyLoanPayments(@Param("memberId") Long memberId,
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
@@ -55,18 +60,19 @@ public interface AssetReportRepository extends JpaRepository<AssetReport, Long> 
 	List<MonthlyAmount> findMonthlyCardUsage(@Param("memberId") Long memberId,
 			@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-	// 승인된 대출 (팀3) : 대출 실행 기능이 아직 없어 승인 건을 대출로 본다
-	@Query(value = "SELECT la.APPLICATION_ID AS applicationId, lp.PRODUCT_NAME AS productName,"
-			+ " CAST(la.APPROVED_AMOUNT AS SIGNED) AS approvedAmount, la.APPROVED_INTEREST_RATE AS interestRate,"
-			+ " DATE_FORMAT(la.MATURITY_DATE, '%Y-%m-%d') AS maturityDate,"
-			+ " (SELECT CAST(COALESCE(SUM(s.PRINCIPAL_AMOUNT), 0) AS SIGNED) FROM loan_repayment_schedule s"
-			+ "   WHERE s.APPLICATION_ID = la.APPLICATION_ID AND s.PAID_AT IS NOT NULL) AS repaidPrincipal,"
+	// 실행된 대출 (팀3) : 대출 계좌(loan_account) 기준, 완납(CLOSED)은 뺀다
+	// 승인만 된 신청은 아직 돈이 나가지 않았으므로 넣지 않는다
+	@Query(value = "SELECT la.LOAN_ACCOUNT_ID AS loanAccountId, lp.PRODUCT_NAME AS productName,"
+			+ " CAST(la.PRINCIPAL_AMOUNT AS SIGNED) AS principalAmount, CAST(la.REMAINING_BALANCE AS SIGNED) AS remainingBalance,"
+			+ " la.INTEREST_RATE AS interestRate, DATE_FORMAT(la.MATURITY_DATE, '%Y-%m-%d') AS maturityDate,"
 			+ " (SELECT DATE_FORMAT(MIN(s.DUE_DATE), '%Y-%m-%d') FROM loan_repayment_schedule s"
-			+ "   WHERE s.APPLICATION_ID = la.APPLICATION_ID AND s.PAID_AT IS NULL) AS nextDueDate"
-			+ " FROM loan_application la LEFT JOIN loan_product lp ON lp.LOAN_PRODUCT_ID = la.PRODUCT_ID"
-			+ " WHERE la.MEMBER_ID = :memberId AND la.STATUS = 'APPROVED'"
-			+ " ORDER BY la.APPLICATION_ID", nativeQuery = true)
-	List<LoanSummary> findApprovedLoans(@Param("memberId") Long memberId);
+			+ "   WHERE s.LOAN_ACCOUNT_ID = la.LOAN_ACCOUNT_ID AND (s.STATUS IS NULL OR s.STATUS <> 'PAID')) AS nextDueDate"
+			+ " FROM loan_account la"
+			+ " JOIN loan_application ap ON ap.APPLICATION_ID = la.APPLICATION_ID"
+			+ " LEFT JOIN loan_product lp ON lp.LOAN_PRODUCT_ID = ap.PRODUCT_ID"
+			+ " WHERE ap.MEMBER_ID = :memberId AND la.STATUS <> 'CLOSED'"
+			+ " ORDER BY la.LOAN_ACCOUNT_ID", nativeQuery = true)
+	List<LoanSummary> findActiveLoans(@Param("memberId") Long memberId);
 
 	// 가입 중인 예적금 (팀3) : 해지한 가입은 뺀다
 	@Query(value = "SELECT p.PRODUCT_NAME AS productName, p.PRODUCT_TYPE AS productType,"

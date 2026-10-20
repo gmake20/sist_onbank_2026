@@ -64,7 +64,7 @@ class AccountOpenServiceTests {
 					.isInstanceOf(IllegalArgumentException.class)
 					.hasMessageContaining("4자리");
 		}
-		verify(accountNumberGenerator, never()).generate(anyString());
+		verify(accountNumberGenerator, never()).generate(any());
 		verify(accountRepository, never()).save(any());
 	}
 }

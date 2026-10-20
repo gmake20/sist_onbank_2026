@@ -93,6 +93,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
         confirmButton.disabled = !(toAccountInput.value.trim() && amount >= 1);
     }
+    // 입력값 임시 저장 : [OTP 등록하기]로 OTP 화면에 갔다가 돌아오면 입력하던 값을 다시 채운다
+    // 비밀번호·OTP 번호는 저장하지 않는다. 이 탭에서만 유지(sessionStorage)되고, 30분이 지나거나 한 번 복원하면 지운다
+    const DRAFT_KEY = 'onbank.transferDraft';
+    const DRAFT_MINUTES = 30;
+    const memoInputs = ['senderMemo', 'receiverMemo'].map((name) => form.elements[name]).filter(Boolean);
+
+    document.querySelectorAll('.js-otp-register').forEach((link) => {
+        link.addEventListener('click', () => {
+            const draft = {
+                savedAt: Date.now(),
+                fromAccountId: fromSelect ? fromSelect.value : '',
+                toAccountNumber: toAccountInput.value,
+                amount: amountInput.value,
+                memos: Object.fromEntries(memoInputs.map((input) => [input.name, input.value]))
+            };
+            try {
+                sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+            } catch (e) {
+                // 저장할 수 없는 환경이면 복원 없이 이동한다
+            }
+        });
+    });
+
+    (function restoreDraft() {
+        let draft = null;
+        try {
+            draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY));
+            sessionStorage.removeItem(DRAFT_KEY);
+        } catch (e) {
+            return;
+        }
+        // 오래된 값이거나, 서버가 이미 값을 채워 그린 화면(이체 실패 후 다시 그림 등)이면 복원하지 않는다
+        if (!draft || Date.now() - draft.savedAt > DRAFT_MINUTES * 60 * 1000
+                || amountInput.value || toAccountInput.value) {
+            return;
+        }
+        if (fromSelect && fromSelect.querySelector('option[value="' + draft.fromAccountId + '"]')) {
+            fromSelect.value = draft.fromAccountId;
+            fromSelect.dispatchEvent(new Event('change'));
+        }
+        toAccountInput.value = draft.toAccountNumber || '';
+        amountInput.value = draft.amount || '';
+        memoInputs.forEach((input) => {
+            input.value = (draft.memos && draft.memos[input.name]) || '';
+        });
+    })();
+
     amountInput.addEventListener('input', updateAmountGuide);
     toAccountInput.addEventListener('input', updateAmountGuide);
     updateAmountGuide();

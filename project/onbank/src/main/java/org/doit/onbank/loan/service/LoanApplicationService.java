@@ -15,6 +15,7 @@ import org.doit.onbank.member.repository.MemberRepository;
 
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.repository.AccountRepository;
 
 import org.springframework.http.HttpStatus;
@@ -155,14 +156,14 @@ public class LoanApplicationService {
                 );
 
         // 입출금계좌인지 검증
-        if (!"CHECKING".equals(account.getAccountType())) {
+        if (account.getAccountType() != AccountType.CHECKING) {
             throw new IllegalArgumentException(
                     "입출금계좌만 대출금 수령 계좌로 선택할 수 있습니다."
             );
         }
 
         // 정상 계좌인지 검증
-        if (!AccountStatus.ACTIVE.equals(account.getAccountStatus())) {
+        if (account.getAccountStatus() != AccountStatus.ACTIVE) {
             throw new IllegalArgumentException(
                     "정상 상태의 계좌만 선택할 수 있습니다."
             );

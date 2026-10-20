@@ -8,7 +8,7 @@
   - **명시**: `members.daily_transfer_limit`, `members.once_transfer_limit`(팀원1 테이블)는 개인의 한도 금액을 정해 두는 값입니다.
   - **누적**: `account.today_transfer_amount`는 그 계좌에서 오늘 이체한 금액이 쌓이는 값이며, 날짜가 바뀌면 0으로 초기화합니다.
   - 1일 한도 비교는 계좌별로 합니다: `today_transfer_amount + 이번 이체 금액 ≤ daily_transfer_limit`
-- 유형·상태 컬럼은 엔티티에서 `String`으로 두고, 확정된 값은 상수 클래스(`AccountStatus`, `TransactionType`, `TransactionStatus`)로 참조합니다. `account_type`, `transfer_type` 값은 아직 미정입니다.
+- 유형·상태 컬럼은 엔티티에서 `String`으로 두고, 확정된 값은 상수 클래스(`TransactionType`, `TransactionStatus`)로 참조합니다. 단 `account_status`, `account_type`은 10-20부터 enum(`AccountStatus`, `AccountType`)으로 매핑합니다 (저장값은 같음). `account_type`, `transfer_type` 값은 아직 미정입니다.
 - 현금 출금은 이체 한도와 별개입니다. `today_transfer_amount`에는 이체만 누적합니다.
 - 다른 테이블을 가리키는 컬럼은 연관관계 없이 `Long` ID 필드로 매핑합니다.
 

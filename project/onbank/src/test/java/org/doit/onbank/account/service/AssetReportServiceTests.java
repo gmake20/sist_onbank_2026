@@ -62,13 +62,13 @@ class AssetReportServiceTests {
 		lenient().when(assetReportRepository.findMonthlyCashFlows(eq(MEMBER_ID), any(), any())).thenReturn(List.of());
 		lenient().when(assetReportRepository.findMonthlyLoanPayments(eq(MEMBER_ID), any(), any())).thenReturn(List.of());
 		lenient().when(assetReportRepository.findMonthlyCardUsage(eq(MEMBER_ID), any(), any())).thenReturn(List.of());
-		lenient().when(assetReportRepository.findApprovedLoans(MEMBER_ID)).thenReturn(List.of());
+		lenient().when(assetReportRepository.findActiveLoans(MEMBER_ID)).thenReturn(List.of());
 		lenient().when(assetReportRepository.findActiveSubscriptions(MEMBER_ID)).thenReturn(List.of());
 		lenient().when(assetReportRepository.findByAccountIdAndStandardYearMonthIn(eq(MEMBER_ID), anyCollection()))
 				.thenReturn(List.of());
 	}
 
-	private Account account(String type, String status, long balance) {
+	private Account account(AccountType type, AccountStatus status, long balance) {
 		return Account.builder().memberId(MEMBER_ID).accountType(type).accountStatus(status).balance(balance).build();
 	}
 
@@ -90,14 +90,14 @@ class AssetReportServiceTests {
 		};
 	}
 
-	private LoanSummary loan(long approved, long repaid, String rate) {
+	private LoanSummary loan(long principal, long remaining, String rate) {
 		return new LoanSummary() {
-			public Long getApplicationId() { return 8L; }
+			public Long getLoanAccountId() { return 8L; }
 			public String getProductName() { return "직장인 신용대출"; }
-			public Long getApprovedAmount() { return approved; }
+			public Long getPrincipalAmount() { return principal; }
+			public Long getRemainingBalance() { return remaining; }
 			public BigDecimal getInterestRate() { return new BigDecimal(rate); }
 			public String getMaturityDate() { return "2028-10-19"; }
-			public Long getRepaidPrincipal() { return repaid; }
 			public String getNextDueDate() { return null; }
 		};
 	}
@@ -126,7 +126,7 @@ class AssetReportServiceTests {
 	@Test
 	void netAssetsSubtractsRemainingLoanPrincipal() {
 		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account(null, AccountStatus.ACTIVE, 500_000L)));
-		given(assetReportRepository.findApprovedLoans(MEMBER_ID)).willReturn(List.of(loan(10_000_000L, 1_000_000L, "4.0000")));
+		given(assetReportRepository.findActiveLoans(MEMBER_ID)).willReturn(List.of(loan(10_000_000L, 9_000_000L, "4.0000")));
 
 		AssetReportView view = service.getReport(MEMBER_ID, thisMonth);
 
@@ -146,7 +146,7 @@ class AssetReportServiceTests {
 				flow(last, 100_000L, 40_000L, 0L, 0L, 0L),
 				flow(thisMonth, 200_000L, 30_000L, 50_000L, 12_000L, 80_000L)));
 		given(assetReportRepository.findMonthlyLoanPayments(eq(MEMBER_ID), any(), any()))
-				.willReturn(List.of(amount(thisMonth, 300_000L)));
+				.willReturn(List.of(amount(thisMonth, 20_000L)));
 
 		AssetReportView view = service.getReport(MEMBER_ID, thisMonth);
 
@@ -158,13 +158,14 @@ class AssetReportServiceTests {
 		assertThat(current.getAccountId()).isEqualTo(MEMBER_ID);	// 회원 ID 저장
 		assertThat(current.getStandardYearMonth()).isEqualTo(thisMonth.format(YM));
 		assertThat(current.getSavingsAmount()).isEqualTo(50_000L);
-		assertThat(current.getLoanInterestRepaymentAmount()).isEqualTo(300_000L);
+		assertThat(current.getLoanInterestRepaymentAmount()).isEqualTo(20_000L);
+		assertThat(current.getRecentWithdrawalAmount()).isEqualTo(50_000L);	// 출금 30,000 + 대출 상환 20,000
 		assertThat(current.getUtilityBillAmount()).isEqualTo(12_000L);
 		assertThat(current.getMaintenanceFeeAmount()).isEqualTo(80_000L);
 		assertThat(current.getInvestmentAmount()).isNull();	// 출처 없음
 
 		assertThat(view.summary().inDiff()).isEqualTo(100_000L);
-		assertThat(view.summary().outDiff()).isEqualTo(-10_000L);
+		assertThat(view.summary().outDiff()).isEqualTo(10_000L);
 		assertThat(view.trendMax()).isEqualTo(200_000L);
 		assertThat(view.trend().get(5).selected()).isTrue();
 		assertThat(view.trend().get(5).inHeight()).isEqualTo(100.0);
@@ -190,6 +191,33 @@ class AssetReportServiceTests {
 		assertThat(saved.getValue()).contains(existing);
 	}
 
+	@Test
+	void keepsSavedPastMonthsAndUsesLatestDuplicate() {
+		YearMonth last = thisMonth.minusMonths(1);
+		AssetReport empty = AssetReport.builder().accountId(MEMBER_ID)
+				.standardYearMonth(last.format(YM)).recentDepositAmount(0L).recentWithdrawalAmount(0L).build();
+		ReflectionTestUtils.setField(empty, "assetReportId", 1L);
+		AssetReport manual = AssetReport.builder().accountId(MEMBER_ID)	// 같은 달을 나중에 직접 넣은 행
+				.standardYearMonth(last.format(YM)).recentDepositAmount(4_120_000L).recentWithdrawalAmount(3_380_000L).build();
+		ReflectionTestUtils.setField(manual, "assetReportId", 26L);
+		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of());
+		given(assetReportRepository.findByAccountIdAndStandardYearMonthIn(eq(MEMBER_ID), anyCollection()))
+				.willReturn(List.of(manual, empty));
+		given(assetReportRepository.findMonthlyCashFlows(eq(MEMBER_ID), any(), any()))
+				.willReturn(List.of(flow(last, 1L, 1L, 0L, 0L, 0L)));	// 거래내역 값이 있어도 지난달은 다시 계산하지 않음
+
+		AssetReportView view = service.getReport(MEMBER_ID, thisMonth);
+
+		assertThat(view.trend().get(4).inAmount()).isEqualTo(4_120_000L);
+		assertThat(view.summary().inDiff()).isEqualTo(-4_120_000L);	// 이번 달 0 - 지난달 412만
+		assertThat(manual.getRecentDepositAmount()).isEqualTo(4_120_000L);
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<List<AssetReport>> saved = ArgumentCaptor.forClass(List.class);
+		verify(assetReportRepository).saveAll(saved.capture());
+		assertThat(saved.getValue()).hasSize(AssetReportService.TREND_MONTHS - 1)	// 지난달은 저장하지 않음
+				.noneMatch(r -> r.getStandardYearMonth().equals(last.format(YM)));
+	}
+
 	// ---------- 기준월 · 팀3 조회 실패 ----------
 
 	@Test
@@ -204,7 +232,7 @@ class AssetReportServiceTests {
 	@Test
 	void team3QueryFailureShowsWarningAndKeepsPage() {
 		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account(null, AccountStatus.ACTIVE, 10_000L)));
-		given(assetReportRepository.findApprovedLoans(MEMBER_ID))
+		given(assetReportRepository.findActiveLoans(MEMBER_ID))
 				.willThrow(new InvalidDataAccessResourceUsageException("Unknown column"));
 		given(assetReportRepository.findMonthlyLoanPayments(eq(MEMBER_ID), any(), any()))
 				.willThrow(new InvalidDataAccessResourceUsageException("Unknown column"));

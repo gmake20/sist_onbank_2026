@@ -80,7 +80,7 @@ class AccountTransferServiceTests {
 	@InjectMocks
 	private AccountTransferService service;
 
-	private Account account(Long accountId, Long memberId, String number, String status, long balance) {
+	private Account account(Long accountId, Long memberId, String number, AccountStatus status, long balance) {
 		Account account = Account.builder()
 				.memberId(memberId)
 				.accountNumber(number)

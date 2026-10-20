@@ -92,8 +92,8 @@
                         <td th:text="${account.accountNumber}">1002-862-******</td>
                         <td>
                             <th:block th:text="${account.lastTransactionAt != null} ? ${#temporals.format(account.lastTransactionAt, 'yyyy.MM.dd')} : '-'">2026.10.01</th:block>
-                            <th:block th:if="${account.accountStatus != 'ACTIVE'}"><br>
-                            <span class="sub-text" th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">한도제한계좌</span>
+                            <th:block th:if="${account.accountStatus?.name() != 'ACTIVE'}"><br>
+                            <span class="sub-text" th:text="${account.accountStatus?.label}">한도제한계좌</span>
                             </th:block>
                         </td>
                         <td class="balance" th:text="${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}">0</td>
@@ -154,8 +154,8 @@
                         <td th:text="${account.accountNumber}">1073-719-******</td>
                         <td>
                             <th:block th:text="${account.lastTransactionAt != null} ? ${#temporals.format(account.lastTransactionAt, 'yyyy.MM.dd')} : '-'">2026.10.01</th:block>
-                            <th:block th:if="${account.accountStatus != 'ACTIVE'}"><br>
-                            <span class="sub-text" th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">정상</span>
+                            <th:block th:if="${account.accountStatus?.name() != 'ACTIVE'}"><br>
+                            <span class="sub-text" th:text="${account.accountStatus?.label}">정상</span>
                             </th:block>
                         </td>
                         <td class="balance" th:text="${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}">0</td>
@@ -212,8 +212,8 @@
                         <td th:text="${account.accountNumber}">1073-719-******</td>
                         <td>
                             <th:block th:text="${account.lastTransactionAt != null} ? ${#temporals.format(account.lastTransactionAt, 'yyyy.MM.dd')} : '-'">2026.10.01</th:block>
-                            <th:block th:if="${account.accountStatus != 'ACTIVE'}"><br>
-                            <span class="sub-text" th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">정상</span>
+                            <th:block th:if="${account.accountStatus?.name() != 'ACTIVE'}"><br>
+                            <span class="sub-text" th:text="${account.accountStatus?.label}">정상</span>
                             </th:block>
                         </td>
                         <td class="balance" th:text="${#numbers.formatInteger(account.balance ?: 0, 1, 'COMMA')}">0</td>
