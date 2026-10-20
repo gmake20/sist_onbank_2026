@@ -125,9 +125,34 @@ public class Employee extends BaseEntity {
 		}
 	}
 
+	// ---------- 재직 상태 변경 (관리자 파트의 직원 계정 목록에서 호출) ----------
+	// 휴직·퇴사 직원은 EmployeePrincipal에서 로그인이 막힌다
+
+	// 휴직 : ACTIVE·LOCKED → ON_LEAVE
+	public void leave() {
+		status = EmployeeStatus.ON_LEAVE;
+	}
+
+	// 복직 : ON_LEAVE → ACTIVE, 실패 횟수 초기화
+	public void returnFromLeave() {
+		loginFailCount = 0;
+		loginLockedAt = null;
+		if (status == EmployeeStatus.ON_LEAVE) {
+			status = EmployeeStatus.ACTIVE;
+		}
+	}
+
+	// 퇴사 : → RETIRED. 되돌리지 않는다 (재입사는 새 사번)
+	// ck_employee_retired 때문에 status와 retired_at을 함께 바꾼다
+	public void retire(LocalDate retiredAt) {
+		this.status = EmployeeStatus.RETIRED;
+		this.retiredAt = retiredAt;
+	}
+
 	// 비밀번호 변경 (본인이 변경 화면에서). 임시 비밀번호 표시도 해제한다
 	public void changePassword(String encodedPassword) {
 		this.password = encodedPassword;
 		this.tempPassword = false;
 	}
+
 }

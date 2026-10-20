@@ -76,7 +76,7 @@ public class AdminManageController {
     }
 
     // 비활성화 알림
-    @PostMapping("{/adminId}/deactivate")
+    @PostMapping("/{adminId}/deactivate")
     public String deactivate (@AuthenticationPrincipal AdminPrincipal me, @PathVariable("adminId") Long adminId,
                              @RequestParam("reason") String reason, HttpServletRequest request,RedirectAttributes rttr
                              ) {
@@ -91,12 +91,12 @@ public class AdminManageController {
     }
 
     // 활성화, 알림
-    @PostMapping("{/adminId}/activate")
+    @PostMapping("/{adminId}/activate")
     public String activate (@AuthenticationPrincipal AdminPrincipal me, @PathVariable("adminId") Long adminId,
                               @RequestParam("reason") String reason, HttpServletRequest request,RedirectAttributes rttr
                                 ) {
         try {
-            adminManageService.deactivate(me, adminId, reason, request.getRemoteAddr());
+            adminManageService.activate(me, adminId, reason, request.getRemoteAddr());
             rttr.addFlashAttribute("message", "계정을 활성화했습니다.");
 
         } catch (BusinessException e) {
@@ -106,12 +106,12 @@ public class AdminManageController {
     }
 
     // 잠금해제, 알림
-    @PostMapping("{/adminId}/unlock")
+    @PostMapping("/{adminId}/unlock")
     public String unlock(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("adminId") Long adminId,
                             @RequestParam("reason") String reason, HttpServletRequest request,RedirectAttributes rttr
     ) {
         try {
-            adminManageService.deactivate(me, adminId, reason, request.getRemoteAddr());
+            adminManageService.unlock(me, adminId, reason, request.getRemoteAddr());
             rttr.addFlashAttribute("message", "로그인 잠금을 해제했습니다.");
 
         } catch (BusinessException e) {
