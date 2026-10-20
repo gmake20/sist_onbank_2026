@@ -740,3 +740,104 @@
 		padding: 24px
 	}
 }
+
+
+
+/* =====================================
+   ONBANK 예적금 메인 글씨 크기 개선
+===================================== */
+
+/* 메인 타이틀 */
+.sv-hero-copy h1 {
+    font-size: clamp(38px, 4.2vw, 56px);
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -1.8px;
+}
+
+/* 메인 설명 */
+.sv-hero-copy > p {
+    font-size: 17px;
+    line-height: 1.85;
+}
+
+/* 예적금 서비스 상단 영문 */
+.sv-eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* 바로가기 메뉴 */
+.sv-shortcut-text b {
+    font-size: 18px;
+}
+
+.sv-shortcut-text small {
+    font-size: 14px;
+}
+
+/* 섹션 제목 */
+.sv-section-heading h2 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.sv-section-heading p {
+    font-size: 16px;
+}
+
+/* 정기예금 / 정기적금 카드 제목 */
+.sv-product h3 {
+    font-size: 26px;
+    line-height: 1.4;
+    font-weight: 800;
+}
+
+/* 상품 설명 */
+.sv-product > p {
+    font-size: 16px;
+    line-height: 1.8;
+}
+
+/* 상품 구분 라벨 */
+.sv-category {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* 하단 관리 카드 */
+.sv-manage-card h2 {
+    font-size: 29px;
+    line-height: 1.4;
+}
+
+/* 버튼 텍스트 */
+.sv-btn {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+    .sv-hero-copy h1 {
+        font-size: 36px;
+        letter-spacing: -1px;
+    }
+
+    .sv-hero-copy > p {
+        font-size: 15px;
+    }
+
+    .sv-section-heading h2 {
+        font-size: 26px;
+    }
+
+    .sv-product h3 {
+        font-size: 23px;
+    }
+
+    .sv-manage-card h2 {
+        font-size: 25px;
+    }
+}
