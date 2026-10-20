@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>예적금 상세 | ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}">
+<link rel="stylesheet" th:href="@{/css/savings/savings.css}">
+</head>
+<body>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+	<main class="save-wrap">
+		<div class="save-head">
+			<span>ONBANK · SAVINGS DETAIL</span>
+			<h1 th:text="${account.product.name}"></h1>
+			<p th:text="|계좌 ID #${account.id} · ${account.status}|"></p>
+		</div>
+		<p class="alert" th:if="${message}" th:text="${message}"></p>
+		<p class="alert error" th:if="${error}" th:text="${error}"></p>
+		<a th:href="@{/savings/mine}">← 내 예적금 목록</a>
+		<section class="save-grid">
+			<div class="save-card">
+				<h2>계약 정보</h2>
+				<p>
+					예치/누적 납입 원금: <strong
+						th:text="${#numbers.formatInteger(account.principal,1,'COMMA')}"></strong>원
+				</p>
+				<p>
+					약정 금리: <strong th:text="${account.contractRate}"></strong>%
+				</p>
+				<p>
+					가입일: <span th:text="${account.openedOn}"></span>
+				</p>
+				<p>
+					만기일: <span th:text="${account.maturityOn}"></span>
+				</p>
+				<p>
+					출금/만기입금 계좌 ID: <span th:text="${account.sourceAccountId}"></span>
+				</p>
+			</div>
+			<div class="save-card">
+				<h2>이용하기</h2>
+				<form
+					th:if="${account.status.name() == 'ACTIVE' and account.product.type.name() == 'INSTALLMENT_SAVINGS'}"
+					th:action="@{/savings/{id}/pay(id=${account.id})}" method="post">
+					<input th:if="${_csrf != null}" type="hidden"
+						th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+					<p>
+						정액 납입액: <strong
+							th:text="${#numbers.formatInteger(account.monthlyAmount,1,'COMMA')}"></strong>원
+					</p>
+					<button type="submit">다음 회차 납입</button>
+				</form>
+				<form th:if="${account.status.name() == 'ACTIVE'}"
+					th:action="@{/savings/{id}/close(id=${account.id})}" method="post">
+					<input th:if="${_csrf != null}" type="hidden"
+						th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+					<button type="submit" class="outline"
+						onclick="return confirm('만기 해지하고 입출금계좌로 원리금을 지급하시겠습니까?');">만기
+						해지</button>
+					<p class="minor">만기일 이전에는 해지할 수 없습니다. 예상이자는 실제 납입일 기준으로 정산됩니다.</p>
+				</form>
+			</div>
+		</section>
+		<section class="save-card">
+			<h2>납입 내역</h2>
+			<div class="scroll">
+				<table>
+					<thead>
+						<tr>
+							<th>회차</th>
+							<th>납입일</th>
+							<th>납입액</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="p:${payments}">
+							<td th:text="${p.installmentNo}"></td>
+							<td th:text="${p.paidOn}"></td>
+							<td th:text="${#numbers.formatInteger(p.amount,1,'COMMA')}"></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</main>
+</body>
+</html>
