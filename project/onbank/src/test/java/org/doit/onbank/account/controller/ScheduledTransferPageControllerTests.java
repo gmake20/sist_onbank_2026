@@ -44,7 +44,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
-// 예약이체 조회·취소 화면 테스트 : Controller + Thymeleaf 화면 + SecurityConfig 만 띄운다 (DB, JPA 없음)
+// 예약·정기이체 조회·취소 화면 테스트 : Controller + Thymeleaf 화면 + SecurityConfig 만 띄운다 (DB, JPA 없음)
 @WebMvcTest(ScheduledTransferPageController.class)
 @Import(SecurityConfig.class)
 class ScheduledTransferPageControllerTests {
@@ -136,14 +136,71 @@ class ScheduledTransferPageControllerTests {
 
 		mockMvc.perform(get("/mybank/transfer/scheduled").with(user(me)))
 				.andExpect(status().isOk())
-				.andExpect(content().string(containsString("등록한 예약이체가 없습니다.")));
+				.andExpect(content().string(containsString("등록한 예약·정기이체가 없습니다.")));
 	}
 
 	@Test
 	void cancelRedirectsWithMessage() throws Exception {
+		given(scheduledTransferService.cancel(MEMBER_ID, 7L)).willReturn(reserved(7L, LocalDateTime.of(2026, 12, 1, 9, 30)));
+
 		mockMvc.perform(post("/mybank/transfer/scheduled/7/cancel").with(user(me)).with(csrf()))
 				.andExpect(redirectedUrl("/mybank/transfer/scheduled"))
 				.andExpect(flash().attribute("successMessage", "예약이체를 취소했습니다."));
+	}
+
+	// ---------- 정기이체 ----------
+
+	private ScheduledTransfer recurring(Long id, LocalDateTime firstAt, LocalDate endDate) {
+		ScheduledTransfer transfer = ScheduledTransfer.subscribe(MEMBER_ID, 1L, "1002-222-222222", 50_000L,
+				null, null, firstAt.getDayOfMonth(), firstAt, endDate, LocalDateTime.now());
+		ReflectionTestUtils.setField(transfer, "scheduledTransferId", id);
+		return transfer;
+	}
+
+	// 목록 : 정기는 "매월 N일 시:분", 다음 회차, 종료일, 상태 "진행중", 버튼 [해지]
+	@Test
+	void listShowsRecurringWithCancelAsTermination() throws Exception {
+		given(scheduledTransferService.getMine(MEMBER_ID)).willReturn(List.of(
+				recurring(7L, LocalDateTime.of(2026, 11, 25, 9, 0), LocalDate.of(2027, 10, 25))));
+
+		mockMvc.perform(get("/mybank/transfer/scheduled").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("매월 25일 09:00"),
+						containsString("다음 2026.11.25"),
+						containsString("~ 2027.10.25"),
+						containsString("진행중"),
+						containsString("해지"),
+						containsString("/mybank/transfer/scheduled/7/cancel"))));
+	}
+
+	@Test
+	void cancelRecurringSaysTerminated() throws Exception {
+		given(scheduledTransferService.cancel(MEMBER_ID, 7L)).willReturn(recurring(7L, LocalDateTime.of(2026, 11, 25, 9, 0), null));
+
+		mockMvc.perform(post("/mybank/transfer/scheduled/7/cancel").with(user(me)).with(csrf()))
+				.andExpect(flash().attribute("successMessage", "정기이체를 해지했습니다."));
+	}
+
+	// 정기 [지금 실행] 성공 : 상태는 대기 그대로지만 결과 문구로 성공을 알린다
+	@Test
+	void runNowRecurringSuccess() throws Exception {
+		ScheduledTransfer transfer = recurring(7L, LocalDateTime.of(2026, 11, 25, 9, 0), null);
+		transfer.markSucceeded(LocalDateTime.of(2026, 10, 21, 14, 0));
+		given(scheduledTransferRunner.runNow(MEMBER_ID, 7L)).willReturn(transfer);
+
+		mockMvc.perform(post("/mybank/transfer/scheduled/7/run").with(user(me)).with(csrf()))
+				.andExpect(flash().attribute("successMessage", "정기이체를 실행했습니다. 50,000원을 이체했습니다."));
+	}
+
+	@Test
+	void runNowRecurringFailureShowsReason() throws Exception {
+		ScheduledTransfer transfer = recurring(7L, LocalDateTime.of(2026, 11, 25, 9, 0), null);
+		transfer.markFailed("잔액이 부족합니다.", LocalDateTime.of(2026, 10, 21, 14, 0));
+		given(scheduledTransferRunner.runNow(MEMBER_ID, 7L)).willReturn(transfer);
+
+		mockMvc.perform(post("/mybank/transfer/scheduled/7/run").with(user(me)).with(csrf()))
+				.andExpect(flash().attribute("errorMessage", "정기이체를 실행하지 못했습니다. 실패 : 잔액이 부족합니다."));
 	}
 
 	// 남의 예약이거나 없는 번호 : 오류 문구만 보여 준다

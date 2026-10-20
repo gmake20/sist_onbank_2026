@@ -42,7 +42,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 // 이체 화면 : 정보입력 → 확인(받는 분 이름) → 결과 영수증
-// 예약이체도 같은 화면에서 등록한다 ([예약이체일지정] → 일시 입력 → 등록 후 예약 목록으로)
+// 예약·정기이체도 같은 화면에서 등록한다 (이체실행일자 [예약]/[정기] → 일시 입력 → 등록 후 예약·정기이체 목록으로)
 // /mybank/** 는 SecurityConfig 에서 로그인한 고객(ROLE_USER)만 접근 가능
 @Controller
 @RequiredArgsConstructor
@@ -81,7 +81,19 @@ public class TransferPageController {
 		}
 
 		try {
-			// 예약이체 : [예약이체일지정]으로 일시를 넣었으면 이체하지 않고 등록만 한 뒤 예약 목록으로
+			// 정기이체 : [정기]를 골라 매월 날짜·시각을 넣었으면 등록만 한 뒤 예약·정기이체 목록으로
+			if (form.isRecurring()) {
+				ScheduledTransfer subscribed = scheduledTransferService.subscribe(me.getMemberId(), form.getFromAccountId(),
+						form.getPassword(), form.getOtpCode(), form.getToAccountNumber(), form.getAmount(),
+						form.getSenderMemo(), form.getReceiverMemo(), form.getTransferDay(), form.getRecurringTime(),
+						form.getEndDate());
+				redirectAttributes.addFlashAttribute("successMessage", String.format(
+						"정기이체를 등록했습니다. 매월 %d일 %,d원이 이체되며, 첫 이체는 %s입니다.", subscribed.getTransferDay(),
+						subscribed.getTransferAmount(), subscribed.getNextExecuteAt().format(EXECUTE_AT_FORMAT)));
+				return "redirect:/mybank/transfer/scheduled";
+			}
+
+			// 예약이체 : [예약]을 골라 일시를 넣었으면 이체하지 않고 등록만 한 뒤 예약 목록으로
 			if (form.isScheduled()) {
 				ScheduledTransfer reserved = scheduledTransferService.reserve(me.getMemberId(), form.getFromAccountId(),
 						form.getPassword(), form.getOtpCode(), form.getToAccountNumber(), form.getAmount(),

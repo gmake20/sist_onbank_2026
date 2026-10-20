@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.ScheduledTransfer;
-import org.doit.onbank.account.entity.ScheduledTransferStatus;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.ScheduledTransferRunner;
 import org.doit.onbank.account.service.ScheduledTransferService;
@@ -23,7 +22,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import lombok.RequiredArgsConstructor;
 
-// 예약이체 조회·취소·[지금 실행] 화면 (등록은 이체 화면 TransferPageController 에서 한다)
+// 예약·정기이체 조회·취소(해지)·[지금 실행] 화면 (등록은 이체 화면 TransferPageController 에서 한다)
 // /mybank/** 는 SecurityConfig 에서 로그인한 고객(ROLE_USER)만 접근 가능
 @Controller
 @RequiredArgsConstructor
@@ -51,8 +50,9 @@ public class ScheduledTransferPageController {
 	public String cancel(@AuthenticationPrincipal LoginMember me, @PathVariable("id") Long id,
 			RedirectAttributes redirectAttributes) {
 		try {
-			scheduledTransferService.cancel(me.getMemberId(), id);
-			redirectAttributes.addFlashAttribute("successMessage", "예약이체를 취소했습니다.");
+			ScheduledTransfer cancelled = scheduledTransferService.cancel(me.getMemberId(), id);
+			redirectAttributes.addFlashAttribute("successMessage",
+					cancelled.isRecurring() ? "정기이체를 해지했습니다." : "예약이체를 취소했습니다.");
 		} catch (NoSuchElementException | IllegalStateException e) {
 			redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
 		}
@@ -65,11 +65,13 @@ public class ScheduledTransferPageController {
 			RedirectAttributes redirectAttributes) {
 		try {
 			ScheduledTransfer result = scheduledTransferRunner.runNow(me.getMemberId(), id);
-			if (result.getStatus() == ScheduledTransferStatus.COMPLETED) {
+			String label = result.getScheduleType().getLabel();	// 예약이체 / 정기이체
+			// 정기이체는 성공해도 상태가 대기로 남으므로 상태 대신 결과 문구로 성공 여부를 본다
+			if (result.isLastSucceeded()) {
 				redirectAttributes.addFlashAttribute("successMessage",
-						String.format("예약이체를 실행했습니다. %,d원을 이체했습니다.", result.getTransferAmount()));
+						String.format("%s를 실행했습니다. %,d원을 이체했습니다.", label, result.getTransferAmount()));
 			} else {
-				redirectAttributes.addFlashAttribute("errorMessage", "예약이체를 실행하지 못했습니다. " + result.getLastResult());
+				redirectAttributes.addFlashAttribute("errorMessage", label + "를 실행하지 못했습니다. " + result.getLastResult());
 			}
 		} catch (NoSuchElementException | IllegalStateException e) {
 			redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());

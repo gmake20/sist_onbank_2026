@@ -49,7 +49,7 @@ class ScheduledTransferRunnerTests {
 		int succeeded = runner.runDue(now);
 
 		assertThat(succeeded).isEqualTo(2);
-		verify(scheduledTransferService).recordFailure(2L, "잔액이 부족합니다.", now);
+		verify(scheduledTransferService).recordFailure(2L, "잔액이 부족합니다.", now, false);
 	}
 
 	// DB 오류 같은 예상 못 한 오류 : 내부 메시지 대신 일반 문구를 남긴다
@@ -61,7 +61,7 @@ class ScheduledTransferRunnerTests {
 
 		runner.runDue(now);
 
-		verify(scheduledTransferService).recordFailure(1L, ScheduledTransferRunner.UNKNOWN_FAILURE, now);
+		verify(scheduledTransferService).recordFailure(1L, ScheduledTransferRunner.UNKNOWN_FAILURE, now, false);
 	}
 
 	// 실행할 건이 없으면 아무것도 하지 않는다
