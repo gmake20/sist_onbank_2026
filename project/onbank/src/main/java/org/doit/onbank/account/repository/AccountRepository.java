@@ -47,5 +47,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 			Long memberId
 	);
 	
+	// 10/20 이지훈 추가 
+	List<Account> findByMemberId(Long memberId);
+	
 	
 }

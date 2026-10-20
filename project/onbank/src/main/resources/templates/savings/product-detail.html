@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title th:text="${product.name + ' | ONBANK'}">예적금 상품 상세 |
+	ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}">
+<link rel="stylesheet" th:href="@{/css/savings/savings-catalog.css}">
+</head>
+<body>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+	<main class="sv-page">
+		<div class="sv-container sv-detail-container">
+			<nav class="sv-breadcrumb">
+				<a th:href="@{/}">홈</a><span>›</span><a
+					th:href="@{/savings/products}">예적금 상품</a><span>›</span><strong>상품
+					상세</strong>
+			</nav>
+			<div th:if="${error != null}" class="sv-alert" th:text="${error}"></div>
+			<section class="sv-detail-hero">
+				<span class="sv-type"
+					th:classappend="${product.type.name() == 'INSTALLMENT_SAVINGS'} ? ' is-saving' : ''"
+					th:text="${product.type.name() == 'FIXED_DEPOSIT' ? '정기예금' : '정기적금'}">정기예금</span>
+				<h1 th:text="${product.name}">ONBANK 스마트 정기예금</h1>
+				<p
+					th:text="${product.type.name() == 'FIXED_DEPOSIT' ? '한 번에 예치하고 만기에 든든하게 받아보세요.' : '매월 차곡차곡, 계획적인 저축을 시작하세요.'}">나를
+					위한 저축</p>
+				<div class="sv-detail-rate">
+					<span>기본금리 (연 · 세전)</span><strong
+						th:text="|${#numbers.formatDecimal(product.annualRate,1,2)}%|">3.20%</strong>
+				</div>
+			</section>
+			<div class="sv-detail-layout">
+				<section class="sv-detail-info">
+					<h2>상품 가입 안내</h2>
+					<dl>
+						<div>
+							<dt>상품 종류</dt>
+							<dd
+								th:text="${product.type.name() == 'FIXED_DEPOSIT' ? '정기예금' : '정기적금'}">정기예금</dd>
+						</div>
+						<div>
+							<dt>가입 기간</dt>
+							<dd th:text="|${product.termMonths}개월|">12개월</dd>
+						</div>
+						<div>
+							<dt
+								th:text="${product.type.name() == 'FIXED_DEPOSIT' ? '최소 예치금' : '최소 월 납입액'}">최소
+								금액</dt>
+							<dd
+								th:text="|${#numbers.formatInteger(product.minAmount,1,'COMMA')}원|">100,000원</dd>
+						</div>
+						<div>
+							<dt
+								th:text="${product.type.name() == 'FIXED_DEPOSIT' ? '최대 예치금' : '최대 월 납입액'}">최대
+								금액</dt>
+							<dd
+								th:text="|${#numbers.formatInteger(product.maxAmount,1,'COMMA')}원|">100,000,000원</dd>
+						</div>
+						<div>
+							<dt>적용 금리</dt>
+							<dd
+								th:text="|연 ${#numbers.formatDecimal(product.annualRate,1,2)}% (세전)|">연
+								3.20%</dd>
+						</div>
+					</dl>
+					<div class="sv-detail-notice">
+						<strong>유의사항</strong>
+						<p>예상 이자는 가입 금액·기간·납입일·이자 계산 방식에 따라 달라질 수 있습니다. 중도해지 시 약정 이율과
+							다른 이율이 적용될 수 있습니다.</p>
+					</div>
+					<a class="sv-back" th:href="@{/savings/products}">← 상품 목록으로
+						돌아가기</a>
+				</section>
+				<aside class="sv-join-card">
+					<span class="sv-section-kicker">START SAVING</span>
+					<h2>이 상품에 가입하기</h2>
+					<p>가입 조건을 확인한 후 출금 계좌와 납입 금액을 입력하세요.</p>
+					<form th:action="@{/savings/enroll}" method="post">
+						<input type="hidden" name="productId" th:value="${product.id}">
+
+						<label for="sourceAccountId">출금 입출금계좌</label> <select
+							id="sourceAccountId" name="sourceAccountId"
+							class="sv-account-select" required
+							th:disabled="${#lists.isEmpty(myAccounts)}">
+
+							<option value="">출금할 계좌를 선택하세요</option>
+
+							<option th:each="account : ${myAccounts}"
+								th:value="${account.accountId}"
+								th:text="|${account.accountNumber} · 잔액 ${#numbers.formatInteger(account.balance, 1, 'COMMA')}원|">
+								110-123-456789 · 잔액 1,000,000원</option>
+						</select>
+
+						<p class="sv-account-empty" th:if="${#lists.isEmpty(myAccounts)}">
+							출금 가능한 입출금계좌가 없습니다. 계좌를 개설하거나 계좌 상태를 확인해 주세요.</p>
+
+						<label for="joinAmount"
+							th:text="${product.type.name() == 'FIXED_DEPOSIT' ? '예치 원금 (원)' : '첫 월 납입액 (원)'}">예치
+							원금 (원)</label><input id="joinAmount" name="amount" type="number" step="1"
+							required th:min="${product.minAmount}"
+							th:max="${product.maxAmount}"
+							th:placeholder="|${#numbers.formatInteger(product.minAmount,1,'COMMA')}원 이상|">
+						<div class="sv-join-help"
+							th:text="|입력 가능 금액: ${#numbers.formatInteger(product.minAmount,1,'COMMA')} ~ ${#numbers.formatInteger(product.maxAmount,1,'COMMA')}원|">입력
+							가능 금액</div>
+						<input th:if="${_csrf != null}" type="hidden"
+							th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+						<button type="submit" class="sv-join-submit"
+							th:disabled="${#lists.isEmpty(myAccounts)}"
+							onclick="return confirm('선택한 예적금 상품에 가입하시겠습니까? 출금 계좌에서 금액이 이체됩니다.');">
+							예적금 가입하기 →</button>
+					</form>
+				</aside>
+			</div>
+		</div>
+	</main>
+</body>
+</html>
