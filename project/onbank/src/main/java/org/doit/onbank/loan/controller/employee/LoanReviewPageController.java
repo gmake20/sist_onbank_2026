@@ -139,7 +139,7 @@ public class LoanReviewPageController {
 		model.addAttribute("employeeId", employee.getEmployeeId());
 
 		// 9. 페이지 반환
-		return "loan/employee-loan-review";
+		return "employee/loan/employee-loan-review";
 	}
 
 
@@ -158,7 +158,7 @@ public class LoanReviewPageController {
 
 	    model.addAttribute("selected", selected);
 
-	    return "loan/employee-loan-review-detail";
+	    return "employee/loan/employee-loan-review-detail";
 	}
 
 
