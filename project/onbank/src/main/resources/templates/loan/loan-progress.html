@@ -1,68 +1,111 @@
 <!DOCTYPE html>
+
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>대출 진행현황 - ONBANK</title>
 
     <link rel="stylesheet" th:href="@{/css/index.css}">
+
     <link rel="stylesheet" th:href="@{/css/loan/loan-progress.css}">
+    <link rel="stylesheet" th:href="@{/css/loan/loan-progress-executed.css}">
+
 </head>
+
 <body>
 
 <div th:replace="~{fragments/header :: headerFragment}"></div>
 
 <main class="loan-progress-page">
+
     <div class="progress-container">
 
         <header class="progress-heading">
+
             <span class="page-label">ONBANK MY LOAN</span>
+
             <h1>나의 대출 진행현황</h1>
+
             <p>대출 신청부터 심사 결과까지 확인하세요.</p>
+
         </header>
 
         <!-- 상태별 신청 건수 -->
+
         <section class="progress-summary">
 
             <div class="summary-card">
+
                 <span>전체 신청</span>
+
                 <strong th:text="${totalCount}">0</strong>
+
             </div>
 
             <div class="summary-card">
+
                 <span>심사대기</span>
+
                 <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).PENDING)}">0</strong>
+
             </div>
 
             <div class="summary-card">
+
                 <span>심사중</span>
+
                 <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).REVIEWING)}">0</strong>
+
             </div>
 
             <div class="summary-card">
+
                 <span>서류보완</span>
+
                 <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).ADDITIONAL_INFO)}">0</strong>
+
             </div>
 
             <div class="summary-card">
+
                 <span>승인완료</span>
+
                 <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).APPROVED)}">0</strong>
+
             </div>
 
             <div class="summary-card">
+
                 <span>심사거절</span>
+
                 <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).REJECTED)}">0</strong>
+
             </div>
 
             <div class="summary-card">
+
                 <span>신청취소</span>
+
                 <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).CANCELLED)}">0</strong>
+
             </div>
 
             <div class="summary-card">
+
                 <span>기간만료</span>
+
                 <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).EXPIRED)}">0</strong>
+
+            </div>
+
+            <div class="summary-card summary-card-executed">
+                <span>대출 실행완료</span>
+                <strong th:text="${statusCounts.get(T(org.doit.onbank.loan.entity.LoanApplicationStatus).EXECUTED) ?: 0}">0</strong>
             </div>
 
         </section>
@@ -70,209 +113,358 @@
         <section class="application-section">
 
             <div class="section-heading">
+
                 <h2>대출 신청 내역</h2>
+
                 <span th:text="|총 ${totalCount}건|">총 0건</span>
+
             </div>
 
             <!-- 신청 내역이 없을 때 -->
+
             <div class="empty-state"
+
                  th:if="${#lists.isEmpty(applications)}">
 
                 <h3>대출 신청 내역이 없습니다.</h3>
+
                 <p>ONBANK의 대출 상품을 확인해 보세요.</p>
 
                 <a th:href="@{/loan/products}"
+
                    class="primary-link">
+
                     대출 상품 보기
+
                 </a>
+
             </div>
 
             <!-- 신청 내역 -->
+
             <article class="application-card"
+
                      th:each="app : ${applications}"
+
                      th:with="status=${app.status.name()}">
 
                 <div class="application-top">
 
                     <div>
+
                         <span class="application-number"
+
                               th:text="|신청번호 ${app.id}|">
+
                             신청번호
+
                         </span>
 
                         <h3 th:text="${app.product.name}">
+
                             대출 상품명
+
                         </h3>
+
                     </div>
 
                     <!-- 상태 배지 -->
+
                     <span class="status-badge"
+
                           th:classappend="|status-${status.toLowerCase()}|">
 
                         <th:block th:switch="${status}">
+
                             <span th:case="'PENDING'">심사대기</span>
+
                             <span th:case="'REVIEWING'">심사중</span>
+
                             <span th:case="'ADDITIONAL_INFO'">서류보완 요청</span>
+
                             <span th:case="'APPROVED'">승인완료</span>
+                            <span th:case="'EXECUTED'">대출 실행완료</span>
+
                             <span th:case="'REJECTED'">심사거절</span>
+
                             <span th:case="'CANCELLED'">신청취소</span>
+
                             <span th:case="'EXPIRED'">승인기간 만료</span>
-                            <span th:case="*">상태 확인 필요</span>
+
+                            <span th:case="">상태 확인 필요</span>
+
                         </th:block>
 
                     </span>
+
                 </div>
 
                 <!-- 신청 기본 정보 -->
+
                 <div class="application-info">
 
                     <div>
+
                         <span>신청금액</span>
+
                         <strong th:text="|${#numbers.formatDecimal(app.requestedAmount,1,'COMMA',0,'POINT')}원|">
+
                             0원
+
                         </strong>
+
                     </div>
 
                     <div>
+
                         <span>신청기간</span>
+
                         <strong th:text="|${app.requestedMonths}개월|">
+
                             0개월
+
                         </strong>
+
                     </div>
 
                     <div>
+
                         <span>신청일자</span>
+
                         <strong th:text="${#temporals.format(app.createdAt,'yyyy.MM.dd')}">
+
                             -
+
                         </strong>
+
                     </div>
 
                     <div>
+
                         <span>심사상태</span>
+
                         <strong th:text="${status}">
+
                             -
+
                         </strong>
+
                     </div>
 
                 </div>
 
                 <!-- 진행 단계 -->
+
                 <div class="application-timeline"
+
                      th:classappend="${status == 'REJECTED' or status == 'CANCELLED' or status == 'EXPIRED'} ? ' timeline-stopped' : ''">
 
                     <div class="timeline-step completed">
+
                         <span class="step-circle">1</span>
+
                         <span>신청 접수</span>
+
                     </div>
 
                     <div class="timeline-line"
-                         th:classappend="${status == 'REVIEWING' or status == 'ADDITIONAL_INFO' or status == 'APPROVED' or status == 'REJECTED'} ? ' active' : ''">
+
+                         th:classappend="${status == 'REVIEWING' or status == 'ADDITIONAL_INFO' or status == 'APPROVED' or status == 'EXECUTED' or status == 'REJECTED'} ? ' active' : ''">
+
                     </div>
 
                     <div class="timeline-step"
-                         th:classappend="${status == 'REVIEWING' or status == 'ADDITIONAL_INFO' or status == 'APPROVED' or status == 'REJECTED'} ? ' completed' : ''">
+
+                         th:classappend="${status == 'REVIEWING' or status == 'ADDITIONAL_INFO' or status == 'APPROVED' or status == 'EXECUTED' or status == 'REJECTED'} ? ' completed' : ''">
+
                         <span class="step-circle">2</span>
+
                         <span>심사 진행</span>
+
                     </div>
 
                     <div class="timeline-line"
-                         th:classappend="${status == 'APPROVED' or status == 'EXPIRED'} ? ' active' : ''">
+
+                         th:classappend="${status == 'APPROVED' or status == 'EXECUTED' or status == 'EXPIRED'} ? ' active' : ''">
+
                     </div>
 
                     <div class="timeline-step"
-                         th:classappend="${status == 'APPROVED' or status == 'EXPIRED'} ? ' completed' : ''">
+
+                         th:classappend="${status == 'APPROVED' or status == 'EXECUTED' or status == 'EXPIRED'} ? ' completed' : ''">
+
                         <span class="step-circle">3</span>
+
                         <span>승인</span>
+
+                    </div>
+
+                    <div class="timeline-line"
+                         th:classappend="${status == 'EXECUTED'} ? ' active' : ''"></div>
+                    <div class="timeline-step"
+                         th:classappend="${status == 'EXECUTED'} ? ' completed' : ''">
+                        <span class="step-circle">4</span>
+                        <span>대출 실행</span>
                     </div>
 
                 </div>
 
                 <!-- 상태별 상세 안내 -->
+
                 <div class="progress-message"
+
                      th:classappend="|message-${status.toLowerCase()}|">
 
                     <th:block th:switch="${status}">
 
                         <p th:case="'PENDING'">
+
                             대출 신청이 정상 접수되었습니다.
+
                             현재 심사 시작을 기다리고 있습니다.
+
                         </p>
 
                         <p th:case="'REVIEWING'">
+
                             담당자가 대출 심사를 진행하고 있습니다.
+
                             심사 결과는 진행현황에서 확인할 수 있습니다.
+
                         </p>
 
                         <p th:case="'ADDITIONAL_INFO'">
+
                             대출 심사를 위해 추가 서류가 필요합니다.
+
                             은행에서 안내한 제출 방법을 확인하세요.
+
                         </p>
 
                         <p th:case="'APPROVED'">
+
                             대출 심사가 승인되었습니다.
+
                             아래 승인 조건을 확인하세요.
+
+                        </p>
+
+                        <p th:case="'EXECUTED'" class="executed-message">
+                            대출 실행이 완료되었습니다. 지급 계좌에 입금된 금액을 확인하고
+                            약정된 상환 일정에 따라 납부해 주세요.
                         </p>
 
                         <p th:case="'REJECTED'">
+
                             대출 심사가 승인되지 않았습니다.
+
                             자세한 사항은 고객센터에 문의하세요.
+
                         </p>
 
                         <p th:case="'CANCELLED'">
+
                             해당 대출 신청이 취소되었습니다.
+
                         </p>
 
                         <p th:case="'EXPIRED'">
+
                             대출 승인 유효기간이 만료되었습니다.
+
                             다시 신청하려면 대출 상품을 확인하세요.
+
                         </p>
 
-                        <p th:case="*">
+                        <p th:case="">
+
                             대출 신청 상태를 확인하고 있습니다.
+
                         </p>
 
                     </th:block>
+
                 </div>
 
                 <!-- 승인 상세 정보 -->
+
                 <div class="approval-details"
-                     th:if="${status == 'APPROVED' or status == 'EXPIRED'}">
+
+                     th:if="${status == 'APPROVED' or status == 'EXECUTED' or status == 'EXPIRED'}">
 
                     <div>
+
                         <span>승인금액</span>
+
                         <strong th:text="${app.approvedAmount != null}
+
                             ? |${#numbers.formatDecimal(app.approvedAmount,1,'COMMA',0,'POINT')}원|
+
                             : '-'">
+
                             -
+
                         </strong>
+
                     </div>
 
                     <div>
+
                         <span>승인금리</span>
+
                         <strong th:text="${app.approvedInterestRate != null}
+
                             ? |연 ${app.approvedInterestRate}%|
+
                             : '-'">
+
                             -
+
                         </strong>
+
                     </div>
 
                     <div>
+
                         <span>상환방식</span>
+
                         <strong th:switch="${app.repaymentMethod}">
+
                             <span th:case="'EQUAL'">원리금균등</span>
+
                             <span th:case="'PRINCIPAL'">원금균등</span>
+
                             <span th:case="'BULLET'">만기일시상환</span>
-                            <span th:case="*">-</span>
+
+                            <span th:case="">-</span>
+
                         </strong>
+
                     </div>
 
                     <div>
-                        <span>대출 시작 예정일</span>
+
+                        <span th:text="${status == 'EXECUTED' ? '대출 시작일' : '대출 시작 예정일'}">대출 시작 예정일</span>
+
                         <strong th:text="${app.startedAt != null}
+
                             ? ${#temporals.format(app.startedAt,'yyyy.MM.dd')}
+
                             : '-'">
+
                             -
+
                         </strong>
+
+                    </div>
+
+                </div>
+
+            <div class="execution-success-panel" th:if="${status == 'EXECUTED'}">
+                    <span class="execution-success-icon" aria-hidden="true">✓</span>
+                    <div>
+                        <strong>대출 실행이 완료되었습니다.</strong>
+                        <p>대출금 지급 및 상환 계획은 내 계좌와 대출 관련 메뉴에서 확인해 주세요.</p>
                     </div>
                 </div>
 
@@ -281,15 +473,21 @@
         </section>
 
         <div class="progress-bottom">
+
             <a th:href="@{/loan/categories/credit}" class="primary-link">
+
                 대출 상품 목록으로
+
             </a>
+
         </div>
 
     </div>
+
 </main>
 
 <div th:replace="~{fragments/footer :: footerFragment}"></div>
 
 </body>
+
 </html>

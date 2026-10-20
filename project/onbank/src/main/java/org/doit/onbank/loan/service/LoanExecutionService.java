@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.doit.onbank.OnbankApplication;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountType;
@@ -25,11 +26,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class LoanExecutionService {
 
+	private final OnbankApplication onbankApplication;
 	private final LoanRepaymentScheduleService loanRepaymentScheduleService;
 	private final AccountTransferService accountTransferService;
 	private final LoanApplicationRepository loanApplicationRepository;
@@ -40,6 +44,7 @@ public class LoanExecutionService {
 
 	private final LoanRepaymentScheduleRepository schedules;
 	private final LoanService loanService;
+
 
 	@Transactional(readOnly = true)
 	public LoanApplication findApprovedApplication(Long applicationId) {
@@ -106,12 +111,18 @@ public class LoanExecutionService {
 		//                "입출금계좌만 대출금을 수령할 수 있습니다."
 		//            );
 		//        }
-
-		if (account.getAccountStatus() != AccountStatus.ACTIVE) {
+		
+		if (!"ACTIVE".equals(account.getAccountStatus())) {
 			throw new IllegalStateException(
 					"정상 계좌가 아닙니다."
 					);
 		}
+
+//		if (account.getAccountStatus() != AccountStatus.ACTIVE) {
+//			throw new IllegalStateException(
+//					"정상 계좌가 아닙니다."
+//					);
+//		}
 
 		// 여기까지는 실행 조건 검증 단계입니다.
 		// 실제 지급은 Loan/Account/거래원장 연동 후 구현해야 합니다.
