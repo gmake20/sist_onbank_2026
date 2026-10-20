@@ -58,10 +58,9 @@ public class SavingsProductDetailController {
         // 정상 상태의 입출금계좌만 표시
         List<Account> myAccounts = accounts.stream()
                 .filter(account ->
-                    "CHECKING".equals(account.getAccountType()) )
+                    account.getAccountType() == AccountType.CHECKING)
                 .filter(account ->
-                    "ACTIVE".equals(
-                        account.getAccountStatus()))
+                    account.getAccountStatus() == AccountStatus.ACTIVE)
                 .toList();
 
         model.addAttribute("myAccounts", myAccounts);
