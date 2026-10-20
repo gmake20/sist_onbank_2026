@@ -25,6 +25,7 @@ public class AdminMemberService {
     // 와이어프레임 S-05 상태 글자
     public static final Map<MemberStatus, String> STATUS_LABELS = new EnumMap<>(Map.of(
             MemberStatus.ACTIVE, "정상",
+            MemberStatus.LOCKED, "로그인 잠금",
             MemberStatus.SUSPENDED, "이용 제한",
             MemberStatus.WITHDRAWN, "탈퇴"));
 
