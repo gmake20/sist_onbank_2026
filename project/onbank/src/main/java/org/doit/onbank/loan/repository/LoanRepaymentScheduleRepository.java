@@ -1,10 +1,12 @@
 
 package org.doit.onbank.loan.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import org.doit.onbank.loan.entity.LoanRepaymentSchedule;
+import org.doit.onbank.loan.entity.LoanRepaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -41,4 +43,11 @@ extends JpaRepository<LoanRepaymentSchedule, Long> {
 	findByScheduleIdAndLoanAccount_LoanAccountIdForUpdate(
 			@Param("scheduleId") Long scheduleId,
 			@Param("loanAccountId") Long loanAccountId);
+	
+	Optional<LoanRepaymentSchedule>
+    findFirstByLoanAccount_LoanAccountIdAndStatusAndDueDateLessThanEqualOrderByDueDateAscInstallmentNoAsc(
+        Long loanAccountId,
+        LoanRepaymentStatus status,
+        LocalDate today
+    );
 }

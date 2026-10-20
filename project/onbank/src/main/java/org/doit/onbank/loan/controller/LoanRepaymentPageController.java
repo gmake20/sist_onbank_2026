@@ -4,12 +4,14 @@ package org.doit.onbank.loan.controller;
 import java.util.List;
 
 import org.doit.onbank.loan.entity.LoanAccount;
+import org.doit.onbank.loan.entity.LoanAutoRepayment;
 import org.doit.onbank.loan.entity.LoanRepaymentSchedule;
 import org.doit.onbank.loan.repository.LoanAccountRepository;
+import org.doit.onbank.loan.repository.LoanAutoRepaymentRepository;
 import org.doit.onbank.loan.repository.LoanRepaymentScheduleRepository;
+import org.doit.onbank.loan.service.LoanAutoRepaymentService;
 import org.doit.onbank.loan.service.LoanRepaymentService;
 import org.doit.onbank.member.security.LoginMember;
-
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -31,6 +33,10 @@ public class LoanRepaymentPageController {
     private final LoanAccountRepository loanAccounts;
     private final LoanRepaymentScheduleRepository schedules;
     private final LoanRepaymentService repaymentService;
+    
+    private final LoanAutoRepaymentService autoRepaymentService;
+    
+    private final LoanAutoRepaymentRepository autoRepaymentRepository;
 
     // =====================================
     // 1. 대출금 상환 페이지
@@ -72,6 +78,14 @@ public class LoanRepaymentPageController {
         }
 
         model.addAttribute("selectedLoan", selected);
+        
+        boolean autoEnabled = selected != null
+                && autoRepaymentRepository
+                    .findByLoanAccountId(selected.getLoanAccountId())
+                    .map(LoanAutoRepayment::isEnabled)
+                    .orElse(false);
+
+        model.addAttribute("autoEnabled", autoEnabled);
 
         // 선택된 대출 계좌의 상환 일정 조회
         List<LoanRepaymentSchedule> repaymentSchedules =
@@ -124,6 +138,60 @@ public class LoanRepaymentPageController {
         redirectAttributes.addAttribute(
                 "accountId", loanAccountId);
 
+        return "redirect:/loan/repayment";
+    }
+    
+ // 자동상환 등록
+    @PostMapping("/auto/register")
+    public String registerAutoRepayment(
+            @RequestParam Long loanAccountId,
+            @AuthenticationPrincipal LoginMember member,
+            RedirectAttributes redirectAttributes) {
+
+        if (member == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            autoRepaymentService.register(
+                    loanAccountId, member.getMemberId());
+
+            redirectAttributes.addFlashAttribute(
+                    "message", "대출 자동상환이 등록되었습니다.");
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(
+                    "error", e.getMessage());
+        }
+
+        redirectAttributes.addAttribute("accountId", loanAccountId);
+        return "redirect:/loan/repayment";
+    }
+
+    // 자동상환 해지
+    @PostMapping("/auto/cancel")
+    public String cancelAutoRepayment(
+            @RequestParam Long loanAccountId,
+            @AuthenticationPrincipal LoginMember member,
+            RedirectAttributes redirectAttributes) {
+
+        if (member == null) {
+            return "redirect:/login";
+        }
+
+        try {
+            autoRepaymentService.cancel(
+                    loanAccountId, member.getMemberId());
+
+            redirectAttributes.addFlashAttribute(
+                    "message", "대출 자동상환이 해지되었습니다.");
+
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute(
+                    "error", e.getMessage());
+        }
+
+        redirectAttributes.addAttribute("accountId", loanAccountId);
         return "redirect:/loan/repayment";
     }
 }
