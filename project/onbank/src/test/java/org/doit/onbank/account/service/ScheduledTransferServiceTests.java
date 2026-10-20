@@ -8,13 +8,16 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import org.doit.onbank.account.dto.TransferLimitInfo;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.ScheduleType;
 import org.doit.onbank.account.entity.ScheduledTransfer;
 import org.doit.onbank.account.entity.ScheduledTransferStatus;
 import org.doit.onbank.account.repository.AccountRepository;
@@ -207,10 +210,99 @@ class ScheduledTransferServiceTests {
 		ScheduledTransfer waiting = saved(now);
 		given(scheduledTransferRepository.findByIdForUpdate(7L)).willReturn(Optional.of(waiting));
 
-		service.recordFailure(7L, "잔액이 부족합니다.", now);
+		service.recordFailure(7L, "잔액이 부족합니다.", now, false);
 
 		assertThat(waiting.getStatus()).isEqualTo(ScheduledTransferStatus.FAILED);
 		assertThat(waiting.getLastResult()).isEqualTo("잔액이 부족합니다.");
+	}
+
+	// ---------- 정기이체 ----------
+
+	private static final LocalTime NINE = LocalTime.of(9, 0);
+
+	@Test
+	void subscribeAuthorizesAndSavesFirstRound() {
+		LocalDate endDate = LocalDate.now().plusYears(1);
+		given(accountRepository.findByAccountIdAndMemberId(1L, MY_ID))
+				.willReturn(Optional.of(account(1L, MY_ID, "1002-111-111111", AccountStatus.ACTIVE)));
+		given(accountTransferService.authorize(MY_ID, 1L, "1234", null, TO, 50_000L))
+				.willReturn(new TransferTarget(account(2L, 200L, TO, AccountStatus.ACTIVE), new TransferLimitInfo(0, 0, 0)));
+		given(scheduledTransferRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
+
+		ScheduledTransfer saved = service.subscribe(MY_ID, 1L, "1234", null, "1002222222222", 50_000L, "적금", null,
+				25, NINE, endDate);
+
+		assertThat(saved.getScheduleType()).isEqualTo(ScheduleType.RECURRING);
+		assertThat(saved.getStatus()).isEqualTo(ScheduledTransferStatus.WAITING);
+		assertThat(saved.getTransferDay()).isEqualTo(25);
+		assertThat(saved.getEndDate()).isEqualTo(endDate);
+		assertThat(saved.getDepositAccountNumber()).isEqualTo(TO);
+		// 첫 회차 : 지금 이후 가장 가까운 25일 09:00
+		assertThat(saved.getNextExecuteAt()).isEqualTo(ScheduledTransfer.nextOccurrence(25, NINE, LocalDateTime.now()));
+	}
+
+	// 종료일이 첫 회차보다 빠르면 인증 전에 거른다
+	@Test
+	void subscribeRejectsEndDateBeforeFirstRound() {
+		assertThatThrownBy(() -> service.subscribe(MY_ID, 1L, "1234", null, TO, 50_000L, null, null,
+				25, NINE, LocalDate.now().minusDays(1)))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("종료일은 첫 이체일");
+		verify(accountTransferService, never()).authorize(anyLong(), anyLong(), any(), any(), any(), anyLong());
+	}
+
+	@Test
+	void subscribeRequiresDayAndTime() {
+		assertThatThrownBy(() -> service.subscribe(MY_ID, 1L, "1234", null, TO, 50_000L, null, null, 25, null, null))
+				.hasMessageContaining("날짜와 시각");
+		assertThatThrownBy(() -> service.subscribe(MY_ID, 1L, "1234", null, TO, 50_000L, null, null, 32, NINE, null))
+				.hasMessageContaining("1일부터 31일");
+	}
+
+	@Test
+	void subscribeRejectsDuplicate() {
+		given(accountRepository.findByAccountIdAndMemberId(1L, MY_ID))
+				.willReturn(Optional.of(account(1L, MY_ID, "1002-111-111111", AccountStatus.ACTIVE)));
+		given(scheduledTransferRepository.existsByAccountIdAndDepositAccountNumberAndTransferAmountAndNextExecuteAtAndStatus(
+				any(), any(), any(), any(), any())).willReturn(true);
+
+		assertThatThrownBy(() -> service.subscribe(MY_ID, 1L, "1234", null, TO, 50_000L, null, null, 25, NINE, null))
+				.hasMessage("같은 내용의 정기이체가 이미 등록되어 있습니다.");
+		verify(scheduledTransferRepository, never()).save(any());
+	}
+
+	private ScheduledTransfer savedRecurring(LocalDateTime round) {
+		ScheduledTransfer transfer = ScheduledTransfer.subscribe(MY_ID, 1L, TO, 50_000L, null, null,
+				round.getDayOfMonth(), round, null, round.minusDays(1));
+		ReflectionTestUtils.setField(transfer, "scheduledTransferId", 7L);
+		return transfer;
+	}
+
+	// 정기 회차 실행 : 기록 유형은 RECURRING, 실행 뒤에도 대기(다음 달)
+	@Test
+	void executeRecurringMovesToNextRound() {
+		LocalDateTime now = LocalDateTime.of(2026, 10, 25, 9, 0);
+		ScheduledTransfer transfer = savedRecurring(now);
+		given(scheduledTransferRepository.findByIdForUpdate(7L)).willReturn(Optional.of(transfer));
+
+		assertThat(service.execute(7L, now, false)).isTrue();
+		verify(accountTransferService).transferPreAuthorized(MY_ID, 1L, TO, 50_000L, null, null, "RECURRING");
+		assertThat(transfer.getStatus()).isEqualTo(ScheduledTransferStatus.WAITING);
+		assertThat(transfer.getNextExecuteAt()).isEqualTo(LocalDateTime.of(2026, 11, 25, 9, 0));
+	}
+
+	// 다른 서버가 이 회차를 이미 성공시켜 다음 달로 넘어갔으면, 실패 기록으로 한 달을 더 건너뛰지 않는다
+	@Test
+	void recordFailureSkipsRecurringAlreadyMovedOn() {
+		LocalDateTime now = LocalDateTime.of(2026, 10, 25, 9, 0);
+		ScheduledTransfer transfer = savedRecurring(now);
+		transfer.markSucceeded(now);	// 다른 서버가 먼저 처리 → 11-25
+		given(scheduledTransferRepository.findByIdForUpdate(7L)).willReturn(Optional.of(transfer));
+
+		service.recordFailure(7L, "잔액이 부족합니다.", now, false);
+
+		assertThat(transfer.getNextExecuteAt()).isEqualTo(LocalDateTime.of(2026, 11, 25, 9, 0));
+		assertThat(transfer.isLastSucceeded()).isTrue();
 	}
 
 	@Test

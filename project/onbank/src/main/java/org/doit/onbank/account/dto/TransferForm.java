@@ -6,6 +6,7 @@ import java.time.LocalTime;
 
 import org.springframework.format.annotation.DateTimeFormat;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +15,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-// 이체 화면 입력값 (당행 즉시이체 / 예약이체)
+// 이체 화면 입력값 (당행 즉시이체 / 예약이체 / 정기이체)
 @Getter
 @Setter
 public class TransferForm {
@@ -51,8 +52,23 @@ public class TransferForm {
 	@DateTimeFormat(pattern = "HH:mm")	// 브라우저가 보내는 형식 그대로 (ISO.TIME 은 초·시간대까지 붙여 다시 그릴 때 어긋남)
 	private LocalTime executeTime;		// <input type="time"> : 09:30
 
+	// 정기이체 : [정기]를 골랐을 때만 전송된다 (매월 transferDay일 recurringTime, endDate 는 선택)
+	@Min(value = 1, message = "정기이체 날짜는 1일부터 31일 사이로 선택하세요.")
+	@Max(value = 31, message = "정기이체 날짜는 1일부터 31일 사이로 선택하세요.")
+	private Integer transferDay;		// <select> 1~31
+
+	@DateTimeFormat(pattern = "HH:mm")
+	private LocalTime recurringTime;	// <input type="time"> : 09:00
+
+	@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+	private LocalDate endDate;			// 비우면 해지할 때까지
+
 	public boolean isScheduled() {
 		return executeDate != null || executeTime != null;
+	}
+
+	public boolean isRecurring() {
+		return transferDay != null || recurringTime != null;
 	}
 
 	// 날짜·시각 중 하나라도 비어 있으면 null (Service 가 "예약 일시를 선택하세요"로 안내)

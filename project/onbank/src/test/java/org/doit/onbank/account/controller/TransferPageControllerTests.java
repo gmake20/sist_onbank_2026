@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -484,5 +485,70 @@ class TransferPageControllerTests {
 						containsString("예약 일시는 지금 이후로 선택하세요."),
 						containsString("value=\"2026-01-01\""),
 						containsString("value=\"09:30\""))));
+	}
+
+	// ---------- 정기이체 등록 ----------
+
+	// 매월 날짜·시각을 보내면 이체하지 않고 정기이체만 등록한 뒤 목록으로
+	@Test
+	void recurringTransferSubscribesAndRedirectsToList() throws Exception {
+		LocalDateTime first = LocalDateTime.of(2026, 10, 25, 9, 0);
+		LocalDate endDate = LocalDate.of(2027, 10, 25);
+		given(scheduledTransferService.subscribe(MEMBER_ID, 1L, "1234", null, "TEST-9999", 50_000L, null, null,
+				25, LocalTime.of(9, 0), endDate))
+				.willReturn(ScheduledTransfer.subscribe(MEMBER_ID, 1L, "TEST-9999", 50_000L, null, null, 25, first, endDate,
+						LocalDateTime.now()));
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("amount", "50000")
+						.param("toAccountNumber", "TEST-9999")
+						.param("scheduleMode", "recurring")	// 화면 전환용 라디오 : 서버는 무시
+						.param("transferDay", "25")
+						.param("recurringTime", "09:00")
+						.param("endDate", "2027-10-25"))
+				.andExpect(redirectedUrl("/mybank/transfer/scheduled"))
+				.andExpect(flash().attribute("successMessage",
+						"정기이체를 등록했습니다. 매월 25일 50,000원이 이체되며, 첫 이체는 2026.10.25 09:00입니다."));
+		verify(accountTransferService, never()).transfer(anyLong(), anyLong(), any(), any(), any(), anyLong(), any(), any());
+	}
+
+	// 등록 실패 : 문구를 보여 주고, 입력했던 정기 시각·종료일은 남겨 다시 정기 모드로 열리게 한다
+	@Test
+	void recurringTransferFailureKeepsInput() throws Exception {
+		given(scheduledTransferService.subscribe(anyLong(), anyLong(), any(), any(), any(), anyLong(), any(), any(),
+				any(), any(), any()))
+				.willThrow(new IllegalArgumentException("종료일은 첫 이체일(2026-10-25) 이후로 선택하세요."));
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("amount", "50000")
+						.param("toAccountNumber", "TEST-9999")
+						.param("transferDay", "25")
+						.param("recurringTime", "09:00")
+						.param("endDate", "2026-10-01"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("종료일은 첫 이체일(2026-10-25) 이후로 선택하세요."),
+						containsString("value=\"2026-10-01\""),
+						containsString("value=\"09:00\""))));
+	}
+
+	// 매월 날짜가 범위를 벗어나면 입력 검증에서 막는다
+	@Test
+	void recurringTransferRejectsInvalidDay() throws Exception {
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("amount", "50000")
+						.param("toAccountNumber", "TEST-9999")
+						.param("transferDay", "32")
+						.param("recurringTime", "09:00"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("정기이체 날짜는 1일부터 31일 사이로 선택하세요.")));
+		verify(scheduledTransferService, never()).subscribe(anyLong(), anyLong(), any(), any(), any(), anyLong(), any(),
+				any(), any(), any(), any());
 	}
 }

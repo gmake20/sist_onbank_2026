@@ -16,10 +16,10 @@
     <main class="account-container">
         <h2 class="page-title">전계좌조회</h2>
 
-        <!-- 바로가기 : 이체 / 예약이체 조회 (큰 버튼, account.css .btn-quick) -->
+        <!-- 바로가기 : 이체 / 예약·정기이체 조회 (큰 버튼, account.css .btn-quick) -->
         <div class="quick-actions">
             <a class="btn-quick" th:href="@{/mybank/transfer}">이체하기</a>
-            <a class="btn-quick btn-quick-outline" th:href="@{/mybank/transfer/scheduled}">📅 예약이체 조회·취소</a>
+            <a class="btn-quick btn-quick-outline" th:href="@{/mybank/transfer/scheduled}">📅 예약·정기이체 조회</a>
         </div>
 
         <!-- 없는 계좌·남의 계좌로 접근했을 때 -->

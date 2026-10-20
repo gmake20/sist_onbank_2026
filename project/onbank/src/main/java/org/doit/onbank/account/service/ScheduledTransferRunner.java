@@ -48,7 +48,7 @@ public class ScheduledTransferRunner {
 	public ScheduledTransfer runNow(Long memberId, Long scheduledTransferId) {
 		ScheduledTransfer transfer = scheduledTransferService.getMine(memberId, scheduledTransferId);
 		if (transfer.getStatus() != ScheduledTransferStatus.WAITING) {
-			throw new IllegalStateException("대기 중인 예약이체만 실행할 수 있습니다. (현재 상태: " + transfer.getStatus().getLabel() + ")");
+			throw new IllegalStateException("대기 중인 이체만 실행할 수 있습니다. (현재 상태: " + transfer.getStatus().getLabel() + ")");
 		}
 		runOne(scheduledTransferId, LocalDateTime.now(), true);
 		return scheduledTransferService.getMine(memberId, scheduledTransferId);	// 바뀐 상태·결과를 다시 읽는다
@@ -65,12 +65,12 @@ public class ScheduledTransferRunner {
 		} catch (IllegalArgumentException | IllegalStateException | NoSuchElementException e) {
 			// 사용자에게 보여 줄 수 있는 업무 오류 : 문구를 그대로 사유로 남긴다
 			log.info("예약이체 {} 실행 실패 : {}", id, e.getMessage());
-			scheduledTransferService.recordFailure(id, e.getMessage(), now);
+			scheduledTransferService.recordFailure(id, e.getMessage(), now, force);
 			return false;
 		} catch (RuntimeException e) {
 			// 예상하지 못한 오류 : 내부 메시지는 로그에만 남기고 화면에는 일반 문구
 			log.error("예약이체 {} 실행 중 예상하지 못한 오류", id, e);
-			scheduledTransferService.recordFailure(id, UNKNOWN_FAILURE, now);
+			scheduledTransferService.recordFailure(id, UNKNOWN_FAILURE, now, force);
 			return false;
 		}
 	}

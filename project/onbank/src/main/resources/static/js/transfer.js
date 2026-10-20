@@ -93,37 +93,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
         confirmButton.disabled = !(toAccountInput.value.trim() && amount >= 1);
     }
-    // 예약이체 : [예약이체일지정]을 누르면 날짜·시각 입력칸이 열린다
-    // 닫혀 있을 때는 입력칸이 disabled 라 전송되지 않는다 → 서버는 일시가 없으면 즉시이체로 처리
-    const toggleScheduleButton = form.querySelector('.js-toggle-schedule');
+    // 이체실행일자 [즉시] [예약] [정기] : 고른 쪽 입력칸만 열린다
+    // 고르지 않은 쪽 입력칸은 disabled 라 전송되지 않는다 → 서버는 받은 값으로 즉시·예약·정기를 구분
+    const modeRadios = form.querySelectorAll('.js-schedule-mode');
     const scheduleFields = form.querySelector('.js-schedule-fields');
     const executeDateInput = form.querySelector('.js-execute-date');
     const executeTimeInput = form.querySelector('.js-execute-time');
+    const recurringFields = form.querySelector('.js-recurring-fields');
+    const transferDaySelect = form.querySelector('.js-transfer-day');
+    const recurringTimeInput = form.querySelector('.js-recurring-time');
+    const endDateInput = form.querySelector('.js-end-date');
     const isScheduled = () => !executeDateInput.disabled;
+    const isRecurring = () => !recurringTimeInput.disabled;
     const pad = (number) => String(number).padStart(2, '0');
+    const toDateText = (date) => date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
 
-    function setScheduleMode(on) {
-        scheduleFields.hidden = !on;
-        executeDateInput.disabled = !on;
-        executeTimeInput.disabled = !on;
-        form.querySelector('.js-now-text').hidden = on;
-        form.querySelector('.js-schedule-guide').hidden = !on;
-        toggleScheduleButton.textContent = on ? '즉시이체로 변경' : '예약이체일지정';
-        // 처음 열면 기본값 : 지금부터 10분 뒤를 10분 단위로 올림 (예: 15:23 → 15:40)
-        if (on && !executeDateInput.value) {
+    // mode : 'now' | 'scheduled' | 'recurring'
+    function setScheduleMode(mode) {
+        const scheduled = mode === 'scheduled';
+        const recurring = mode === 'recurring';
+        modeRadios.forEach((radio) => {
+            radio.checked = radio.value === mode;
+        });
+        scheduleFields.hidden = !scheduled;
+        executeDateInput.disabled = !scheduled;
+        executeTimeInput.disabled = !scheduled;
+        recurringFields.hidden = !recurring;
+        transferDaySelect.disabled = !recurring;
+        recurringTimeInput.disabled = !recurring;
+        endDateInput.disabled = !recurring;
+        form.querySelector('.js-now-text').hidden = mode !== 'now';
+        form.querySelector('.js-schedule-guide').hidden = !scheduled;
+        form.querySelector('.js-recurring-guide').hidden = !recurring;
+        // 예약을 처음 열면 기본값 : 지금부터 10분 뒤를 10분 단위로 올림 (예: 15:23 → 15:40)
+        if (scheduled && !executeDateInput.value) {
             const at = new Date(Date.now() + 10 * 60 * 1000);
             at.setMinutes(Math.ceil(at.getMinutes() / 10) * 10, 0, 0);
-            executeDateInput.value = at.getFullYear() + '-' + pad(at.getMonth() + 1) + '-' + pad(at.getDate());
+            executeDateInput.value = toDateText(at);
             executeTimeInput.value = pad(at.getHours()) + ':' + pad(at.getMinutes());
         }
+        // 정기를 처음 열면 기본값 : 매월 오늘 날짜 09:00
+        if (recurring && !recurringTimeInput.value) {
+            transferDaySelect.value = String(new Date().getDate());
+            recurringTimeInput.value = '09:00';
+        }
     }
-    toggleScheduleButton.addEventListener('click', () => {
-        setScheduleMode(!isScheduled());
-        showStep(1);	// 확인 단계였다면 다시 확인받도록
+    modeRadios.forEach((radio) => {
+        radio.addEventListener('change', () => {
+            setScheduleMode(radio.value);
+            showStep(1);	// 확인 단계였다면 다시 확인받도록
+        });
     });
-    // 예약 등록이 실패해 서버가 다시 그린 화면 : 입력했던 일시가 남아 있으면 예약 모드로 연다
-    if (executeDateInput.value || executeTimeInput.value) {
-        setScheduleMode(true);
+    // 등록이 실패해 서버가 다시 그린 화면 : 입력했던 값이 남아 있으면 그 모드로 연다
+    // (매월 날짜 select 는 항상 값이 있으므로 시각으로 판단)
+    if (recurringTimeInput.value) {
+        setScheduleMode('recurring');
+    } else if (executeDateInput.value || executeTimeInput.value) {
+        setScheduleMode('scheduled');
+    } else {
+        setScheduleMode('now');
+    }
+
+    // 정기이체 첫 회차 : 지금 이후 가장 가까운 "매월 N일 시:분" (그 달에 없는 날이면 말일). 서버 계산과 같은 규칙
+    function firstRecurringAt() {
+        const [hour, minute] = recurringTimeInput.value.split(':').map(Number);
+        const day = Number(transferDaySelect.value);
+        const now = new Date();
+        const occurrence = (year, month) => {
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            return new Date(year, month, Math.min(day, lastDay), hour, minute);
+        };
+        const thisMonth = occurrence(now.getFullYear(), now.getMonth());
+        return thisMonth > now ? thisMonth : occurrence(now.getFullYear(), now.getMonth() + 1);
     }
 
     // 입력값 임시 저장 : [OTP 등록하기]로 OTP 화면에 갔다가 돌아오면 입력하던 값을 다시 채운다
@@ -141,7 +182,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 amount: amountInput.value,
                 memos: Object.fromEntries(memoInputs.map((input) => [input.name, input.value])),
                 executeDate: isScheduled() ? executeDateInput.value : '',
-                executeTime: isScheduled() ? executeTimeInput.value : ''
+                executeTime: isScheduled() ? executeTimeInput.value : '',
+                transferDay: isRecurring() ? transferDaySelect.value : '',
+                recurringTime: isRecurring() ? recurringTimeInput.value : '',
+                endDate: isRecurring() ? endDateInput.value : ''
             };
             try {
                 sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -173,10 +217,15 @@ document.addEventListener('DOMContentLoaded', () => {
         memoInputs.forEach((input) => {
             input.value = (draft.memos && draft.memos[input.name]) || '';
         });
-        if (draft.executeDate) {
+        if (draft.recurringTime) {
+            transferDaySelect.value = draft.transferDay;
+            recurringTimeInput.value = draft.recurringTime;
+            endDateInput.value = draft.endDate || '';
+            setScheduleMode('recurring');
+        } else if (draft.executeDate) {
             executeDateInput.value = draft.executeDate;
             executeTimeInput.value = draft.executeTime || '';
-            setScheduleMode(true);
+            setScheduleMode('scheduled');
         }
     })();
 
@@ -254,15 +303,26 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelector('.js-confirm-name').textContent = data.name;
             form.querySelector('.js-confirm-amount').textContent = won(amountInput.value);
 
-            // 즉시 / 예약에 따라 실행일자, 안내 문구, 버튼 이름을 바꾼다
+            // 즉시 / 예약 / 정기에 따라 실행일자, 안내 문구, 버튼 이름을 바꾼다
             const scheduled = isScheduled();
-            form.querySelector('.js-confirm-when').textContent = scheduled
-                ? executeDateInput.value.replaceAll('-', '.') + ' ' + executeTimeInput.value + ' 예약 (그때 자동 이체)'
-                : '즉시';
-            form.querySelector('.js-confirm-guide').textContent = scheduled
-                ? '받는 분 이름을 확인한 뒤 [예약등록]을 누르세요. 실행 전까지 예약이체 조회 화면에서 취소할 수 있습니다.'
-                : '받는 분 이름을 확인한 뒤 [이체실행]을 누르세요. 이체 후에는 취소할 수 없습니다.';
-            form.querySelector('.js-submit').textContent = scheduled ? '예약등록' : '이체실행';
+            const recurring = isRecurring();
+            let when = '즉시';
+            let guide = '받는 분 이름을 확인한 뒤 [이체실행]을 누르세요. 이체 후에는 취소할 수 없습니다.';
+            let submitText = '이체실행';
+            if (scheduled) {
+                when = executeDateInput.value.replaceAll('-', '.') + ' ' + executeTimeInput.value + ' 예약 (그때 자동 이체)';
+                guide = '받는 분 이름을 확인한 뒤 [예약등록]을 누르세요. 실행 전까지 예약·정기이체 조회 화면에서 취소할 수 있습니다.';
+                submitText = '예약등록';
+            } else if (recurring) {
+                when = '매월 ' + transferDaySelect.value + '일 ' + recurringTimeInput.value
+                    + ' (첫 이체 ' + toDateText(firstRecurringAt()).replaceAll('-', '.')
+                    + (endDateInput.value ? ', ' + endDateInput.value.replaceAll('-', '.') + '까지' : ', 해지할 때까지') + ')';
+                guide = '받는 분 이름을 확인한 뒤 [정기이체등록]을 누르세요. 예약·정기이체 조회 화면에서 언제든 해지할 수 있습니다.';
+                submitText = '정기이체등록';
+            }
+            form.querySelector('.js-confirm-when').textContent = when;
+            form.querySelector('.js-confirm-guide').textContent = guide;
+            form.querySelector('.js-submit').textContent = submitText;
 
             // OTP 입력칸 : 필요할 때만 보이고 전송된다
             const otp = needsOtp();
@@ -331,6 +391,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (new Date(executeDateInput.value + 'T' + executeTimeInput.value) <= new Date()) {
                 return '예약 일시는 지금 이후로 선택하세요.';
+            }
+        }
+        // 정기 : 시각은 필수, 종료일은 선택이지만 넣었으면 첫 이체일 이후여야 한다 (서버도 다시 검사)
+        if (isRecurring()) {
+            if (!recurringTimeInput.value) {
+                return '정기이체 날짜와 시각을 선택하세요.';
+            }
+            const firstDate = toDateText(firstRecurringAt());
+            if (endDateInput.value && endDateInput.value < firstDate) {
+                return '종료일은 첫 이체일(' + firstDate + ') 이후로 선택하세요.';
             }
         }
         return '';
