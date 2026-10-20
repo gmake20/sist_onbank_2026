@@ -135,7 +135,29 @@ class OtpPageControllerTests {
 				.andExpect(status().isOk())
 				.andExpect(content().string(containsString("사용중")))
 				.andExpect(content().string(containsString("OTP 번호 확인")))
+				.andExpect(content().string(containsString("분실 신고")))
 				.andExpect(content().string(not(containsString("OTP 사용 등록"))));
+	}
+
+	// 정지되면 번호 확인 대신 분실 신고만 보인다
+	@Test
+	void homeWithSuspendedDeviceShowsLostForm() throws Exception {
+		currentDeviceIs(OtpStatus.SUSPENDED);
+
+		mockMvc.perform(get("/mybank/security/otp").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("정지")))
+				.andExpect(content().string(containsString("/mybank/security/otp/lost")))
+				.andExpect(content().string(not(containsString("OTP 번호 확인"))));
+	}
+
+	// 사용 등록 전에는 분실 신고 대신 다시 발급
+	@Test
+	void homeWithIssuedDeviceHasNoLostForm() throws Exception {
+		currentDeviceIs(OtpStatus.ISSUED);
+
+		mockMvc.perform(get("/mybank/security/otp").with(user(me)))
+				.andExpect(content().string(not(containsString("/mybank/security/otp/lost"))));
 	}
 
 	// ---------- 발급 ----------
@@ -221,5 +243,24 @@ class OtpPageControllerTests {
 		mockMvc.perform(post("/mybank/security/otp/issue").with(user(me)))
 				.andExpect(status().is3xxRedirection())
 				.andExpect(redirectedUrl("/login?expired"));
+	}
+
+	// ---------- 분실 신고 ----------
+
+	@Test
+	void reportLostSuccess() throws Exception {
+		mockMvc.perform(post("/mybank/security/otp/lost").with(user(me)).with(csrf()).param("password", "pass1234!"))
+				.andExpect(redirectedUrl("/mybank/security/otp"))
+				.andExpect(flash().attributeExists("successMessage"));
+		verify(otpService).reportLost(MEMBER_ID, "pass1234!");
+	}
+
+	@Test
+	void reportLostFailureShowsMessage() throws Exception {
+		willThrow(new BusinessException("로그인 비밀번호가 올바르지 않습니다.")).given(otpService).reportLost(MEMBER_ID, "wrong");
+
+		mockMvc.perform(post("/mybank/security/otp/lost").with(user(me)).with(csrf()).param("password", "wrong"))
+				.andExpect(redirectedUrl("/mybank/security/otp"))
+				.andExpect(flash().attribute("errorMessage", "로그인 비밀번호가 올바르지 않습니다."));
 	}
 }

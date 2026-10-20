@@ -11,11 +11,14 @@ import static org.mockito.Mockito.verify;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
 
 import org.doit.onbank.common.exception.BusinessException;
+import org.doit.onbank.member.entity.Member;
+import org.doit.onbank.member.repository.MemberRepository;
 import org.doit.onbank.otp.dto.OtpIssueResult;
 import org.doit.onbank.otp.entity.OtpDevice;
 import org.doit.onbank.otp.entity.OtpStatus;
@@ -27,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 // OtpService 단위 테스트 : DB 대신 가짜(Mock) Repository, 시각은 고정
 @ExtendWith(MockitoExtension.class)
@@ -43,13 +47,19 @@ class OtpServiceTests {
 	@Mock
 	private OtpCodeChecker otpCodeChecker;
 
+	@Mock
+	private MemberRepository memberRepository;
+
 	private final OtpSeedCipher cipher = new OtpSeedCipher(OtpSeedCipherTests.TEST_KEY);
+
+	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder(4);	// 테스트라 강도를 낮춤
 
 	private OtpService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new OtpService(otpDeviceRepository, cipher, otpCodeChecker, Clock.fixed(NOW, ZoneId.of("Asia/Seoul")));
+		service = new OtpService(otpDeviceRepository, cipher, otpCodeChecker, memberRepository,
+				passwordEncoder, Clock.fixed(NOW, ZoneId.of("Asia/Seoul")));
 	}
 
 	private OtpDevice issuedDevice() {
@@ -169,5 +179,77 @@ class OtpServiceTests {
 		given(otpCodeChecker.check(MEMBER_ID, "123456")).willReturn(OtpCheckResult.of(Type.NOT_REGISTERED));
 
 		assertThatThrownBy(() -> service.verify(MEMBER_ID, "123456")).isInstanceOf(BusinessException.class);
+	}
+
+	// ---------- 분실 신고 ----------
+
+	private void memberPasswordIs(String password) {
+		given(memberRepository.findById(MEMBER_ID)).willReturn(Optional.of(Member.builder()
+				.loginId("tester")
+				.password(passwordEncoder.encode(password))
+				.name("테스트")
+				.birthDate(LocalDate.of(2000, 1, 1))
+				.build()));
+	}
+
+	private OtpDevice activeDevice() {
+		OtpDevice device = issuedDevice();
+		device.activate(STEP, LocalDateTime.now());
+		return device;
+	}
+
+	@Test
+	void reportLostChangesActiveDeviceToLost() {
+		OtpDevice device = activeDevice();
+		currentDeviceIs(device);
+		memberPasswordIs("pass1234!");
+
+		service.reportLost(MEMBER_ID, "pass1234!");
+
+		assertThat(device.getStatus()).isEqualTo(OtpStatus.LOST);
+	}
+
+	// 정지된 기기도 분실 신고로 정리하고 다시 발급받는다
+	@Test
+	void reportLostWorksForSuspendedDevice() {
+		OtpDevice device = activeDevice();
+		for (int i = 0; i < OtpDevice.MAX_FAIL_COUNT; i++) {
+			device.recordFailure();
+		}
+		currentDeviceIs(device);
+		memberPasswordIs("pass1234!");
+
+		service.reportLost(MEMBER_ID, "pass1234!");
+
+		assertThat(device.getStatus()).isEqualTo(OtpStatus.LOST);
+	}
+
+	@Test
+	void reportLostRejectsWrongPassword() {
+		OtpDevice device = activeDevice();
+		currentDeviceIs(device);
+		memberPasswordIs("pass1234!");
+
+		assertThatThrownBy(() -> service.reportLost(MEMBER_ID, "wrong"))
+				.isInstanceOf(BusinessException.class)
+				.hasMessageContaining("비밀번호");
+		assertThat(device.getStatus()).isEqualTo(OtpStatus.ACTIVE);
+	}
+
+	// 사용 등록 전 기기는 분실 신고 대신 다시 발급
+	@Test
+	void reportLostRejectsIssuedDevice() {
+		OtpDevice device = issuedDevice();
+		currentDeviceIs(device);
+
+		assertThatThrownBy(() -> service.reportLost(MEMBER_ID, "pass1234!")).isInstanceOf(BusinessException.class);
+		assertThat(device.getStatus()).isEqualTo(OtpStatus.ISSUED);
+	}
+
+	@Test
+	void reportLostRejectsWhenNoDevice() {
+		currentDeviceIs(null);
+
+		assertThatThrownBy(() -> service.reportLost(MEMBER_ID, "pass1234!")).isInstanceOf(BusinessException.class);
 	}
 }

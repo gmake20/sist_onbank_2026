@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.doit.onbank.common.exception.BusinessException;
+import org.doit.onbank.member.repository.MemberRepository;
 import org.doit.onbank.otp.dto.OtpDeviceInfo;
 import org.doit.onbank.otp.dto.OtpIssueResult;
 import org.doit.onbank.otp.entity.OtpDevice;
@@ -13,6 +14,7 @@ import org.doit.onbank.otp.entity.OtpStatus;
 import org.doit.onbank.otp.repository.OtpDeviceRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 // ① issue    : 일련번호 + 시드 생성, 등록 코드를 1번만 돌려줌      → 상태 ISSUED
 // ② activate : 기기에 표시된 번호를 연속 2회 입력                  → 상태 ACTIVE
 // ③ verify   : 이체할 때 6자리 확인 (팀원2 이체 Service가 호출)
+// ④ reportLost : 사용중·정지 OTP 분실 신고 (로그인 비밀번호 확인)   → 상태 LOST → ① 다시 발급 가능
 // TODO 본인확인(identity_verification)이 생기면 issue 에서 memberService.requireVerified() 호출
 @Service
 public class OtpService {
@@ -31,21 +34,27 @@ public class OtpService {
 	private final OtpDeviceRepository otpDeviceRepository;
 	private final OtpSeedCipher otpSeedCipher;
 	private final OtpCodeChecker otpCodeChecker;
+	private final MemberRepository memberRepository;
+	private final PasswordEncoder passwordEncoder;
 	private final Clock clock;
 	private final SecureRandom random = new SecureRandom();
 
 	@Autowired
 	public OtpService(OtpDeviceRepository otpDeviceRepository, OtpSeedCipher otpSeedCipher,
-			OtpCodeChecker otpCodeChecker) {
-		this(otpDeviceRepository, otpSeedCipher, otpCodeChecker, Clock.systemDefaultZone());
+			OtpCodeChecker otpCodeChecker, MemberRepository memberRepository, PasswordEncoder passwordEncoder) {
+		this(otpDeviceRepository, otpSeedCipher, otpCodeChecker, memberRepository, passwordEncoder,
+				Clock.systemDefaultZone());
 	}
 
 	// 테스트에서 시각을 고정할 때 사용
 	OtpService(OtpDeviceRepository otpDeviceRepository, OtpSeedCipher otpSeedCipher,
-			OtpCodeChecker otpCodeChecker, Clock clock) {
+			OtpCodeChecker otpCodeChecker, MemberRepository memberRepository, PasswordEncoder passwordEncoder,
+			Clock clock) {
 		this.otpDeviceRepository = otpDeviceRepository;
 		this.otpSeedCipher = otpSeedCipher;
 		this.otpCodeChecker = otpCodeChecker;
+		this.memberRepository = memberRepository;
+		this.passwordEncoder = passwordEncoder;
 		this.clock = clock;
 	}
 
@@ -138,6 +147,27 @@ public class OtpService {
 			case SUSPENDED -> throw new BusinessException("OTP 번호 오류 " + OtpDevice.MAX_FAIL_COUNT
 					+ "회로 정지된 OTP입니다. 정지 해제 또는 재발급이 필요합니다.");
 		}
+	}
+
+	// ---------- ④ 분실 신고 ----------
+
+	// 사용중·정지 기기를 분실(LOST)로 바꾼다. 다른 사람이 로그인된 화면에서 누르지 못하도록 로그인 비밀번호를 다시 확인
+	// 신고 후에는 findCurrent 가 empty 가 되어 화면에 "OTP 발급" 버튼이 다시 나온다
+	// 사용 등록 전(ISSUED) 기기는 분실 신고 대신 "다시 발급"을 쓴다
+	@Transactional
+	public void reportLost(Long memberId, String password) {
+		OtpDevice device = otpDeviceRepository.findByMemberIdForUpdate(memberId, OtpStatus.USABLE)
+				.orElseThrow(() -> new BusinessException("등록된 OTP가 없습니다."));
+		if (device.getStatus() == OtpStatus.ISSUED) {
+			throw new BusinessException("사용 등록 전 OTP는 분실 신고 대신 다시 발급받아 주세요.");
+		}
+		String savedHash = memberRepository.findById(memberId)
+				.orElseThrow(() -> new BusinessException("회원 정보를 찾을 수 없습니다."))
+				.getPassword();
+		if (password == null || !passwordEncoder.matches(password, savedHash)) {
+			throw new BusinessException("로그인 비밀번호가 올바르지 않습니다.");
+		}
+		device.reportLost();
 	}
 
 	// ---------- 내부 ----------
