@@ -106,6 +106,20 @@ public class Admin {
 		}
 	}
 
+	// 비활성화 ACTIVE·LOCKED → INACTIVE. 실패 횟수는 활성화할 때 초기화
+	public void deactivate() {
+		status = AdminStatus.INACTIVE;
+	}
+
+	// 활성화 INACTIVE → ACTIVE, 실패 횟수 초기화. 잠긴(LOCKED) 계정은 unlock()으로
+	public void activate() {
+		loginFailCount = 0;
+		if (status == AdminStatus.INACTIVE) {
+			status = AdminStatus.ACTIVE;
+		}
+	}
+
+
 	// 비밀번호 변경 (본인이 변경 화면에서). 임시 비밀번호 표시도 해제한다
 	public void changePassword(String encodedPassword) {
 		this.password = encodedPassword;

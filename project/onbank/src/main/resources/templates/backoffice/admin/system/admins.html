@@ -61,13 +61,15 @@
                         <span class="adm-badge" th:switch="${a.status.name()}">
                             <th:block th:case="'ACTIVE'">ACTIVE 사용</th:block>
                             <th:block th:case="'INACTIVE'">INACTIVE 비활성</th:block>
-                            <th:block th:case="'LOCKED'">LOCKED 잠김</th:block>
+                            <th:block th:case="'LOCKED'">LOCKED 로그인 잠김</th:block>
                         </span>
                     </td>
                     <td th:text="${a.tempPassword} ? 'Y' : 'N'">N</td>
                     <td th:text="${a.lastLoginAt != null} ? ${#temporals.format(a.lastLoginAt, 'yyyy-MM-dd HH:mm')} : '–'">–</td>
                     <td th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd')}">YYYY-MM-DD</td>
                     <td th:unless="${a.role.name() == 'SUPER_ADMIN'}">
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${a.status.name() == 'LOCKED'}"
+                                data-status-action="unlock" th:attr="data-id=${a.adminId}, data-login-id=${a.loginId}, data-name=${a.name}, data-role=${a.role}, data-status=${a.status}">로그인 잠금 해제</button>
                         <button type="button" class="adm-btn adm-btn-sm" th:if="${a.status.name() != 'INACTIVE'}"
                                 data-status-action="deactivate" th:attr="data-id=${a.adminId}, data-login-id=${a.loginId}, data-name=${a.name}, data-role=${a.role}, data-status=${a.status}">비활성화</button>
                         <button type="button" class="adm-btn adm-btn-sm" th:if="${a.status.name() == 'INACTIVE'}"
@@ -147,10 +149,12 @@
             var base = form.getAttribute('action');
             var reason = document.getElementById('statusReason');
             var texts = {
-                deactivate: { title: '관리자 계정을 비활성화할까요?', ok: '비활성화',
+                deactivate: { title: '관리자 계정을 비활성화할까요?', ok: '비활성화', ph: '예: 퇴사, 휴직',
                     desc: '비활성화하면 이 계정은 로그인할 수 없습니다. 삭제는 아니며, 활동 기록은 그대로 남습니다.' },
-                activate:   { title: '관리자 계정을 다시 활성화할까요?', ok: '활성화',
-                    desc: '활성화하면 이 계정은 다시 로그인할 수 있습니다. 로그인 실패 횟수는 0으로 돌아갑니다.' }
+                activate:   { title: '관리자 계정을 다시 활성화할까요?', ok: '활성화', ph: '예: 복직',
+                    desc: '활성화하면 이 계정은 다시 로그인할 수 있습니다. 로그인 실패 횟수는 0으로 돌아갑니다.' },
+                unlock:     { title: '관리자 계정의 로그인 잠금을 해제할까요?', ok: '로그인 잠금 해제', ph: '예: 본인 확인 후 해제',
+                    desc: '비밀번호 5회 오류로 잠긴 계정입니다. 해제하면 다시 로그인할 수 있고, 로그인 실패 횟수는 0으로 돌아갑니다.' }
             };
             var opener = null;
 
@@ -168,6 +172,7 @@
                     document.getElementById('stNameRole').textContent = btn.dataset.name + ' · ' + btn.dataset.role;
                     document.getElementById('stStatus').textContent = btn.dataset.status;
                     reason.value = '';
+                    reason.placeholder = t.ph;
                     modal.hidden = false;
                     reason.focus();
                 });
