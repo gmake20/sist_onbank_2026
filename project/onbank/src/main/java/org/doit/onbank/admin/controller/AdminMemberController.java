@@ -1,16 +1,19 @@
 package org.doit.onbank.admin.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.doit.onbank.admin.security.AdminPrincipal;
 import org.doit.onbank.admin.service.AdminMemberService;
+import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.member.entity.MemberStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 
@@ -48,5 +51,45 @@ public class AdminMemberController {
         model.addAttribute("statusLabels", AdminMemberService.STATUS_LABELS);
 
         return "backoffice/admin/member/members";
+    }
+
+    // 로그인 잠금 해제 (MEM-004) / 이용 제한·해제 (MEM-003). 결과는 목록 위 알림(message / error)으로 보여 준다
+    @PostMapping("/{memberId}/unlock")
+    public String unlockLogin(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("memberId") Long memberId,
+                              @RequestParam("reason") String reason, HttpServletRequest request,
+                              RedirectAttributes rttr) {
+        try {
+            adminMemberService.unlockLogin(me, memberId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "로그인 잠금을 해제했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/members";
+    }
+
+    @PostMapping("/{memberId}/restrict")
+    public String restrict(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("memberId") Long memberId,
+                           @RequestParam("reason") String reason, HttpServletRequest request,
+                           RedirectAttributes rttr) {
+        try {
+            adminMemberService.restrict(me, memberId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "이용 제한했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/members";
+    }
+
+    @PostMapping("/{memberId}/unrestrict")
+    public String unrestrict(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("memberId") Long memberId,
+                             @RequestParam("reason") String reason, HttpServletRequest request,
+                             RedirectAttributes rttr) {
+        try {
+            adminMemberService.unrestrict(me, memberId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "이용 제한을 해제했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/members";
     }
 }

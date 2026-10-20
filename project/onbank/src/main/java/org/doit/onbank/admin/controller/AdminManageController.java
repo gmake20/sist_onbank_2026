@@ -8,6 +8,7 @@ import org.doit.onbank.admin.entity.AdminRole;
 import org.doit.onbank.admin.entity.AdminStatus;
 import org.doit.onbank.admin.security.AdminPrincipal;
 import org.doit.onbank.admin.service.AdminManageService;
+import org.doit.onbank.common.exception.BusinessException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -74,5 +75,49 @@ public class AdminManageController {
         return "backoffice/admin/system/admin-new";
     }
 
+    // 비활성화 알림
+    @PostMapping("/{adminId}/deactivate")
+    public String deactivate (@AuthenticationPrincipal AdminPrincipal me, @PathVariable("adminId") Long adminId,
+                             @RequestParam("reason") String reason, HttpServletRequest request,RedirectAttributes rttr
+                             ) {
+        try {
+            adminManageService.deactivate(me, adminId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "계정을 비활성화했습니다.");
+
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/system/admins";
+    }
+
+    // 활성화, 알림
+    @PostMapping("/{adminId}/activate")
+    public String activate (@AuthenticationPrincipal AdminPrincipal me, @PathVariable("adminId") Long adminId,
+                              @RequestParam("reason") String reason, HttpServletRequest request,RedirectAttributes rttr
+                                ) {
+        try {
+            adminManageService.activate(me, adminId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "계정을 활성화했습니다.");
+
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/system/admins";
+    }
+
+    // 잠금해제, 알림
+    @PostMapping("/{adminId}/unlock")
+    public String unlock(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("adminId") Long adminId,
+                            @RequestParam("reason") String reason, HttpServletRequest request,RedirectAttributes rttr
+    ) {
+        try {
+            adminManageService.unlock(me, adminId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "로그인 잠금을 해제했습니다.");
+
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/system/admins";
+    }
 
 }

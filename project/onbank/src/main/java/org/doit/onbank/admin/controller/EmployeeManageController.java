@@ -5,10 +5,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.doit.onbank.admin.dto.EmployeeCreateForm;
 import org.doit.onbank.admin.security.AdminPrincipal;
+import org.doit.onbank.admin.service.AdminLogService;
 import org.doit.onbank.admin.service.EmployeeManageService;
 import org.doit.onbank.common.exception.BusinessException;
+import org.doit.onbank.common.security.BackOfficeUser;
+import org.doit.onbank.employee.entity.Employee;
 import org.doit.onbank.employee.entity.EmployeeRole;
 import org.doit.onbank.employee.entity.EmployeeStatus;
+import org.doit.onbank.employee.repository.EmployeeRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -77,6 +81,60 @@ public class EmployeeManageController {
             bindingResult.reject("invalid", e.getMessage());
         }
         return FORM_VIEW;
+    }
+
+    // 로그인 잠금 해제 / 휴직 / 복직 / 퇴사. 결과는 목록 위 알림(message / error)으로 보여 준다
+    @PostMapping("/{employeeId}/unlock")
+    public String unlockLogin(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("employeeId") Long employeeId,
+                              @RequestParam("reason") String reason, HttpServletRequest request,
+                              RedirectAttributes rttr) {
+        try {
+            employeeManageService.unlockLogin(me, employeeId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "로그인 잠금을 해제했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/system/employees";
+    }
+
+    @PostMapping("/{employeeId}/leave")
+    public String leave(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("employeeId") Long employeeId,
+                        @RequestParam("reason") String reason, HttpServletRequest request,
+                        RedirectAttributes rttr) {
+        try {
+            employeeManageService.leave(me, employeeId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "휴직 처리했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/system/employees";
+    }
+
+    @PostMapping("/{employeeId}/return")
+    public String returnFromLeave(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("employeeId") Long employeeId,
+                                  @RequestParam("reason") String reason, HttpServletRequest request,
+                                  RedirectAttributes rttr) {
+        try {
+            employeeManageService.returnFromLeave(me, employeeId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "복직 처리했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/system/employees";
+    }
+
+    // 퇴사는 되돌리지 않는다
+    @PostMapping("/{employeeId}/retire")
+    public String retire(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("employeeId") Long employeeId,
+                         @RequestParam("reason") String reason, HttpServletRequest request,
+                         RedirectAttributes rttr) {
+        try {
+            employeeManageService.retire(me, employeeId, reason, request.getRemoteAddr());
+            rttr.addFlashAttribute("message", "퇴사 처리했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/system/employees";
     }
 
     // 생성 폼의 select 선택지

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{backoffice/layout/admin}">
 <head>
@@ -48,6 +48,9 @@
         </div>
     </form>
 
+    <div class="adm-alert" role="alert" th:if="${error != null}" th:text="${error}"></div>
+    <p class="adm-note" role="status" th:if="${message != null}" th:text="${message}"></p>
+
     <section class="adm-card">
         <div class="adm-card-head">
             <span>총 <b th:text="${employees.size()}">0</b>건</span>
@@ -56,7 +59,7 @@
         <div class="adm-table-wrap">
             <table class="adm-table">
                 <thead>
-                <tr><th>사번</th><th>이름</th><th>소속 지점</th><th>직급</th><th>역할</th><th>상태</th><th>임시 비밀번호</th><th>입사일</th></tr>
+                <tr><th>사번</th><th>이름</th><th>소속 지점</th><th>직급</th><th>역할</th><th>상태</th><th>임시 비밀번호</th><th>입사일</th><th>관리</th></tr>
                 </thead>
                 <tbody>
                 <tr th:each="e : ${employees}">
@@ -75,16 +78,27 @@
                     </td>
                     <td th:text="${e.tempPassword} ? 'Y' : 'N'">N</td>
                     <td th:text="${#temporals.format(e.hiredAt, 'yyyy-MM-dd')}">YYYY-MM-DD</td>
+                    <td th:with="label=${e.employeeNo + ' · ' + e.name}">
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${e.status.name() == 'LOCKED'}"
+                                data-status-action="unlock" th:attr="data-id=${e.employeeId}, data-label=${label}, data-status=${e.status}">로그인 잠금 해제</button>
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${e.status.name() == 'ACTIVE' or e.status.name() == 'LOCKED'}"
+                                data-status-action="leave" th:attr="data-id=${e.employeeId}, data-label=${label}, data-status=${e.status}">휴직</button>
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${e.status.name() == 'ON_LEAVE'}"
+                                data-status-action="return" th:attr="data-id=${e.employeeId}, data-label=${label}, data-status=${e.status}">복직</button>
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${e.status.name() != 'RETIRED'}"
+                                data-status-action="retire" th:attr="data-id=${e.employeeId}, data-label=${label}, data-status=${e.status}">퇴사</button>
+                        <th:block th:if="${e.status.name() == 'RETIRED'}">–</th:block>
+                    </td>
                 </tr>
                 <tr th:if="${employees.isEmpty()}">
-                    <td colspan="8" class="adm-empty">조건에 맞는 직원이 없습니다.</td>
+                    <td colspan="9" class="adm-empty">조건에 맞는 직원이 없습니다.</td>
                 </tr>
                 </tbody>
             </table>
         </div>
     </section>
 
-    <p class="adm-note">소속 변경 · 퇴사 처리는 이번 계획에 없습니다. 임시 비밀번호 Y = 첫 로그인 후 비밀번호를 아직 바꾸지 않은 계정.</p>
+    <p class="adm-note">퇴사 처리는 되돌릴 수 없습니다(재입사는 새 계정). 소속 변경은 이번 계획에 없습니다. 임시 비밀번호 Y = 첫 로그인 후 비밀번호를 아직 바꾸지 않은 계정.</p>
     <!-- 임시 비밀번호 안내 : 생성 직후 flash 로 한 번만 온다. "확인"은 목록을 다시 여는 링크 -->
     <div class="adm-modal-backdrop" th:if="${created != null}">
         <div class="adm-modal" role="dialog" aria-modal="true" aria-labelledby="m03-title">
@@ -116,6 +130,70 @@
                 .then(function () { btn.textContent = '복사됨'; });
         });
     </script>
+
+    <!-- 로그인 잠금 해제 / 휴직 / 복직 / 퇴사 : 모달 하나를 버튼에 따라 문구·주소만 바꿔 쓴다 (admins.html과 같은 방식) -->
+    <div class="adm-modal-backdrop" id="statusModal" hidden>
+        <form class="adm-modal" id="statusForm" method="post" th:action="@{/admin/system/employees}"
+              role="dialog" aria-modal="true" aria-labelledby="statusTitle">
+            <div class="adm-modal-head">
+                <h2 id="statusTitle"></h2>
+                <p id="statusDesc"></p>
+            </div>
+            <dl>
+                <dt>대상</dt><dd id="stTarget"></dd>
+                <dt>현재 상태</dt><dd id="stStatus"></dd>
+            </dl>
+            <div class="adm-field">
+                <label for="statusReason">사유 (필수)</label>
+                <input type="text" id="statusReason" name="reason" maxlength="200" required>
+            </div>
+            <div class="adm-modal-btns">
+                <button type="button" class="adm-btn" id="statusCancel">취소</button>
+                <button type="submit" class="adm-btn-primary" id="statusOk"></button>
+            </div>
+        </form>
+    </div>
+    <script>
+        (function () {
+            var modal = document.getElementById('statusModal');
+            var form = document.getElementById('statusForm');
+            var base = form.getAttribute('action');
+            var reason = document.getElementById('statusReason');
+            var texts = {
+                unlock: { title: '직원 계정의 로그인 잠금을 해제할까요?', ok: '로그인 잠금 해제', ph: '예: 본인 확인 후 해제',
+                    desc: '비밀번호 5회 오류로 잠긴 계정입니다. 해제하면 다시 로그인할 수 있고, 로그인 실패 횟수는 0으로 돌아갑니다.' },
+                leave:  { title: '휴직 처리할까요?', ok: '휴직', ph: '예: 육아휴직',
+                    desc: '휴직 중에는 로그인할 수 없습니다. 복직 처리하면 다시 로그인할 수 있습니다.' },
+                'return': { title: '복직 처리할까요?', ok: '복직', ph: '예: 휴직 종료',
+                    desc: '복직하면 다시 로그인할 수 있습니다. 로그인 실패 횟수는 0으로 돌아갑니다.' },
+                retire: { title: '퇴사 처리할까요?', ok: '퇴사', ph: '예: 10/31 자로 퇴사',
+                    desc: '퇴사 처리하면 로그인할 수 없고, 되돌릴 수 없습니다. 퇴사일은 오늘 날짜로 기록되니 실제 퇴사일이 다르면 사유에 적어 주세요.' }
+            };
+            var opener = null;
+
+            function close() { modal.hidden = true; if (opener) { opener.focus(); } }
+
+            document.querySelectorAll('[data-status-action]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var t = texts[btn.dataset.statusAction];
+                    opener = btn;
+                    form.setAttribute('action', base + '/' + btn.dataset.id + '/' + btn.dataset.statusAction);
+                    document.getElementById('statusTitle').textContent = t.title;
+                    document.getElementById('statusDesc').textContent = t.desc;
+                    document.getElementById('statusOk').textContent = t.ok;
+                    document.getElementById('stTarget').textContent = btn.dataset.label;
+                    document.getElementById('stStatus').textContent = btn.dataset.status;
+                    reason.value = '';
+                    reason.placeholder = t.ph;
+                    modal.hidden = false;
+                    reason.focus();
+                });
+            });
+            document.getElementById('statusCancel').addEventListener('click', close);
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { close(); } });
+        })();
+    </script>
+
 </main>
 </body>
 </html>

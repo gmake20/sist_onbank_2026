@@ -119,4 +119,21 @@ public class Member extends BaseEntity {
 			status = MemberStatus.ACTIVE;
 		}
 	}
+
+	// ---------- 이용 제한 (관리자 회원 관리 화면에서 호출, MEM-003) ----------
+	// 정지(SUSPENDED)는 isEnabled() = false 라 비밀번호 확인 전에 로그인이 막힌다
+
+	// 이용 제한 : 정상·로그인 잠금 → 정지
+	public void restrict() {
+		status = MemberStatus.SUSPENDED;
+	}
+
+	// 이용 제한 해제 : 정지 → 정상 (실패 횟수·잠긴 시각 초기화)
+	public void unrestrict() {
+		loginFailCount = 0;
+		loginLockedAt = null;
+		if (status == MemberStatus.SUSPENDED) {
+			status = MemberStatus.ACTIVE;
+		}
+	}
 }
