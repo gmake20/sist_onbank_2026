@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 // ACC-001 계좌 목록 (S-07)
 // Account 에는 회원 연관관계가 없고 memberId 숫자만 있어서 ON 으로 직접 잇는다
 public interface AccountSearchRepository extends Repository<Account, Long> {
@@ -33,4 +35,10 @@ public interface AccountSearchRepository extends Repository<Account, Long> {
                                 @Param("status") AccountStatus status,
                                 @Param("type") AccountType type,
                                 Pageable pageable);
+
+    // ACC-004 이력 화면 위쪽 계좌 정보. 목록과 같은 칸을 한 줄만
+    @Query("SELECT new org.doit.onbank.admin.dto.AccountListRow(a.accountId, a.accountNumber,"
+            + " m.loginId, m.name, a.accountType, a.accountStatus, a.balance, a.lastTransactionAt)"
+            + " FROM Account a JOIN Member m ON m.memberId = a.memberId WHERE a.accountId = :accountId")
+    Optional<AccountListRow> findRow(@Param("accountId") Long accountId);
 }

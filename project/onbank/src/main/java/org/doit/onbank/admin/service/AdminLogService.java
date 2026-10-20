@@ -10,6 +10,8 @@ import org.doit.onbank.common.security.ActorType;
 import org.doit.onbank.common.security.BackOfficeUser;
 import org.doit.onbank.employee.entity.Employee;
 import org.doit.onbank.employee.repository.EmployeeRepository;
+import org.doit.onbank.member.entity.Member;
+import org.doit.onbank.member.repository.MemberRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class AdminLogService {
     private final AdminLogRepository adminLogRepository;
     private final AdminRepository adminRepository;
     private final EmployeeRepository employeeRepository;
+    private final MemberRepository memberRepository;
 
     public void record(BackOfficeUser actor, String actionType, String targetType, String targetId,
                        String beforeValue, String afterValue, String reason, String requestIp) {
@@ -66,20 +69,23 @@ public class AdminLogService {
                 from.atStartOfDay(), to.plusDays(1).atStartOfDay(),
                 PageRequest.of(Math.max(page, 0), PAGE_SIZE));
 
-        // 이 페이지에 나온 작업자 + 대상(ADMIN / EMPLOYEE)만 모아서 테이블마다 한 번씩 조회 (최대 40명)
+        // 이 페이지에 나온 작업자 + 대상(ADMIN / EMPLOYEE / MEMBER)만 모아서 테이블마다 한 번씩 조회 (최대 40명)
         Set<Long> adminIds = new HashSet<>(actorIds(logs, ActorType.ADMIN));
-        adminIds.addAll(targetIds(logs, ActorType.ADMIN));
+        adminIds.addAll(targetIds(logs, ActorType.ADMIN.name()));
         Set<Long> employeeIds = new HashSet<>(actorIds(logs, ActorType.EMPLOYEE));
-        employeeIds.addAll(targetIds(logs, ActorType.EMPLOYEE));
+        employeeIds.addAll(targetIds(logs, ActorType.EMPLOYEE.name()));
+        Set<Long> memberIds = targetIds(logs, "MEMBER");
 
         Map<Long, Admin> admins = adminRepository.findAllById(adminIds).stream()
                 .collect(Collectors.toMap(Admin::getAdminId, Function.identity()));
         Map<Long, Employee> employees = employeeRepository.findAllById(employeeIds).stream()
                 .collect(Collectors.toMap(Employee::getEmployeeId, Function.identity()));
+        Map<Long, Member> members = memberRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(Member::getMemberId, Function.identity()));
 
         return logs.map(l -> new AdminLogRow(l,
-                person(l.getActorType().name(), l.getActorId(), admins, employees),
-                person(l.getTargetType(), parseId(l.getTargetId()), admins, employees)));
+                person(l.getActorType().name(), l.getActorId(), admins, employees, members),
+                person(l.getTargetType(), parseId(l.getTargetId()), admins, employees, members)));
     }
 
     @Transactional(readOnly = true)
@@ -99,17 +105,18 @@ public class AdminLogService {
                 .collect(Collectors.toSet());
     }
 
-    // target_type 값이 ADMIN / EMPLOYEE 인 줄의 target_id (테이블 이름과 ActorType 이름이 같다)
-    private Set<Long> targetIds(Page<AdminLog> logs, ActorType type) {
+    // target_type 값이 ADMIN / EMPLOYEE / MEMBER 인 줄의 target_id
+    private Set<Long> targetIds(Page<AdminLog> logs, String targetType) {
         return logs.stream()
-                .filter(l -> type.name().equals(l.getTargetType()))
+                .filter(l -> targetType.equals(l.getTargetType()))
                 .map(l -> parseId(l.getTargetId()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
 
-    // type = ADMIN / EMPLOYEE 일 때만 사람을 찾는다. 다른 대상이거나 못 찾으면 null
-    private AdminLogRow.Person person(String type, Long id, Map<Long, Admin> admins, Map<Long, Employee> employees) {
+    // type = ADMIN / EMPLOYEE / MEMBER 일 때만 사람을 찾는다. 다른 대상이거나 못 찾으면 null
+    private AdminLogRow.Person person(String type, Long id, Map<Long, Admin> admins,
+                                      Map<Long, Employee> employees, Map<Long, Member> members) {
         if (id == null) {
             return null;
         }
@@ -120,6 +127,10 @@ public class AdminLogService {
         if (ActorType.EMPLOYEE.name().equals(type)) {
             Employee e = employees.get(id);
             return e == null ? null : new AdminLogRow.Person(e.getEmployeeNo(), e.getName());
+        }
+        if ("MEMBER".equals(type)) {
+            Member m = members.get(id);
+            return m == null ? null : new AdminLogRow.Person(m.getLoginId(), m.getName());
         }
         return null;
     }
