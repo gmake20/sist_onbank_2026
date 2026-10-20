@@ -40,6 +40,8 @@
 		implementation 'org.springframework.boot:spring-boot-starter-security'
 		implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'	// 화면에서 sec: 속성 사용
 		testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+		
+		implementation 'org.springframework.boot:spring-boot-starter-mail'
 	}
 
 	tasks.named('test') {

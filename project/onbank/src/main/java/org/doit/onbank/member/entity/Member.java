@@ -27,28 +27,28 @@ import lombok.ToString;
 @Entity
 @Table(name = "members")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)	// JPA용 기본 생성자
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA용 기본 생성자
 @ToString(exclude = "password")
 public class Member extends BaseEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)	// AUTO_INCREMENT
+	@GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
 	private Long memberId;
 
 	@Column(nullable = false, length = 30)
 	private String loginId;
 
 	@Column(nullable = false, length = 100)
-	private String password;	// BCrypt 해시
+	private String password; // BCrypt 해시
 
 	@Column(nullable = false, length = 30)
 	private String name;
 
 	@Column(length = 100)
-	private String email;		// 탈퇴 시 NULL
+	private String email; // 탈퇴 시 NULL
 
 	@Column(length = 20)
-	private String phone;		// 숫자만 저장. 탈퇴 시 NULL
+	private String phone; // 숫자만 저장. 탈퇴 시 NULL
 
 	@Column(nullable = false)
 	private LocalDate birthDate;
@@ -66,7 +66,7 @@ public class Member extends BaseEntity {
 	@Column(nullable = false)
 	private int loginFailCount = 0;
 
-	private LocalDateTime loginLockedAt;	// 잠긴 시각 기록용. 잠김 여부는 status = LOCKED 로 판단
+	private LocalDateTime loginLockedAt; // 잠긴 시각 기록용. 잠김 여부는 status = LOCKED 로 판단
 
 	@Column(nullable = false)
 	private LocalDateTime termsAgreedAt;
@@ -77,6 +77,11 @@ public class Member extends BaseEntity {
 	private boolean marketingAgree = false;
 
 	private LocalDateTime withdrawnAt;
+
+	// 비밀번호 찾기로 임시 비밀번호를 받았으면 true → 로그인 직후 변경 화면으로 보낸다 (TempPasswordFilter)
+	@Convert(converter = YesNoConverter.class)
+	@Column(name = "temp_pw_yn", nullable = false, length = 1)
+	private boolean tempPassword = false;
 
 	// 회원가입 시 입력받는 값만 빌더로 받는다. 상태값은 위의 기본값을 사용
 	@Builder
@@ -111,13 +116,28 @@ public class Member extends BaseEntity {
 		loginFailCount = 0;
 	}
 
-	// 잠금 해제 (다음 단계 : 비밀번호 재설정, 직원 회원 관리 화면에서 호출)
+	// 잠금 해제 (비밀번호 찾기의 임시 비밀번호 발급, 다음 단계 : 직원 회원 관리 화면에서 호출)
 	public void unlockLogin() {
 		loginFailCount = 0;
 		loginLockedAt = null;
 		if (status == MemberStatus.LOCKED) {
 			status = MemberStatus.ACTIVE;
 		}
+	}
+
+	// ---------- 비밀번호 ----------
+
+	// 비밀번호 찾기 : 임시 비밀번호로 바꾸고 로그인 잠금도 푼다 (본인 이메일로 받은 사람만 로그인 가능)
+	public void issueTempPassword(String encodedPassword) {
+		this.password = encodedPassword;
+		this.tempPassword = true;
+		unlockLogin();
+	}
+
+	// 비밀번호 변경 (본인이 변경 화면에서). 임시 비밀번호 표시도 해제한다
+	public void changePassword(String encodedPassword) {
+		this.password = encodedPassword;
+		this.tempPassword = false;
 	}
 
 	// ---------- 이용 제한 (관리자 회원 관리 화면에서 호출, MEM-003) ----------

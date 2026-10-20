@@ -52,6 +52,7 @@ CREATE TABLE members (
     created_at          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at          DATETIME(6),
     withdrawn_at        DATETIME(6),
+    temp_pw_yn          CHAR(1)         NOT NULL DEFAULT 'N' COMMENT '비밀번호 찾기로 받은 임시 비밀번호면 Y (로그인 후 변경 강제)',
     daily_transfer_limit BIGINT COMMENT '1일 이체한도',
     once_transfer_limit BIGINT COMMENT '1회 이체한도',
     
@@ -62,6 +63,7 @@ CREATE TABLE members (
     CONSTRAINT ck_members_status CHECK (status IN ('ACTIVE', 'LOCKED', 'SUSPENDED', 'WITHDRAWN')),
     CONSTRAINT ck_members_verification CHECK (verification_status IN ('NONE', 'PENDING', 'VERIFIED', 'REJECTED')),
     CONSTRAINT ck_members_marketing CHECK (marketing_agree_yn IN ('Y', 'N')),
+    CONSTRAINT ck_members_temp_pw CHECK (temp_pw_yn IN ('Y', 'N')),
     -- 탈퇴 회원만 이메일·휴대폰이 비어 있을 수 있음
     CONSTRAINT ck_members_contact CHECK (status = 'WITHDRAWN' OR (email IS NOT NULL AND phone IS NOT NULL)),
     -- 탈퇴 상태와 탈퇴일시는 함께 존재
@@ -353,3 +355,8 @@ CREATE INDEX ix_otp_device_member ON otp_device (member_id);
 -- ALTER TABLE employee
 --     DROP CHECK ck_employee_role,
 --     ADD CONSTRAINT ck_employee_role CHECK (role IN ('STAFF', 'MANAGER'));
+
+-- [2026-10-21] scm - members.temp_pw_yn 추가 (비밀번호 찾기 : 이메일로 임시 비밀번호 발송, 로그인 후 변경 강제)
+-- ALTER TABLE members
+--     ADD COLUMN temp_pw_yn CHAR(1) NOT NULL DEFAULT 'N' COMMENT '비밀번호 찾기로 받은 임시 비밀번호면 Y (로그인 후 변경 강제)' AFTER withdrawn_at,
+--     ADD CONSTRAINT ck_members_temp_pw CHECK (temp_pw_yn IN ('Y', 'N'));

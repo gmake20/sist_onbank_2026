@@ -40,7 +40,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 // - 직원·관리자는 로그인 정보를 세션에 다른 이름으로 저장한다 → 고객 로그인으로 직원 화면에 들어갈 수 없고,
 //   같은 브라우저에서 고객과 직원으로 함께 로그인해도 섞이지 않음
 // - 로그인 성공/실패 핸들러 : 비밀번호 5회 오류 잠금 (LoginSuccessHandler, LoginFailureHandler)
-// - 임시 비밀번호 변경 강제 (직원·관리자) : 로그인 직후 변경 화면으로 이동(LoginSuccessHandler),
+// - 임시 비밀번호 변경 강제 (직원·관리자·고객) : 로그인 직후 변경 화면으로 이동(LoginSuccessHandler),
 //   바꾸기 전에는 다른 화면 차단(TempPasswordFilter)
 // 다음 단계 : 로그인 이력 기록, 세션 타임아웃, 중복 로그인 제한
 @Configuration
@@ -156,10 +156,15 @@ public class SecurityConfig {
 		http
 			.userDetailsService(memberDetailsService)
 			.requestCache(cache -> cache.requestCache(requestCache))
+			// 비밀번호 찾기로 받은 임시 비밀번호로 로그인하면 변경 전까지 다른 화면 차단
+			// 고객 체인은 css·js·오류 화면도 지나가므로 함께 통과시킨다
+			.addFilterAfter(new TempPasswordFilter("/mybank/profile/password", "/logout", "/api/**",
+					"/css/**", "/js/**", "/images/**", "/favicon.ico", "/error"),
+					AuthorizationFilter.class)
 			.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler("/login")))
 			.authorizeHttpRequests(auth -> auth
-				// 비회원 공개 : 회원가입, 가입용 휴대폰 인증 API (아래 anyRequest를 잠가도 열려 있어야 함)
-				.requestMatchers("/signup", "/api/phone/**").permitAll()
+				// 비회원 공개 : 회원가입, 가입용 휴대폰 인증 API, 비밀번호 찾기 (아래 anyRequest를 잠가도 열려 있어야 함)
+				.requestMatchers("/signup", "/api/phone/**", "/password/find").permitAll()
 				// 로그인한 고객만
 				.requestMatchers("/mybank/**").hasRole("USER")
 				.requestMatchers("/loan/apply", "/loan/apply/**").authenticated()
@@ -172,7 +177,8 @@ public class SecurityConfig {
 				.usernameParameter("loginId")
 				.passwordParameter("password")
 				// 성공 : 실패 횟수 초기화 → 로그인 전에 보려던 페이지, 없으면 /
-				.successHandler(new LoginSuccessHandler(memberLoginAttemptRecorder, "/", requestCache))
+				//        임시 비밀번호면 비밀번호 변경 화면
+				.successHandler(new LoginSuccessHandler(memberLoginAttemptRecorder, "/", requestCache, "/mybank/profile/password"))
 				// 실패 : 비밀번호 5회 오류면 잠금 → /login?error, ?locked, ?disabled
 				.failureHandler(new LoginFailureHandler(memberLoginAttemptRecorder, "loginId", "/login"))
 				.permitAll())
