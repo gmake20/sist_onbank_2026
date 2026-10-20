@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>예적금 상품 | ONBANK</title>
+  <link rel="stylesheet" th:href="@{/css/index.css}">
+  <link rel="stylesheet" th:href="@{/css/savings/savings-catalog.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+<main class="sv-page">
+  <div class="sv-container">
+    <nav class="sv-breadcrumb"><a th:href="@{/}">홈</a><span>›</span><a th:href="@{/savings}">예적금</a><span>›</span><strong>상품 목록</strong></nav>
+    <section class="sv-hero">
+      <div class="sv-hero-copy">
+        <span class="sv-eyebrow">ONBANK · SAVINGS PRODUCTS</span>
+        <h1>나에게 딱 맞는<br><em>저축의 시작</em></h1>
+        <p>목돈을 든든하게 맡기는 정기예금부터<br>매달 차곡차곡 모으는 정기적금까지.</p>
+        <a class="sv-white-link" th:href="@{/savings/mine}">내 예적금 확인하기 <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="sv-hero-art" aria-hidden="true"><div class="sv-orbit"></div><div class="sv-coin coin-one">₩</div><div class="sv-coin coin-two">₩</div><div class="sv-jar">SAVINGS<strong>+</strong></div></div>
+    </section>
+    <div th:if="${error != null}" class="sv-alert" th:text="${error}"></div>
+    <section class="sv-benefits" aria-label="예적금 서비스 안내">
+      <div><span class="sv-mini-icon">01</span><p><strong>정기예금</strong><small>목돈을 안정적으로</small></p></div>
+      <div><span class="sv-mini-icon">02</span><p><strong>정기적금</strong><small>매월 계획적인 저축</small></p></div>
+      <div><span class="sv-mini-icon">03</span><p><strong>내 예적금</strong><small>가입·납입 내역 한눈에</small></p></div>
+    </section>
+    <section class="sv-catalog">
+      <div class="sv-heading"><div><span class="sv-section-kicker">PRODUCT LINEUP</span><h2>ONBANK 예적금 상품</h2><p>상품의 금리와 가입 조건을 비교하고 상세정보를 확인하세요.</p></div><div class="sv-counter" th:text="|총 ${#lists.size(products)}개 상품|">총 10개 상품</div></div>
+      <div class="sv-filters" role="group" aria-label="상품 유형 필터"><button type="button" class="is-active" data-filter="ALL">전체 상품</button><button type="button" data-filter="FIXED_DEPOSIT">정기예금</button><button type="button" data-filter="INSTALLMENT_SAVINGS">정기적금</button></div>
+      <div class="sv-grid" id="savingsProductGrid">
+        <article class="sv-product" th:each="p : ${products}" th:attr="data-type=${p.type.name()}">
+          <div class="sv-product-top"><span class="sv-type" th:classappend="${p.type.name() == 'INSTALLMENT_SAVINGS'} ? ' is-saving' : ''" th:text="${p.type.name() == 'FIXED_DEPOSIT' ? '정기예금' : '정기적금'}">정기예금</span><span class="sv-product-no" th:text="|NO. ${p.id}|">NO. 01</span></div>
+          <h3 th:text="${p.name}">ONBANK 스마트 정기예금</h3>
+          <p class="sv-product-sub" th:text="${p.type.name() == 'FIXED_DEPOSIT' ? '목돈을 맡기고 만기에 이자를 받는 상품' : '매월 꾸준히 납입하며 목돈을 모으는 상품'}">나만의 저축 계획</p>
+          <div class="sv-rate"><span>기본금리 <small>연 / 세전</small></span><strong th:text="|${#numbers.formatDecimal(p.annualRate,1,2)}%|">3.20%</strong></div>
+          <div class="sv-specs"><div><span>가입 기간</span><strong th:text="|${p.termMonths}개월|">12개월</strong></div><div><span th:text="${p.type.name() == 'FIXED_DEPOSIT' ? '가입 금액' : '월 납입금'}">가입 금액</span><strong th:text="|${#numbers.formatInteger(p.minAmount,1,'COMMA')} ~ ${#numbers.formatInteger(p.maxAmount,1,'COMMA')}원|">100,000 ~ 10,000,000원</strong></div></div>
+          <a class="sv-detail-btn" th:href="@{/savings/products/{id}(id=${p.id})}">상품 상세보기 <span aria-hidden="true">→</span></a>
+        </article>
+      </div>
+      <div id="svFilterEmpty" class="sv-empty" hidden>해당 유형의 상품이 없습니다.</div>
+      <div th:if="${#lists.isEmpty(products)}" class="sv-empty">현재 판매 중인 예적금 상품이 없습니다.</div>
+      <p class="sv-disclaimer">※ 표시된 금리는 연이율·세전 기준이며, 실제 수령 이자는 가입 조건 및 납입 시점에 따라 달라집니다.</p>
+    </section>
+  </div>
+</main>
+<script>
+(() => {
+  const buttons = document.querySelectorAll('.sv-filters button');
+  const cards = document.querySelectorAll('.sv-product[data-type]');
+  const empty = document.getElementById('svFilterEmpty');
+  buttons.forEach(button => button.addEventListener('click', () => {
+    buttons.forEach(b => b.classList.toggle('is-active', b === button));
+    let visible = 0;
+    cards.forEach(card => { const show = button.dataset.filter === 'ALL' || card.dataset.type === button.dataset.filter; card.hidden = !show; if(show) visible++; });
+    if (empty) empty.hidden = visible > 0 || cards.length === 0;
+  }));
+})();
+</script>
+</body>
+</html>

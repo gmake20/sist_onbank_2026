@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>내 예적금 | ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}">
+<link rel="stylesheet" th:href="@{/css/savings/savings-mine.css}">
+</head>
+<body>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+	<main class="sm-page">
+		<div class="sm-container">
+			<nav class="sm-crumb">
+				<a th:href="@{/}">홈</a><span>›</span><a th:href="@{/savings}">예적금</a><span>›</span><strong>내
+					예적금</strong>
+			</nav>
+			<header class="sm-header">
+				<div>
+					<span class="sm-kicker">ONBANK · MY SAVINGS</span>
+					<h1>내 예적금 계좌</h1>
+					<p>가입 상품과 적금 납입 일정, 미납 회차를 한눈에 확인하세요.</p>
+				</div>
+				<a class="sm-top-link" th:href="@{/savings/products}">새 상품 찾아보기
+					→</a>
+			</header>
+			<div th:if="${message != null}" class="sm-alert" th:text="${message}"></div>
+			<div th:if="${error != null}" class="sm-alert sm-alert-error"
+				th:text="${error}"></div>
+
+			<section th:if="${#lists.isEmpty(accounts)}" class="sm-empty">
+				<div class="sm-empty-icon">▤</div>
+				<h2>가입한 예적금이 없습니다</h2>
+				<p>ONBANK 예적금 상품을 둘러보고 저축을 시작해 보세요.</p>
+				<a th:href="@{/savings/products}">예적금 상품 보기 →</a>
+			</section>
+
+			<th:block th:unless="${#lists.isEmpty(accounts)}">
+				<section class="sm-summary">
+					<div>
+						<span>보유 예적금</span><strong th:text="|${#lists.size(accounts)}개|">2개</strong>
+					</div>
+					<div>
+						<span>전체 납입 원금</span><strong
+							th:text="|${#numbers.formatInteger(totalPrincipal,1,'COMMA')}원|">0원</strong>
+					</div>
+					<div>
+						<span>선택 계좌 미납 회차</span><strong
+							th:text="|${scheduleSummary.overdueCount}건|">0건</strong>
+					</div>
+				</section>
+				
+				
+				<div id="savingsAjaxContent" th:fragment="ajaxContent">
+				<section class="sm-section">
+					<div class="sm-section-heading">
+						<div>
+							<h2>가입 계좌</h2>
+							<p>카드를 선택하면 아래에 납입 스케줄이 표시됩니다.</p>
+						</div>
+						<span th:text="|총 ${#lists.size(accounts)}개|">총 2개</span>
+					</div>
+					<div class="sm-grid">
+						<a th:each="a : ${accounts}" class="sm-account-card"
+							th:classappend="${selectedAccount != null and a.id == selectedAccount.id} ? ' selected' : ''"
+							th:href="@{/savings/mine(
+									    page=${currentPage},
+									    accountId=${a.id},
+									    schedulePage=1
+									)}">
+							<div class="sm-card-top">
+								<span class="sm-type"
+									th:text="${a.product.type.name() == 'FIXED_DEPOSIT' ? '정기예금' : '정기적금'}">정기적금</span>
+								<span class="sm-state"
+									th:text="${a.status.name() == 'ACTIVE' ? '정상' : a.status.name()}">정상</span>
+							</div>
+							<h3 th:text="${a.product.name}">ONBANK 첫걸음 적금</h3>
+							<div class="sm-card-amount">
+								<small>현재 납입 원금</small><strong
+									th:text="|${#numbers.formatInteger(a.principal,1,'COMMA')}원|">0원</strong>
+							</div>
+							<div class="sm-card-footer">
+								<span>가입일 <b
+									th:text="${#temporals.format(a.openedOn,'yyyy.MM.dd')}">2026.10.20</b></span><span>만기일
+									<b th:text="${#temporals.format(a.maturityOn,'yyyy.MM.dd')}">2027.10.20</b>
+								</span>
+							</div>
+							<div class="sm-card-bottom">
+								계좌 현황 보기 <span>→</span>
+							</div>
+						</a>
+					</div>
+				</section>
+				
+			
+
+				<section th:if="${selectedAccount != null}" class="sm-detail">
+					<div class="sm-section-heading">
+						<div>
+							<h2 th:text="${selectedAccount.product.name}">적금 납입 관리</h2>
+							<p>약정 일정과 실제 납입 기록을 비교한 결과입니다.</p>
+						</div>
+						<a class="sm-detail-link"
+							th:href="@{/savings/{id}(id=${selectedAccount.id})}">계좌 상세보기
+							→</a>
+					</div>
+					<div class="sm-selection-info">
+						<span>상품 금리 <b
+							th:text="|연 ${selectedAccount.contractRate}%|">연 3.50%</b></span><span>만기일
+							<b
+							th:text="${#temporals.format(selectedAccount.maturityOn,'yyyy.MM.dd')}">2027.10.20</b>
+						</span>
+					</div>
+
+					<th:block
+						th:if="${selectedAccount.product.type.name() == 'INSTALLMENT_SAVINGS'}">
+						<div class="sm-progress-panel">
+							<div class="sm-progress-top">
+								<strong>납입 진행 현황</strong><span
+									th:text="|${scheduleSummary.paidCount} / ${#lists.size(scheduleSummary.rows)}회차 납입|">1
+									/ 12회차</span>
+							</div>
+							<div class="sm-progress-track">
+								<div class="sm-progress-bar"
+									th:style="|width:${#lists.size(scheduleSummary.rows) == 0 ? 0 : (100 * scheduleSummary.paidCount / #lists.size(scheduleSummary.rows))}%|"></div>
+							</div>
+							<div class="sm-counts">
+								<span>납부 완료 <b th:text="${scheduleSummary.paidCount}">1</b></span><span
+									class="sm-overdue-text">미납 <b
+									th:text="${scheduleSummary.overdueCount}">0</b></span> <span>
+									납부 예정 <b th:text="${scheduleSummary.pendingCount}">11</b>
+								</span> </span>
+							</div>
+						</div>
+						<div class="sm-warning"
+							th:if="${scheduleSummary.overdueCount > 0}">ⓘ 납입 예정일이 지난 미납
+							회차가 있습니다. 아래 일정을 확인해 주세요. 미납에 따른 실제 약정상 불이익 여부는 상품 약관에 따릅니다.</div>
+						<div class="sm-table-wrap">
+							<table class="sm-table">
+								<thead>
+									<tr>
+										<th>회차</th>
+										<th>납입 예정일</th>
+										<th>예정 금액</th>
+										<th>실제 납입일</th>
+										<th>납입 상태</th>
+										<th>수동 납입</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr th:each="r : ${scheduleRows}">
+										<td th:text="|${r.installmentNo}회차|">1회차</td>
+										<td th:text="${#temporals.format(r.dueDate,'yyyy.MM.dd')}">2026.10.20</td>
+										<td class="sm-amount"
+											th:text="|${#numbers.formatInteger(r.amount,1,'COMMA')}원|">100,000원</td>
+										<td
+											th:text="${r.paidOn == null ? '-' : #temporals.format(r.paidOn,'yyyy.MM.dd')}">-</td>
+										<td><span class="sm-badge"
+											th:classappend="${
+									              r.status == 'OVERDUE' ? ' overdue' :
+									              (r.status == 'PENDING' ? ' upcoming' :
+									              (r.status == 'LATE_PAID' ? ' late-paid' : ' paid'))
+									          }"
+											th:text="${
+									              r.status == 'OVERDUE' ? '미납' :
+									              (r.status == 'PENDING' ? '납부예정' :
+									              (r.status == 'LATE_PAID' ? '지연 납입완료' : '납입완료'))
+									          }">
+												납부예정 </span></td>
+
+										<!-- 6번째 열 : 수동 납입 -->
+										<td><th:block
+												th:with="canPay=${
+										            selectedAccount.status.name() == 'ACTIVE'
+										            and scheduleSummary.nextInstallmentNo != null
+										            and r.installmentNo == scheduleSummary.nextInstallmentNo
+										            and !r.dueDate.isAfter(today)
+										            and today.isBefore(selectedAccount.maturityOn)
+										        }">
+
+												<form th:if="${canPay}"
+													th:action="@{/savings/{id}/manual-pay(id=${selectedAccount.id})}"
+													method="post"
+													onsubmit="return confirm('선택한 적금 회차를 납입하시겠습니까?');">
+
+													<input type="hidden" th:if="${_csrf != null}"
+														th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+													<button type="submit" class="sm-pay-button">지금
+														납입하기</button>
+												</form>
+
+												<span class="sm-pay-muted" th:unless="${canPay}"> — </span>
+
+											</th:block></td>
+
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<!-- 적금 납입 스케줄 페이징 -->
+						<nav class="sm-pagination sm-schedule-pagination"
+							th:if="${scheduleTotalPages > 1}" aria-label="적금 납입 스케줄 페이지 이동">
+
+							<!-- 이전 -->
+							<a th:if="${currentSchedulePage > 1}" class="sm-page-btn"
+								th:href="@{/savings/mine(
+							           page=${currentPage},
+							           accountId=${selectedAccount.id},
+							           schedulePage=${currentSchedulePage - 1}
+							       )}">
+								‹ 이전 </a>
+
+							<!-- 페이지 번호 -->
+							<a
+								th:each="p : ${#numbers.sequence(
+								            T(java.lang.Math).max(1, currentSchedulePage - 2),
+								            T(java.lang.Math).min(scheduleTotalPages, currentSchedulePage + 2)
+								        )}"
+								class="sm-page-number"
+								th:classappend="${p == currentSchedulePage} ? ' active' : ''"
+								th:href="@{/savings/mine(
+							           page=${currentPage},
+							           accountId=${selectedAccount.id},
+							           schedulePage=${p}
+							       )}"
+								th:text="${p}"> 1 </a>
+
+							<!-- 다음 -->
+							<a th:if="${currentSchedulePage < scheduleTotalPages}"
+								class="sm-page-btn"
+								th:href="@{/savings/mine(
+							           page=${currentPage},
+							           accountId=${selectedAccount.id},
+							           schedulePage=${currentSchedulePage + 1}
+							       )}">
+								다음 › </a>
+
+						</nav>
+
+						<div class="sm-actions">
+							<a th:href="@{/savings/{id}(id=${selectedAccount.id})}">계좌 상세
+								및 납입 내역 보기 →</a>
+						</div>
+					</th:block>
+					<div
+						th:if="${selectedAccount.product.type.name() == 'FIXED_DEPOSIT'}"
+						class="sm-deposit-note">
+						<h3>정기예금은 월별 납입 스케줄이 없습니다.</h3>
+						<p>가입 시 예치한 원금을 만기까지 유지하는 상품입니다. 미납·연체 회차는 적용되지 않습니다.</p>
+						<a th:href="@{/savings/{id}(id=${selectedAccount.id})}">예금 상세
+							및 만기 정보 보기 →</a>
+					</div>
+				</section>
+					</div>
+				<p class="sm-footnote">※ ‘미납’은 이 화면에서 약정 납입 예정일이 지났으나 납입 기록이 없는
+					상태를 의미합니다. 법적 연체·불이익 확정 상태와는 구분됩니다.</p>
+			</th:block>
+		</div>
+	</main>
+	
+	<script th:src="@{/js/savings/savings-mine.js}"></script>
+	
+</body>
+</html>

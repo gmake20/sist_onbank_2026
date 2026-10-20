@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>정기이체 현황 | ONBANK</title>
+  <link rel="stylesheet" th:href="@{/css/index.css}">
+  <link rel="stylesheet" th:href="@{/css/savings/auto-transfers.css}">
+</head>
+<body>
+  <div th:replace="~{fragments/header :: headerFragment}"></div>
+  <main class="at-page">
+    <div class="at-wrap">
+      <nav class="at-crumb"><a th:href="@{/}">홈</a><span>›</span><a th:href="@{/savings/mine}">내 예적금</a><span>›</span><strong>정기이체 현황</strong></nav>
+      <header class="at-header">
+        <div><span class="at-kicker">ONBANK · RECURRING TRANSFERS</span><h1>정기이체 현황</h1><p>적금 자동납입 설정과 마지막 실행 결과를 확인하세요.</p></div>
+        <a class="at-header-link" th:href="@{/savings/mine}">내 예적금으로 →</a>
+      </header>
+      <section class="at-stats" aria-label="정기이체 통계">
+        <div class="at-stat"><span>전체 설정</span><strong th:text="|${totalCount}건|">0건</strong></div>
+        <div class="at-stat"><span>정상 설정</span><strong th:text="|${activeCount}건|">0건</strong></div>
+        <div class="at-stat"><span>최근 실패</span><strong class="at-red" th:text="|${failedCount}건|">0건</strong></div>
+        <div class="at-stat"><span>중지·종료</span><strong th:text="|${disabledCount}건|">0건</strong></div>
+      </section>
+      <section class="at-empty" th:if="${#lists.isEmpty(transfers)}">
+        <div class="at-empty-icon">↻</div><h2>설정된 정기이체가 없습니다</h2>
+        <p>적금 상세 페이지에서 매월 자동납입을 설정할 수 있습니다.</p>
+        <a th:href="@{/savings/mine}">내 적금 계좌 확인 →</a>
+      </section>
+      <section class="at-content" th:unless="${#lists.isEmpty(transfers)}">
+        <div class="at-heading"><h2>설정 목록</h2><p>정상 설정은 실행 성공을 보장하지 않습니다. 납입 내역도 함께 확인해 주세요.</p></div>
+        <div class="at-list">
+          <article class="at-card" th:each="t : ${transfers}">
+            <div class="at-card-top">
+              <div><span class="at-small">정기적금 · 계좌 ID <b th:text="${t.accountId}">1</b></span><h3 th:text="${t.productName}">ONBANK 정기적금</h3></div>
+              <span class="at-status" th:classappend="${t.statusCode == 'FAILED' ? ' at-status-failed' : (t.statusCode == 'DISABLED' ? ' at-status-disabled' : ' at-status-active')}" th:text="${t.statusLabel}">정상 설정</span>
+            </div>
+            <div class="at-details">
+              <div><span>월 납입액</span><strong th:text="|${#numbers.formatInteger(t.monthlyAmount,1,'COMMA')}원|">100,000원</strong></div>
+              <div><span>매월 이체일</span><strong th:text="|${t.transferDay}일|">20일</strong></div>
+              <div><span>다음 시도 기준일</span><strong th:text="${t.nextAttemptLabel}">2026-11-20</strong></div>
+              <div><span>마지막 성공일</span><strong th:text="${t.lastSuccessOn != null ? #temporals.format(t.lastSuccessOn,'yyyy.MM.dd') : '성공 기록 없음'}">성공 기록 없음</strong></div>
+            </div>
+            <p class="at-error" th:if="${t.lastError != null and !#strings.isEmpty(t.lastError)}"><b>최근 실행 오류</b> <span th:text="${t.lastError}">잔액 부족</span></p>
+            <div class="at-actions">
+              <a class="at-primary" th:href="@{/savings/{id}(id=${t.accountId})}">정기이체 설정·변경 →</a>
+              <a class="at-secondary" th:href="@{/savings/mine(accountId=${t.accountId})}">납입 스케줄 보기</a>
+            </div>
+          </article>
+        </div>
+      </section>
+      <p class="at-footnote">※ 다음 시도 기준일은 설정값을 이용한 안내 날짜입니다. 실제 자동납입은 스케줄러 실행, 계좌 상태, 미납 회차, 잔액 등에 따라 달라질 수 있습니다. 최근 실패는 마지막 실패 메시지를 기준으로 표시합니다.</p>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,265 @@
+package org.doit.onbank.savings.service;
+
+import java.time.LocalDate;
+import java.util.*;
+
+import lombok.RequiredArgsConstructor;
+
+import org.doit.onbank.savings.entity.*;
+import org.doit.onbank.savings.repository.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class SavingsService {
+
+    private final SavingsProductRepository products;
+    private final SavingsAccountRepository accounts;
+    private final SavingsPaymentRepository payments;
+    private final SavingsCashFlowRepository flows;
+    private final SavingsMoneyPort money;
+    private final SavingsInterestCalculator interest;
+
+    @Transactional(readOnly = true)
+    public List<SavingsProduct> products() {
+
+        return products.findByActiveTrueOrderByIdDesc();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SavingsAccount> mine(Long memberId) {
+
+        return accounts.findByMemberIdOrderByIdDesc(memberId);
+    }
+
+    @Transactional(readOnly = true)
+    public SavingsAccount detail(Long id, Long memberId) {
+
+        return accounts.findByIdAndMemberId(id, memberId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "가입 내역이 없습니다."
+                        )
+                );
+    }
+
+    @Transactional(readOnly = true)
+    public List<SavingsPayment> history(Long id, Long memberId) {
+
+        detail(id, memberId);
+
+        return payments.findByAccount_IdOrderByInstallmentNoAsc(id);
+    }
+
+    @Transactional
+    public Long enroll(
+            Long productId,
+            Long memberId,
+            Long sourceAccountId,
+            long amount) {
+
+        if (memberId == null || sourceAccountId == null) {
+            throw new IllegalArgumentException(
+                    "계좌 정보 오류"
+            );
+        }
+
+        SavingsProduct product = products.findById(productId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "상품이 없습니다."
+                        )
+                );
+
+        if (!product.isActive()
+                || amount < product.getMinAmount()
+                || amount > product.getMaxAmount()) {
+
+            throw new IllegalArgumentException(
+                    "가입 금액 또는 상품 상태를 확인하세요."
+            );
+        }
+
+        LocalDate today = LocalDate.now();
+
+        money.debit(sourceAccountId, memberId, amount);
+
+        SavingsAccount account = accounts.saveAndFlush(
+                new SavingsAccount(
+                        product,
+                        memberId,
+                        sourceAccountId,
+                        amount,
+                        today
+                )
+        );
+
+        payments.save(
+                new SavingsPayment(
+                        account,
+                        1,
+                        amount,
+                        today
+                )
+        );
+
+        flows.save(
+                new SavingsCashFlow(
+                        account.getId(),
+                        "ENROLL-" + account.getId(),
+                        "ENROLL",
+                        amount
+                )
+        );
+
+        return account.getId();
+    }
+
+    /**
+     * 월 정액 적금: 다음 회차 1건 납입.
+     * 가입일 기준 해당 회차 월이 되기 전 조기 납입 제한
+     */
+    @Transactional
+    public void pay(Long savingsId, Long memberId) {
+
+        SavingsAccount account = accounts.lockById(savingsId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "가입 계좌가 없습니다."
+                        )
+                );
+
+        requireOwner(account, memberId);
+
+        if (account.getProduct().getType() != SavingsType.INSTALLMENT_SAVINGS
+                || account.getStatus() != SavingsStatus.ACTIVE) {
+
+            throw new IllegalStateException(
+                    "적금 납입이 불가능합니다."
+            );
+        }
+
+        LocalDate today = LocalDate.now();
+
+        if (!today.isBefore(account.getMaturityOn())) {
+            throw new IllegalStateException(
+                    "만기가 지난 적금은 납입할 수 없습니다."
+            );
+        }
+
+        List<SavingsPayment> all =
+                payments.findByAccount_IdOrderByInstallmentNoAsc(savingsId);
+
+        int next = all.size() + 1;
+
+        if (next > account.getProduct().getTermMonths()) {
+            throw new IllegalStateException(
+                    "모든 회차가 납입되었습니다."
+            );
+        }
+
+        LocalDate earliest = account.getOpenedOn().plusMonths(next - 1);
+
+        if (today.isBefore(earliest)) {
+            throw new IllegalStateException(
+                    "다음 회차 납입일 전입니다: " + earliest
+            );
+        }
+
+        long amount = account.getMonthlyAmount();
+
+        money.debit(
+                account.getSourceAccountId(),
+                memberId,
+                amount
+        );
+
+        account.addPayment(amount);
+
+        payments.save(
+                new SavingsPayment(
+                        account,
+                        next,
+                        amount,
+                        today
+                )
+        );
+
+        flows.save(
+                new SavingsCashFlow(
+                        savingsId,
+                        "PAY-" + savingsId + "-" + next,
+                        "PAYMENT",
+                        amount
+                )
+        );
+    }
+
+    @Transactional
+    public long closeAtMaturity(Long savingsId, Long memberId) {
+
+        SavingsAccount account = accounts.lockById(savingsId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "가입 계좌가 없습니다."
+                        )
+                );
+
+        requireOwner(account, memberId);
+
+        LocalDate today = LocalDate.now();
+
+        if (account.getStatus() != SavingsStatus.ACTIVE
+                || today.isBefore(account.getMaturityOn())) {
+
+            throw new IllegalStateException(
+                    "만기 이후 정상 계좌만 해지할 수 있습니다."
+            );
+        }
+
+        List<SavingsPayment> all =
+                payments.findByAccount_IdOrderByInstallmentNoAsc(savingsId);
+
+        long gross = interest.grossInterest(account, all);
+
+        long tax = interest.estimatedTax(gross);
+
+        long payout = Math.addExact(
+                account.getPrincipal(),
+                Math.subtractExact(gross, tax)
+        );
+
+        money.credit(
+                account.getSourceAccountId(),
+                memberId,
+                payout
+        );
+
+        account.close(today);
+
+        flows.save(
+                new SavingsCashFlow(
+                        savingsId,
+                        "MATURITY-" + savingsId,
+                        "MATURITY",
+                        payout
+                )
+        );
+
+        return payout;
+    }
+
+    private void requireOwner(
+            SavingsAccount account,
+            Long memberId) {
+
+        if (memberId == null
+                || !memberId.equals(account.getMemberId())) {
+
+            throw new IllegalArgumentException(
+                    "본인의 가입 계좌만 이용할 수 있습니다."
+            );
+        }
+    }
+}

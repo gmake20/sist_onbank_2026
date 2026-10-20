@@ -36,10 +36,10 @@
 | `email` | VARCHAR(100), UNIQUE, NULL 허용 | 이메일입니다. 탈퇴하면 NULL로 지웁니다. MySQL의 UNIQUE는 NULL이 여러 개 있어도 되므로, 탈퇴한 사람의 이메일로 새로 가입할 수 있습니다. |
 | `phone` | VARCHAR(20), UNIQUE, NULL 허용 | 휴대폰 번호입니다. 하이픈 없이 숫자만 저장합니다(예: `01012345678`). 숫자만 저장해야 `010-1234-5678`과 `01012345678`이 서로 다른 번호로 취급되는 중복을 막을 수 있습니다. 탈퇴하면 NULL로 지웁니다. |
 | `birth_date` | DATE, NOT NULL | 생년월일입니다. 본인확인과 연령 확인에 씁니다. |
-| `status` | VARCHAR(20), 기본값 `ACTIVE` | 회원 상태입니다. `ACTIVE` 정상, `SUSPENDED` 정지(관리자 조치), `WITHDRAWN` 탈퇴 중 하나입니다. |
+| `status` | VARCHAR(20), 기본값 `ACTIVE` | 회원 상태입니다. `ACTIVE` 정상, `LOCKED` 로그인 잠금(비밀번호 5회 오류, 시스템이 자동으로 걸고 해제하면 `ACTIVE`), `SUSPENDED` 정지(관리자 조치), `WITHDRAWN` 탈퇴 중 하나입니다. |
 | `verification_status` | VARCHAR(20), 기본값 `NONE` | 본인확인 결과입니다. `NONE` 미신청, `PENDING` 심사중, `VERIFIED` 완료, `REJECTED` 반려 중 하나입니다. 상세 심사 이력은 `identity_verification`에 있고, 이 컬럼에는 가장 최근 결과만 담습니다. 매번 이력 테이블을 조회하지 않아도 되도록 둔 것입니다. |
 | `login_fail_count` | INT, 기본값 0 | 비밀번호를 연속으로 틀린 횟수입니다. 로그인에 성공하면 0으로 되돌립니다. |
-| `login_locked_at` | DATETIME(6), NULL 허용 | 5회 연속 실패로 계정이 잠긴 시각입니다. NULL이면 잠기지 않은 상태입니다. "잠김 여부"와 "언제 잠겼는지"를 이 컬럼 하나로 표현합니다. |
+| `login_locked_at` | DATETIME(6), NULL 허용 | 5회 연속 실패로 계정이 잠긴 시각입니다(기록용). 잠김 여부는 `status = LOCKED`로 판단합니다. 해제하면 NULL로 돌아갑니다. |
 | `terms_agreed_at` | DATETIME(6), NOT NULL | 필수 약관에 동의한 시각입니다. 동의하지 않으면 가입할 수 없으므로 NOT NULL입니다. |
 | `marketing_agree_yn` | CHAR(1), 기본값 `N` | 마케팅 수신 동의 여부(선택 항목)입니다. |
 | `created_at` | DATETIME(6), 기본값 현재 시각 | 가입 일시입니다. |
@@ -105,10 +105,10 @@
 | `branch_id` | BIGINT, FK → branch | 소속 지점입니다. `branch_type`이 `BRANCH`인 지점만 넣을 수 있고, ATM 소속은 안 됩니다. 이 검사는 Service에서 합니다. |
 | `position` | VARCHAR(20) | 직급(사원, 대리, 과장, 지점장 등)입니다. 화면에 보여 주기만 하고 권한에는 영향을 주지 않습니다. |
 | `role` | VARCHAR(20), 기본값 `STAFF` | 권한입니다. `STAFF` 일반 직원, `MANAGER` 책임자 순으로 권한이 넓어집니다. 시스템 관리자는 이 테이블이 아니라 팀원4의 `ADMIN` 테이블(02_admin_ddl.sql)에서 관리합니다. Spring Security 권한 검사는 이 값으로 합니다. 직급과 권한을 분리했기 때문에, 예를 들어 과장도 MANAGER 권한을 받을 수 있습니다. |
-| `status` | VARCHAR(20), 기본값 `ACTIVE` | `ACTIVE` 재직, `ON_LEAVE` 휴직, `RETIRED` 퇴사 중 하나입니다. 재직(`ACTIVE`) 상태가 아니면 로그인할 수 없습니다. |
+| `status` | VARCHAR(20), 기본값 `ACTIVE` | `ACTIVE` 재직, `LOCKED` 로그인 잠금(비밀번호 5회 오류), `ON_LEAVE` 휴직, `RETIRED` 퇴사 중 하나입니다. 재직(`ACTIVE`) 상태가 아니면 로그인할 수 없습니다. |
 | `temp_pw_yn` | CHAR(1), 기본값 `Y` | 임시 비밀번호인지 여부입니다. 직원 계정은 관리자가 임시 비밀번호로 만들기 때문에 기본값이 `Y`이고, 첫 로그인 때 비밀번호를 바꾸게 합니다. |
 | `login_fail_count` | INT | 로그인 연속 실패 횟수입니다. members와 같은 방식입니다. |
-| `login_locked_at` | DATETIME(6) | 계정이 잠긴 시각입니다. members와 같은 방식입니다. |
+| `login_locked_at` | DATETIME(6) | 계정이 잠긴 시각입니다(기록용). 잠김 여부는 `status = LOCKED`로 판단합니다. members와 같은 방식입니다. |
 | `hired_at` | DATE, NOT NULL | 입사일입니다. |
 | `retired_at` | DATE, NULL 허용 | 퇴사일입니다. |
 | `created_at` / `updated_at` | DATETIME(6) | 등록 일시와 수정 일시입니다. |

@@ -20,6 +20,7 @@ import org.doit.onbank.admin.entity.AdminStatus;
 import org.doit.onbank.admin.repository.AdminRepository;
 import org.doit.onbank.employee.entity.Employee;
 import org.doit.onbank.employee.entity.EmployeeRole;
+import org.doit.onbank.employee.entity.EmployeeStatus;
 import org.doit.onbank.employee.repository.EmployeeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -198,6 +199,7 @@ class BackOfficeLoginTests {
 
 		Employee employee = employeeRepository.findByEmployeeNo(staffNo).orElseThrow();
 		assertThat(employee.getLoginFailCount()).isEqualTo(5);
+		assertThat(employee.getStatus()).isEqualTo(EmployeeStatus.LOCKED);
 		assertThat(employee.getLoginLockedAt()).isNotNull();
 
 		// 잠긴 뒤에는 비밀번호가 맞아도 로그인 불가 (실패 횟수도 더 늘지 않음)
@@ -208,6 +210,7 @@ class BackOfficeLoginTests {
 
 		// 잠금 해제 후 다시 로그인 가능
 		employee.unlockLogin();
+		assertThat(employee.getStatus()).isEqualTo(EmployeeStatus.ACTIVE);
 		employeeLogin(staffNo, rawPassword).andExpect(authenticated());
 	}
 

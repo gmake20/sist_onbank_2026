@@ -126,4 +126,21 @@ public class LoanAccount {
             this.status = LoanAccountStatus.CLOSED;
         }
     }
+    
+    public void validateActive() {
+
+        if (this.status != LoanAccountStatus.ACTIVE) {
+            throw new IllegalStateException(
+                    "상환할 수 없는 대출 계좌입니다. 현재 상태: "
+                    + this.status
+            );
+        }
+
+        if (this.remainingBalance == null
+                || this.remainingBalance.signum() <= 0) {
+            throw new IllegalStateException(
+                    "상환할 원금이 남아 있지 않습니다."
+            );
+        }
+    }
 }

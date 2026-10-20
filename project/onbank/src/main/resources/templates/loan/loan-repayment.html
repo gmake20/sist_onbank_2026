@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>대출금 상환 | ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}" href="/css/index.css">
+<link rel="stylesheet" th:href="@{/css/loan/loan-repayment.css}"
+	href="/css/loan/loan-repayment.css">
+<script th:src="@{/js/loan-repayment.js}" src="/js/loan-repayment.js"
+	defer></script>
+</head>
+<body>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+	<main class="repayment-page">
+		<div class="repayment-wrap">
+			<nav class="crumb" aria-label="현재 위치">
+				<a th:href="@{/}">홈</a><span>›</span><span>대출금 상환</span>
+			</nav>
+			<div class="heading-row">
+				<!-- 상환 성공 -->
+				<div th:if="${message != null}" class="repayment-alert success"
+					th:text="${message}"></div>
+
+				<!-- 상환 실패 -->
+				<div th:if="${error != null}" class="repayment-alert error"
+					th:text="${error}"></div>
+				<div>
+					<span class="eyebrow">ONBANK · LOAN SERVICE</span>
+					<h1>대출금 상환</h1>
+					<p>실행 중인 대출의 상환 일정과 예정 금액을 확인하세요.</p>
+				</div>
+				<span class="secure">● 안전한 금융 서비스</span>
+			</div>
+
+			<div class="notice">
+				<span class="notice-icon">ⓘ</span>
+				<div>
+					<strong>상환 안내</strong>
+					<p>표시 금액은 약정 스케줄 기준입니다. 연체 이자·중도상환수수료 등으로 실제 납부액은 달라질 수 있습니다.</p>
+				</div>
+			</div>
+
+			<section th:if="${#lists.isEmpty(loans)}" class="empty-card">
+				<div class="empty-icon">▤</div>
+				<h2>실행된 대출 계좌가 없습니다</h2>
+				<p>승인 후 대출금 지급이 완료된 계좌의 상환 내역이 이곳에 표시됩니다.</p>
+				<a class="primary-link" th:href="@{/loan/products}">대출 상품 살펴보기</a>
+			</section>
+
+			<th:block th:unless="${#lists.isEmpty(loans)}">
+				<section class="loan-selector" aria-label="대출 계좌 선택">
+					<div class="section-top">
+						<h2>내 대출 계좌</h2>
+						<span th:text="|총 ${#lists.size(loans)}개|">총 1개</span>
+					</div>
+					<div class="loan-tabs">
+						<a th:each="loan : ${loans}"
+							th:href="@{/loan/repayment(accountId=${loan.loanAccountId})}"
+							th:classappend="${selectedLoan != null and loan.loanAccountId == selectedLoan.loanAccountId} ? ' selected' : ''"><span
+							th:text="${loan.loanAccountNumber}">910-0000-000001</span><small
+							th:text="${loan.status}">ACTIVE</small></a>
+					</div>
+				</section>
+
+				<th:block th:if="${selectedLoan != null}">
+					<section class="summary-grid" aria-label="대출 현황">
+						<div class="summary-card featured">
+							<span class="summary-label">남은 대출 원금</span>
+							<div class="summary-value">
+								<strong
+									th:text="${#numbers.formatInteger(selectedLoan.remainingBalance,1,'COMMA')}">9,000,000</strong><em>원</em>
+							</div>
+							<div class="summary-foot">현재 원금 잔액</div>
+						</div>
+						<div class="summary-card">
+							<span class="summary-label">최초 대출금</span>
+							<div class="summary-value">
+								<strong
+									th:text="${#numbers.formatInteger(selectedLoan.principalAmount,1,'COMMA')}">10,000,000</strong><em>원</em>
+							</div>
+							<div class="summary-foot">대출 실행 당시 금액</div>
+						</div>
+						<div class="summary-card">
+							<span class="summary-label">적용 연이율</span>
+							<div class="summary-value">
+								<strong
+									th:text="${selectedLoan.interestRate.stripTrailingZeros().toPlainString()}">4.5</strong><em>%</em>
+							</div>
+							<div class="summary-foot">고정 약정 정보</div>
+						</div>
+					</section>
+
+					<div class="content-grid">
+						<section class="panel schedule-panel">
+							<div class="section-top">
+								<div>
+									<h2>상환 예정 내역</h2>
+									<p>납부 예정일과 원금·이자를 확인하세요.</p>
+								</div>
+								<span class="count" th:text="|${#lists.size(schedules)}회차|">12회차</span>
+							</div>
+							<div class="table-scroll">
+								<table>
+									<thead>
+										<tr>
+											<th scope="col">회차</th>
+											<th scope="col">납부 예정일</th>
+											<th scope="col">원금</th>
+											<th scope="col">이자</th>
+											<th scope="col">총 납부액</th>
+											<th scope="col">상태</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr th:each="s : ${schedules}"
+											th:classappend="${s.status.name() == 'PAID'} ? ' paid' : ''">
+											<td th:text="|${s.installmentNo}회|">1회</td>
+											<td th:text="${#temporals.format(s.dueDate,'yyyy.MM.dd')}">2026.11.20</td>
+											<td
+												th:text="${#numbers.formatInteger(s.principalAmount,1,'COMMA')}">1,000,000</td>
+											<td
+												th:text="${#numbers.formatInteger(s.interestAmount,1,'COMMA')}">60,000</td>
+											<td class="amount"
+												th:text="${#numbers.formatInteger(s.totalAmount,1,'COMMA')}">1,060,000</td>
+											<td><span class="status"
+												th:classappend="${s.status.name() == 'PAID'} ? ' status-paid' : (${s.status.name() == 'OVERDUE'} ? ' status-overdue' : ' status-pending')"
+												th:text="${s.status.name() == 'PAID'} ? '납부완료' : (${s.status.name() == 'OVERDUE'} ? '연체' : '납부예정')">납부예정</span></td>
+										</tr>
+										<tr th:if="${#lists.isEmpty(schedules)}">
+											<td colspan="6" class="no-schedule">등록된 상환 일정이 없습니다.</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</section>
+
+						<aside class="panel payment-panel">
+
+							<div class="section-top">
+								<div>
+									<h2>상환금 미리보기</h2>
+									<p>예정 회차를 선택해 금액을 확인하세요.</p>
+								</div>
+							</div>
+
+							<label class="field-label" for="schedulePicker"> 상환 회차 </label> <select
+								id="schedulePicker" class="field-select">
+								<option value="">회차를 선택하세요</option>
+
+								<option th:each="s : ${schedules}"
+									th:if="${s.status.name() == 'PENDING'}"
+									th:value="${s.scheduleId}"
+									th:attr="
+						                    data-principal=${s.principalAmount},
+						                    data-interest=${s.interestAmount},
+						                    data-total=${s.totalAmount}"
+									th:text="|${s.installmentNo}회차 · ${#temporals.format(s.dueDate,'yyyy.MM.dd')}|">
+								</option>
+							</select>
+
+							<div class="payment-breakdown">
+								<div>
+									<span>상환 원금</span> <strong id="previewPrincipal">—</strong>
+								</div>
+
+								<div>
+									<span>상환 이자</span> <strong id="previewInterest">—</strong>
+								</div>
+
+								<div class="breakdown-total">
+									<span>예정 납부액</span> <strong id="previewTotal">—</strong>
+								</div>
+							</div>
+
+							<!-- 실제 상환 요청 -->
+							<form id="repaymentForm" th:action="@{/loan/repayment/pay}"
+								method="post">
+
+								<input type="hidden" name="loanAccountId"
+									th:value="${selectedLoan.loanAccountId}"> <input
+									type="hidden" name="scheduleId" id="selectedScheduleId">
+
+								<input type="hidden" th:if="${_csrf != null}"
+									th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+								<button type="submit" id="repayButton" class="repay-btn"
+									disabled>대출금 상환하기</button>
+							</form>
+
+							<p class="tip">※ 상환 시 연결된 입출금 계좌에서 원금과 이자가 출금됩니다.</p>
+
+							<div class="auto-repayment-box">
+
+								<div class="auto-repayment-heading">
+									<div>
+										<h3>대출 자동상환</h3>
+										<p>매월 납부 예정일에 자동으로 상환합니다.</p>
+									</div>
+
+									<span class="auto-repayment-status"
+										th:classappend="${autoEnabled} ? ' active' : ''"
+										th:text="${autoEnabled} ? '이용 중' : '미등록'"> 미등록 </span>
+								</div>
+
+								<div class="auto-repayment-info">
+									<span class="auto-info-icon">ⓘ</span>
+									<p>납부 예정일에 연결된 입출금계좌에서 대출 원금과 이자가 자동 출금됩니다. 출금 계좌의 잔액을 확인해
+										주세요.</p>
+								</div>
+
+								<!-- 자동상환 미등록 -->
+								<form th:if="${!autoEnabled}"
+									th:action="@{/loan/repayment/auto/register}" method="post">
+
+									<input type="hidden" name="loanAccountId"
+										th:value="${selectedLoan.loanAccountId}"> <input
+										type="hidden" th:if="${_csrf != null}"
+										th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+									<button type="submit" class="auto-repay-btn"
+										onclick="return confirm('대출 자동상환을 등록하시겠습니까?');">자동상환
+										등록하기</button>
+								</form>
+
+								<!-- 자동상환 이용 중 -->
+								<form th:if="${autoEnabled}"
+									th:action="@{/loan/repayment/auto/cancel}" method="post">
+
+									<input type="hidden" name="loanAccountId"
+										th:value="${selectedLoan.loanAccountId}"> <input
+										type="hidden" th:if="${_csrf != null}"
+										th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+									<button type="submit" class="auto-repay-cancel"
+										onclick="return confirm('대출 자동상환을 해지하시겠습니까?');">자동상환
+										해지하기</button>
+								</form>
+
+							</div>
+
+						</aside>
+
+					</div>
+					<section class="details">
+						<h2>대출 약정 정보</h2>
+						<dl>
+							<div>
+								<dt>대출 계좌번호</dt>
+								<dd th:text="${selectedLoan.loanAccountNumber}">910-0000-000001</dd>
+							</div>
+							<div>
+								<dt>상환 방식</dt>
+								<dd
+									th:text="${selectedLoan.repaymentMethod == 'EQUAL' ? '원리금균등상환' : (selectedLoan.repaymentMethod == 'PRINCIPAL' ? '원금균등상환' : (selectedLoan.repaymentMethod == 'BULLET' ? '만기일시상환' : selectedLoan.repaymentMethod))}">원리금균등상환</dd>
+							</div>
+							<div>
+								<dt>대출 실행일</dt>
+								<dd
+									th:text="${#temporals.format(selectedLoan.executedAt,'yyyy.MM.dd')}">2026.10.20</dd>
+							</div>
+							<div>
+								<dt>만기일</dt>
+								<dd
+									th:text="${#temporals.format(selectedLoan.maturityDate,'yyyy.MM.dd')}">2027.10.20</dd>
+							</div>
+						</dl>
+					</section>
+				</th:block>
+			</th:block>
+		</div>
+	</main>
+</body>
+</html>

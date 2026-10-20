@@ -17,6 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import lombok.RequiredArgsConstructor;
 
 // 보안설정 > 가상 OTP : 발급 → 등록 코드 1회 표시 → 연속 2회 입력으로 사용 등록 → 번호 확인
+// 사용중·정지 OTP는 분실 신고 후 다시 발급받는다
 // /mybank/** 는 SecurityConfig 에서 로그인한 고객(ROLE_USER)만 접근 가능
 // 처리 결과는 모두 PRG(리다이렉트 + flash)로 보여 준다 (새로고침해도 다시 발급·검증되지 않도록)
 @Controller
@@ -78,6 +79,19 @@ public class OtpPageController {
 		try {
 			otpService.verify(me.getMemberId(), code.trim());
 			redirectAttributes.addFlashAttribute("successMessage", "OTP 번호가 맞습니다.");
+		} catch (BusinessException | IllegalStateException e) {
+			redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+		}
+		return HOME;
+	}
+
+	// 분실 신고 : 로그인 비밀번호를 다시 확인하고 LOST로 바꾼다 → 상태 화면에 "OTP 발급" 버튼이 다시 나온다
+	@PostMapping("/lost")
+	public String reportLost(@AuthenticationPrincipal LoginMember me, @RequestParam("password") String password,
+			RedirectAttributes redirectAttributes) {
+		try {
+			otpService.reportLost(me.getMemberId(), password);
+			redirectAttributes.addFlashAttribute("successMessage", "분실 신고가 완료되었습니다. 이전 OTP는 더 이상 사용할 수 없습니다. 새 OTP를 발급받아 주세요.");
 		} catch (BusinessException | IllegalStateException e) {
 			redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
 		}

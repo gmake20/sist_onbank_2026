@@ -92,7 +92,7 @@ POST /admin/login    ──▶ AdminDetailsService    (admin 테이블, 아이�
 
 - 회원 상태(`status`)와 실명확인 상태(`verificationStatus`)를 enum으로 관리합니다.
 - **고객에게는 권한(role) 컬럼이 없습니다.** 고객은 모두 `ROLE_USER`이고, 직원·관리자는 별도 테이블입니다.
-- 로그인 잠금은 상태값이 아니라 **`login_locked_at`(잠금 일시)** 으로 표시합니다. 값이 있으면 잠김, `NULL`이면 정상입니다. 그래서 회원 상태(정상/정지/탈퇴)와 잠금이 섞이지 않습니다.
+- 로그인 잠금은 **`status = LOCKED`** 로 표시합니다(관리자와 같은 방식, 2026-10-20 변경). 비밀번호 5회 오류 시 정상(`ACTIVE`)일 때만 잠그고, 해제하면 `ACTIVE`로 돌아갑니다. 정지·탈퇴 회원은 Spring Security가 비밀번호 확인 전에 막으므로 실패 횟수가 늘지 않아, 정지와 잠금이 겹치지 않습니다. `login_locked_at`은 잠긴 시각 기록용으로 남깁니다.
 - `created_at`·`updated_at`은 공통 부모 `BaseEntity`가 JPA Auditing으로 채웁니다. DB의 `DEFAULT CURRENT_TIMESTAMP`는 Hibernate가 INSERT할 때 `NULL`을 직접 넣어서 동작하지 않기 때문입니다.
 
 ```java
@@ -111,7 +111,7 @@ public class Member extends BaseEntity {
 
     // MySQL에서 @Enumerated(STRING)은 ENUM 타입으로 매핑되어 validate가 실패하므로 VARCHAR로 지정
     @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.VARCHAR)
-    private MemberStatus status = MemberStatus.ACTIVE;                         // ACTIVE, SUSPENDED, WITHDRAWN
+    private MemberStatus status = MemberStatus.ACTIVE;                         // ACTIVE, LOCKED, SUSPENDED, WITHDRAWN
     @Enumerated(EnumType.STRING) @JdbcTypeCode(SqlTypes.VARCHAR)
     private VerificationStatus verificationStatus = VerificationStatus.NONE;  // NONE, PENDING, VERIFIED, REJECTED
 
@@ -434,7 +434,7 @@ public class PhoneVerifyApiController {
 
 - 로그인 처리는 Spring Security 필터가 담당합니다. 우리는 **"아이디로 회원을 찾아주는 방법"만 알려주면** 됩니다(`loadUserByUsername`).
 - `LoginMember`는 세션에 저장되는 로그인 사용자 정보입니다. 엔티티를 그대로 세션에 두지 않고 필요한 값만 복사합니다. 상태에 따라 Security가 자동으로 예외를 던집니다.
-  - `isAccountNonLocked() == false` → `LockedException` (`login_locked_at` 있음 = 5회 오류 잠금)
+  - `isAccountNonLocked() == false` → `LockedException` (`status = LOCKED` = 5회 오류 잠금)
   - `isEnabled() == false` → `DisabledException` (정지 `SUSPENDED`, 탈퇴 `WITHDRAWN`)
 - 없는 아이디(`UsernameNotFoundException`)는 Spring Security가 비밀번호 오류(`BadCredentialsException`)와 같은 예외로 바꿔 줍니다. 화면에는 둘 다 같은 문구로 안내합니다.
 
@@ -480,7 +480,7 @@ public class LoginMember implements UserDetails, CredentialsContainer {
 
 ### ⑤ 로그인 성공/실패 핸들러: 5회 잠금 + 이력 기록 (다음 단계)
 
-- **실패 핸들러**: 비밀번호 오류(`BadCredentialsException`)면 실패 횟수를 늘리고, 5회째에 잠급니다(`login_locked_at` 기록). 실패 사유를 쿼리 파라미터로 넘겨 화면에 안내합니다.
+- **실패 핸들러**: 비밀번호 오류(`BadCredentialsException`)면 실패 횟수를 늘리고, 5회째에 잠급니다(`status = LOCKED`, `login_locked_at`에 시각 기록). 실패 사유를 쿼리 파라미터로 넘겨 화면에 안내합니다.
 - **성공 핸들러**: 실패 횟수를 초기화한 뒤, 로그인 전에 보려던 페이지(없으면 `/`)로 보냅니다. Spring Security의 `SavedRequestAwareAuthenticationSuccessHandler`를 상속하면 이 동작이 그대로 유지됩니다.
 - 두 경우 모두 `LOGIN_LOG`에 IP와 접속 기기(User-Agent)를 기록합니다. **없는 아이디로 시도한 경우도** `member_id = NULL`, `fail_reason = UNKNOWN_ID`로 기록합니다(DDL 규칙).
 - 핸들러는 트랜잭션 밖에서 실행되므로, DB 변경은 `@Transactional`이 붙은 `LoginService`에 맡깁니다.
@@ -675,7 +675,7 @@ server.servlet.session.timeout=10m
 | 테이블 | `employee` (팀원1) | `admin` (DDL은 팀원4, 엔티티는 팀원1) |
 | 로그인 | `/employee/login`, 사번(`employeeNo`) | `/admin/login`, 아이디(`loginId`) |
 | 권한 | `ROLE_STAFF` < `ROLE_MANAGER` | `ROLE_SUPER_ADMIN`, `ROLE_OPERATOR`, `ROLE_SERVICE` |
-| 잠금 | `login_locked_at`에 값이 있으면 잠김 | `status = LOCKED` |
+| 잠금 | `status = LOCKED` (잠긴 시각은 `login_locked_at`) | `status = LOCKED` |
 | 로그인 불가 상태 | 휴직 `ON_LEAVE`, 퇴사 `RETIRED` | 비활성 `INACTIVE` |
 | 로그인 정보 | `EmployeePrincipal` | `AdminPrincipal` |
 | 업무 | 회원 관리(본인확인 심사), 계좌 동결·잠금 해제, 이체한도 승인, 상품 관리, 대출 심사 | 공지사항, 이상거래(FDS), 활동 로그, 지점/ATM·직원 계정 관리 |
@@ -795,7 +795,7 @@ otpService.verify(memberId, otpCode);
 1. **아이디가 없는지, 비밀번호가 틀렸는지 구분해서 알려주지 않습니다.** 둘 다 "아이디 또는 비밀번호가 올바르지 않습니다"로 안내해야 아이디 존재 여부를 알아내는 공격을 막을 수 있습니다.
 2. **비밀번호는 BCrypt 해시로만 저장합니다.** 평문 저장이나 로그 출력은 금지입니다.
 3. **로그아웃은 반드시 POST로 합니다.** `<a href="/logout">`은 CSRF 보호가 켜져 있으면 동작하지 않습니다.
-4. **잠금 해제 경로를 정해야 합니다.** 추천 방식은 비밀번호 재설정(2.4, 휴대폰 SMS 인증) 성공 시 `login_locked_at`을 `NULL`로, 실패 횟수를 0으로 만드는 것입니다(`Member.unlock()`). 직원 회원 관리 화면에서도 해제할지는 팀원4와 협의합니다.
+4. **잠금 해제 경로를 정해야 합니다.** 추천 방식은 비밀번호 재설정(2.4, 휴대폰 SMS 인증) 성공 시 `Member.unlockLogin()`을 호출하는 것입니다(`status`를 `ACTIVE`로, `login_locked_at`을 `NULL`로, 실패 횟수를 0으로). 직원 회원 관리 화면에서도 해제할지는 팀원4와 협의합니다.
 5. **직원·관리자 계정은 회원가입으로 만들지 않습니다.** 시드 SQL(`data-team1-mysql.sql`, `data-admin-mysql.sql`)로 넣고, 비밀번호도 BCrypt 해시값으로 넣습니다.
 6. **고객·직원·관리자 영역을 섞지 않습니다.** 영역마다 로그인 정보를 세션에 다른 이름으로 저장하므로, 한 영역의 로그인으로 다른 영역에 들어갈 수 없습니다(3장 ⑥).
 7. **문자 발송은 실제 비용이 드는 기능입니다.** API 키는 Git에 올리지 않고, 재발송·일일 횟수 제한을 반드시 넣고, 개발 중에는 `local` 프로필로 실제 발송을 끕니다.

@@ -17,3 +17,4 @@ public enum AccountType {
 
 	private final String label;		// 화면에 보여 줄 한글 이름
 }
+

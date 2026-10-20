@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>예적금 상품 등록 | ONBANK ADMIN</title>
+  <link rel="stylesheet" th:href="@{/css/index.css}" href="/css/index.css">
+  <link rel="stylesheet" th:href="@{/css/savings/savings-product-register.css}" href="/css/savings/savings-product-register.css">
+</head>
+<body>
+  <div th:replace="~{fragments/header :: headerFragment}"></div>
+  <main class="spr-page">
+    <div class="spr-container">
+      <nav class="spr-breadcrumb" aria-label="현재 위치">
+        <a th:href="@{/}" href="/">홈</a><span>›</span><span>관리자</span><span>›</span><strong>예적금 상품 등록</strong>
+      </nav>
+      <div class="spr-heading">
+        <div><span class="spr-eyebrow">ONBANK · PRODUCT ADMINISTRATION</span><h1>예적금 상품 등록</h1><p>고객에게 제공할 정기예금·정기적금 상품의 약정 조건을 입력합니다.</p></div>
+        <span class="spr-admin-mark">상품 관리</span>
+      </div>
+      <div th:if="${message != null}" class="spr-feedback spr-success" th:text="${message}"></div>
+      <div th:if="${error != null}" class="spr-feedback spr-error" th:text="${error}"></div>
+      <div class="spr-layout">
+        <section class="spr-panel">
+          <div class="spr-panel-head"><span class="spr-section-num">01</span><div><h2>상품 기본 정보</h2><p>상품명과 상품 유형을 선택하세요.</p></div></div>
+          <form id="productForm" th:action="@{/admin/savings/products}" th:object="${form}" method="post">
+            <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div class="spr-form-grid">
+              <div class="spr-field spr-wide"><label for="name">상품명 <em>*</em></label><input id="name" th:field="*{name}" type="text" maxlength="120" placeholder="예: ONBANK 든든 정기예금" required><small>고객 상품 목록에 표시되는 이름입니다.</small></div>
+              <div class="spr-field spr-wide"><label for="type">상품 유형 <em>*</em></label><select id="type" th:field="*{type}" required><option value="">상품 유형을 선택하세요</option><option value="FIXED_DEPOSIT">정기예금 · 목돈 한 번에 예치</option><option value="INSTALLMENT_SAVINGS">정기적금 · 매월 납입</option></select></div>
+            </div>
+            <div class="spr-panel-subhead"><span class="spr-section-num">02</span><div><h2>금리 및 가입 조건</h2><p>상품 가입 기간과 금액 범위를 설정하세요.</p></div></div>
+            <div class="spr-form-grid">
+              <div class="spr-field"><label for="annualRate">기본 연이율 (%) <em>*</em></label><div class="spr-input-unit"><input id="annualRate" th:field="*{annualRate}" type="number" inputmode="decimal" min="0" max="100" step="0.0001" placeholder="3.5000" required><span>%</span></div><small>소수점 넷째 자리까지 입력할 수 있습니다.</small></div>
+              <div class="spr-field"><label for="termMonths">가입 기간 <em>*</em></label><div class="spr-input-unit"><input id="termMonths" th:field="*{termMonths}" type="number" min="1" max="120" step="1" placeholder="12" required><span>개월</span></div><small>1개월부터 120개월까지 설정할 수 있습니다.</small></div>
+              <div class="spr-field"><label for="minAmount">최소 가입·납입 금액 <em>*</em></label><div class="spr-input-unit"><input id="minAmount" th:field="*{minAmount}" type="number" min="1" step="1" placeholder="10000" required><span>원</span></div></div>
+              <div class="spr-field"><label for="maxAmount">최대 가입·납입 금액 <em>*</em></label><div class="spr-input-unit"><input id="maxAmount" th:field="*{maxAmount}" type="number" min="1" step="1" placeholder="10000000" required><span>원</span></div></div>
+            </div>
+            <div class="spr-note"><span aria-hidden="true">ⓘ</span><p>정기예금은 최초 예치 금액, 정기적금은 회차별 납입 금액의 범위로 적용됩니다. 등록 상품은 활성 상태로 저장됩니다.</p></div>
+            <div class="spr-actions"><a th:href="@{/savings}" class="spr-cancel">취소</a><button type="submit" class="spr-submit">예적금 상품 등록 <span aria-hidden="true">→</span></button></div>
+          </form>
+        </section>
+        <aside class="spr-aside">
+          <div class="spr-aside-head"><span>상품 등록 안내</span><div class="spr-visual">₩</div></div>
+          <h3>고객의 저축 시작을<br>함께 준비하세요.</h3>
+          <p>고객에게 제공할 상품 조건을 정확히 입력하면 등록 후 상품 목록에 노출됩니다.</p>
+          <div class="spr-guidelines"><div><b>01</b><span>정기예금</span><small>가입 시 목돈을 일시 예치</small></div><div><b>02</b><span>정기적금</span><small>약정 기간 동안 정기 납입</small></div><div><b>03</b><span>등록 후</span><small>활성 상품으로 목록에서 조회</small></div></div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

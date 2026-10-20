@@ -112,8 +112,46 @@
 
         <!-- 정지 -->
         <div th:if="${device != null and device.status().name() == 'SUSPENDED'}" class="alert alert-error"
-             th:text="|OTP 번호를 ${maxFailCount}회 잘못 입력해 이용이 정지되었습니다. 정지 해제 또는 재발급이 필요합니다.|">
+             th:text="|OTP 번호를 ${maxFailCount}회 잘못 입력해 이용이 정지되었습니다. 아래에서 분실 신고 후 다시 발급받을 수 있습니다.|">
         </div>
+
+        <!-- 사용중·정지 : 분실 신고 → 신고 후 "OTP 발급" 버튼이 다시 나온다 -->
+        <!-- 확인 창(confirm) 대신 체크박스 : js-once-form 이 취소한 경우에도 버튼을 잠그기 때문 -->
+        <form th:if="${device != null and (device.status().name() == 'ACTIVE' or device.status().name() == 'SUSPENDED')}"
+              class="js-once-form" method="post" th:action="@{/mybank/security/otp/lost}">
+            <div class="transfer-section">
+                <div class="section-title-wrap">
+                    <h3>OTP 분실 신고 · 재발급</h3>
+                </div>
+                <table class="transfer-form-table">
+                    <colgroup>
+                        <col style="width: 20%;">
+                        <col style="width: 80%;">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th>로그인 비밀번호</th>
+                            <td>
+                                <input type="password" class="form-input" name="password" autocomplete="current-password" required>
+                                <span class="sub-text">본인 확인을 위해 로그인 비밀번호를 입력하세요.</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>확인</th>
+                            <td>
+                                <label>
+                                    <input type="checkbox" required>
+                                    분실 신고하면 지금 OTP는 다시 사용할 수 없고, 새 OTP를 발급받아 등록해야 합니다.
+                                </label>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="submit-action">
+                <button type="submit" class="btn-outline">분실 신고</button>
+            </div>
+        </form>
 
         <div class="notice-section">
             <div class="notice-header">📄 알아두세요!</div>
@@ -123,6 +161,7 @@
                     <li>번호는 30초마다 바뀌며, 한 번 사용한 번호는 다시 쓸 수 없습니다.</li>
                     <li th:text="|번호를 연속 ${maxFailCount}회 잘못 입력하면 OTP 이용이 정지됩니다.|">번호를 연속 10회 잘못 입력하면 OTP 이용이 정지됩니다.</li>
                     <li>Google Authenticator 같은 OTP 앱에 등록해서 사용할 수 있습니다.</li>
+                    <li>기기(브라우저 데이터, OTP 앱)를 잃어버렸거나 정지되었으면 분실 신고 후 새 OTP를 발급받으세요.</li>
                 </ul>
             </div>
         </div>
