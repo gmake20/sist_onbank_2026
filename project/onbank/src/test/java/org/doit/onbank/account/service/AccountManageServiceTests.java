@@ -28,7 +28,7 @@ class AccountManageServiceTests {
 	@InjectMocks
 	private AccountManageService accountManageService;
 
-	private Account givenAccount(String status) {
+	private Account givenAccount(AccountStatus status) {
 		Account account = Account.builder()
 				.memberId(100L)
 				.accountNumber("TEST-0001")

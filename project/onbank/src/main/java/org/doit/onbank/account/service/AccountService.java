@@ -10,6 +10,7 @@ import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionStatus;
 import org.doit.onbank.account.entity.TransactionType;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.repository.AccountRepository;
 import org.doit.onbank.account.repository.TransactionHistoryRepository;
 import org.springframework.stereotype.Service;
@@ -117,8 +118,8 @@ public class AccountService {
 		return accountRepository
 				.findByMemberIdAndAccountTypeAndAccountStatus(
 						memberId,
-						"CHECKING",
-						"ACTIVE"
+						AccountType.CHECKING,
+						AccountStatus.ACTIVE
 				);
 	}
 }

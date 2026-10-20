@@ -20,6 +20,7 @@ import java.time.LocalDate;
 
 import org.doit.onbank.account.dto.OpenAccountReceipt;
 import org.doit.onbank.account.entity.Account;
+import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.service.AccountOpenService;
 import org.doit.onbank.admin.security.AdminDetailsService;
@@ -146,7 +147,7 @@ class AccountOpenPageControllerTests {
 
 	@Test
 	void resultRendersReceipt() throws Exception {
-		OpenAccountReceipt receipt = new OpenAccountReceipt(7L, "1002-123-456789", "ON 통장", "ACTIVE",
+		OpenAccountReceipt receipt = new OpenAccountReceipt(7L, "1002-123-456789", "ON 통장", AccountStatus.ACTIVE,
 				LocalDate.of(2026, 10, 16));
 
 		mockMvc.perform(get("/mybank/accounts/open/result").with(user(me)).flashAttr("receipt", receipt))

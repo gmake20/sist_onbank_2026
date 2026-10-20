@@ -47,8 +47,8 @@
 
 | 항목 | 결정 |
 |---|---|
-| `account_type` 값 | `CHECKING` 입출금 / `DEPOSIT` 예금 / `SAVINGS` 적금 / `LOAN` 대출 (상수 클래스 `AccountType`) |
-| `transfer_type` 값 | `IMMEDIATE` 즉시 / `SCHEDULED` 예약 / `RECURRING` 정기 (상수 클래스 `TransferType`). 예약·정기는 팀3이 호출할 때 사용 |
+| `account_type` 값 | `CHECKING` 입출금 / `DEPOSIT` 예금 / `SAVINGS` 적금 / `LOAN` 대출 (**10-20부터 enum `AccountType`**, `@Enumerated(STRING)`이라 DB 값은 같음. 비교는 `==`) |
+| `transfer_type` 값 | `IMMEDIATE` 즉시 / `SCHEDULED` 예약 / `RECURRING` 정기 (상수 클래스 `TransferType`). 예약·정기는 팀2 예약·정기이체 실행에서 사용 (10-20 팀2 담당으로 되돌림) |
 | 당행·타행 구분 | `financial_institution_id` NULL = 당행(ONBANK) |
 | 이체한도 읽기 | 팀2 `AccountRepository.findTransferLimit()` 에서 `members` 두 컬럼을 SQL로 직접 조회 (팀1 `Member` 엔티티는 수정 안 함) |
 | 한도 기본값 | `members` 한도가 NULL이면 **1일 5,000,000원 / 1회 1,000,000원** (`AccountTransferService.DEFAULT_*`) |
@@ -86,7 +86,7 @@
 
 - 수정: `AccountTransferService`(`OTP_REQUIRED_AMOUNT`, `transfer(...)`에 `otpCode` 인자 추가, `requiresOtp`, `isOtpReady`), `TransferForm`(`otpCode`), `TransferPageController`, `transfer.html`, `transfer.js`, `account.js`(금액 버튼이 `input` 이벤트를 보냄), `account.css`, `AccountTransferServiceTests`, `TransferPageControllerTests`
 - 새 파일: `service/OtpRequiredException`
-- **`transfer()` 시그니처가 바뀜**: `transfer(memberId, fromAccountId, rawPassword, otpCode, toAccountNumber, amount, senderMemo, receiverMemo)`. 팀3이 예약·정기이체에서 호출할 때 알려 줄 것
+- **`transfer()` 시그니처가 바뀜**: `transfer(memberId, fromAccountId, rawPassword, otpCode, toAccountNumber, amount, senderMemo, receiverMemo)`. (예약·정기이체는 10-20부터 팀2 담당이라 팀3 전달 불필요)
 - 브라우저 확인할 것 (서버 재시작 후)
   - 10만 원 이하 타인 이체 → OTP 칸 없이 이체
   - OTP 없는 회원: 금액 10만 1원 이상 입력 → 금액 아래 "100,000원을 넘는 이체는 OTP 등록이 필요해요" + [OTP 등록하기], [확인] 누르면 확인 단계로 가지 않음
@@ -99,13 +99,13 @@
 | 결정 | 내용 |
 |---|---|
 | 진입 | 헤더 "자산관리"(`/asset`, 공용 헤더 수정 안 함) → `/mybank/assets` 로 redirect (로그인 필요) |
-| 저장 | 화면을 열 때 계산하고 최근 6개월을 `asset_report`에 회원·기준년월당 1행 저장(있으면 갱신). `account_id`에 **member_id** 저장 (데이터 사전에 기록) |
+| 저장 | 화면을 열 때 계산하고 최근 6개월을 `asset_report`에 회원·기준년월당 1행 저장. **(10-20) 이번 달만 매번 갱신하고, 지난달은 저장된 행이 있으면 그대로 쓴다 (마감된 기록, 사용자 결정). 같은 달 행이 여러 개면 id가 가장 큰 행 사용**. `account_id`에 **member_id** 저장 (데이터 사전에 기록) |
 | 기간 | 기본 이번 달, 최근 12개월 중 선택 (`?month=yyyy-MM`) |
 | 입금·출금 | 본인 계좌끼리 이체(같은 거래 번호의 상대 행도 내 계좌)는 제외 |
 | 저축액 | 예금·적금 계좌로 들어온 금액 (본인 계좌에서 옮긴 것 포함) |
 | 공과금·관리비 | 출금·이체 메모 키워드 (`관리비` / `공과금·전기·가스·수도·통신·세금`). 화면에 한계 안내 |
 | 투자 | 출처 없음 → "준비 중", `investment_amount` NULL |
-| 대출 | 팀3 `loan_application`(APPROVED) + `loan_repayment_schedule`(APPLICATION_ID) 읽기만. 대출 실행 연동 전이라 승인 건을 대출 잔액으로 계산. 월 예상 이자 = 남은 원금 × 연 금리 ÷ 12 |
+| 대출 | **(10-20 수정)** 팀3 `loan_account`(CLOSED 제외)의 `REMAINING_BALANCE`를 대출 잔액으로 사용. 다음 납부일은 `loan_repayment_schedule`(`LOAN_ACCOUNT_ID`, PAID 아닌 회차), 월별 상환액은 `account_loan_transaction`(`LOAN_REPAYMENT`, `TRANSACTED_AT`). 스케줄의 `PAID_AT`은 팀3 엔티티에 없어 채워지지 않는다. 대출금은 지급 계좌 잔액(총자산)에 들어가므로 순자산 = 총자산 − 대출 잔액. 대출 상환액은 월별 출금에 더하고, 대출금 지급은 소득이 아니라 입금에 넣지 않는다 (10-20 사용자 결정). 월 예상 이자 = 남은 원금 × 연 금리 ÷ 12 |
 | 예적금·카드 | 팀3 `product_subscription`+`product`, `productcard`+`card_usage_history` 읽기만 (지금 데이터 없음) |
 | 팀3 조회 실패 | 화면은 열리고 해당 부분만 "불러오지 못했습니다". 서비스에 `@Transactional`을 붙이지 않은 이유: 팀3 조회 예외가 바깥 트랜잭션을 rollback-only 로 만들어 저장까지 실패하므로 |
 | 그래프 | 외부 라이브러리 없이 SVG(도넛)·CSS(막대). 계열 색 `#2a78d6/#eb6834/#1baf7a`(색각 검사 통과), 단일 계열은 네이비. 마우스 안내(`asset.js`), "표로 보기" |
@@ -159,7 +159,7 @@
    - 다건이체: 사용자 검토 중 (10-19 대화. 설계 방향: 이체 전 합계로 잔액·한도 검사 → 건별 트랜잭션 실행 → 건별 결과. OTP는 처음 한 번만 검증하고 인증 없는 내부 이체 메서드로 실행해야 함 — 팀1 OTP가 같은 번호 재사용을 막으므로)
    - 6.1 거래내역 페이징·필터: 10-19 사용자가 **건너뛰기로 함**
    - 즐겨찾기 관리 화면을 내 계좌·상대계좌로 나눌지 (2-0)
-   - [심화] 4.4 계좌 별명, 4.6 계좌 해지, 4.7 계좌 비밀번호 변경, 5.4 예약이체(팀3), 6.4 CSV 다운로드 / [선택] 계좌 개설 20영업일 제한, 5.5 정기이체
+   - [심화] 4.4 계좌 별명, 4.6 계좌 해지, 4.7 계좌 비밀번호 변경, 5.4 예약이체(**팀2, 10-20 진행 예정**), 6.4 CSV 다운로드 / [선택] 계좌 개설 20영업일 제한, 5.5 정기이체(**팀2**)
 
 ## 3. 현재 상태 한눈에
 
@@ -296,7 +296,8 @@
 [Entity] Account: open(정적 생성) / activate / reject / freeze / unfreeze / close
                   / deposit / withdraw / transferOut(오늘 이체 누적) / transferIn
                   / getTodayTransferAmountOn(date)(조회만) / touchTransaction / 비밀번호 오류 메서드
-         상수: AccountStatus, AccountType, TransactionType, TransactionStatus, TransferType
+         enum: AccountStatus(label·입금/출금 가능 여부), AccountType(label) (10-20)
+         상수: TransactionType, TransactionStatus, TransferType
 
 [화면 스크립트] static/js/account.js (금액 버튼, 중복 제출 방지), static/js/transfer.js (잔액·오류횟수·한도 조회, 받는 분 확인, 확인 단계, Enter 제출 막기, 입금계좌 선택 창,
                10-19: 한글 금액, 금액 즉시 안내, [확인] 비활성, OTP 입력칸), static/js/asset.js (기준월 선택, 그래프 마우스 안내)
@@ -325,7 +326,7 @@
 - **(10-19) 팀1 OTP 검증(`OtpService.verify`)은 같은 30초 구간 번호를 다시 쓰지 못하게 막는다.** 한 요청에서 이체를 여러 번 실행하는 기능(다건이체 등)은 OTP를 처음 한 번만 검증하는 구조로 만들어야 한다
 - **(10-19) 이체 화면 `a.btn-sm`은 `display: inline-block`이라 `hidden` 속성이 먹지 않는다.** 숨길 요소에는 `[hidden] { display: none; }` 규칙을 따로 둔다 (`account.css`)
 - **(10-19) 금액 바로입력 버튼(`account.js`)은 값을 바꾼 뒤 `input` 이벤트를 보낸다.** 금액 안내 문구·확인 단계 되돌리기가 이 이벤트로 동작한다
-- **(10-19) 팀3 테이블은 DDL 파일(`onbank_loan.sql`)과 공용 DB 실제 구조가 다르다** (예: 상환 스케줄은 `LOAN_ID`가 아니라 `APPLICATION_ID`, 대출은 `loan`이 아니라 `loan_application`). 팀3 테이블을 SQL로 읽을 때는 `information_schema.columns`로 실제 컬럼을 먼저 확인
+- **(10-19) 팀3 테이블은 DDL 파일(`onbank_loan.sql`)과 공용 DB 실제 구조가 다르다** (예: 대출은 `loan`이 아니라 `loan_account`, 상환 스케줄은 10-20 기준 `LOAN_ACCOUNT_ID`로 연결되고 옛 `APPLICATION_ID` 칼럼은 비어 있음). 팀3 테이블을 SQL로 읽을 때는 `information_schema.columns`로 실제 컬럼을 먼저 확인
 - **(10-19) 다른 팀 테이블 조회가 실패할 수 있는 Service에는 바깥 `@Transactional`을 붙이지 않는다.** Repository 안에서 난 예외가 바깥 트랜잭션을 rollback-only 로 만들어, 예외를 잡아도 뒤의 저장이 실패한다 (`AssetReportService`)
 - **(10-19) 공용 DB를 조회만 해서 확인하는 방법**: mysql 명령줄로 SELECT 실행 (접속 정보는 `application-local.properties`에서 읽음). Spring 통합 테스트는 `contextLoads`가 실패하면 쓸 수 없다
 
@@ -360,9 +361,11 @@
 | 팀1 | OTP 기능 제공 시기 (이체에서 지금은 건너뜀) | **해결 (10-19)**: 팀1 `OtpService.verify()`를 이체에 연결 |
 | 팀3 | `AccountRepository`/`AccountService`에 대출금 계좌 조회 메서드 추가함 (10-17, 이지훈). `account_type` NULL 계좌는 목록에 안 나옴 → 테스트 계좌만 해당이라 그대로 둠 (10-19 사용자 결정) | 확인함 |
 | 팀4 | `fds_transfer_block`(사기 신고 계좌 이체 차단 기록) 추가됨. 이체 전 검사를 팀2가 호출해야 하는지, 신고 데이터 위치·차단 기준 확인 필요 | 남음 (다음 작업 후보) |
-| 팀1 | **OTP 암호화 키(`onbank.otp.seed-key`) 공유 요청** | 남음 (10-19 문구 작성, 사용자 전달 예정) |
+| 팀1 | **OTP 암호화 키(`onbank.otp.seed-key`) 공유 요청** | 받음 (10-20 사용자가 입력) |
+| 팀3 | **(10-20) `AccountStatus`·`AccountType` enum 전환**: `account.getAccountType()`/`getAccountStatus()`가 String이 아니라 enum을 돌려준다. 비교는 `== AccountType.CHECKING` / `== AccountStatus.ACTIVE`. 팀3 코드(`LoanApplicationService`, `LoanExecutionService`, `AccountTransferService.disburseLoan`)의 문자열 비교는 팀2가 같이 고쳤고 주석으로 남아 있던 enum 버전으로 바꿈. `AccountRepository.findByMemberIdAndAccountTypeAndAccountStatus` 매개변수도 enum. 화면에서 `${account.accountType}`은 전과 같이 `CHECKING`으로 출력되고, 한글은 `.label` | 남음 (팀3에 알리기) |
+| 팀1 | **(10-20) 팀1 화면 `security/otp.html` 수정**: 사용중(ACTIVE) 상태의 [번호 확인] 옆에 [이체 화면으로 돌아가기] 버튼 추가 (사용자 요청). 팀1에 알리기 | 남음 |
 | 팀3 | **공용 DB `loan_repayment_schedule` 금액 3컬럼 `decimal(19,0)` ↔ 엔티티 `Long` 불일치로 서버 시작 실패** | 남음 (10-19 발견, 문구 작성) |
-| 팀3 | 예약·정기이체가 호출할 이체 메서드 시그니처 (`TransferType.SCHEDULED/RECURRING`). **10-19 `transfer()`에 `otpCode` 인자 추가됨** → 예약·정기이체의 OTP 처리 방식 협의 | 남음 |
+| ~~팀3~~ | ~~예약·정기이체가 호출할 이체 메서드 시그니처~~ → **10-20 예약·정기이체를 팀2가 직접 맡기로 함** (기획서 원래 배정). 팀3에 "예약·정기이체는 팀2가 한다"고 알리기 | 남음 (알리기만) |
 | 팀3 | 자산 리포트가 팀3 테이블 5개를 SQL로 읽는다 (`AssetReportRepository`). 컬럼 이름이 바뀌면 알려 달라고 요청 | 남음 |
 | 팀3 | **예금·적금 가입 시 계좌 생성**: [team2-account-number-rule.md](team2-account-number-rule.md) 전달 (계좌번호 규칙, `AccountNumberGenerator` 사용, 초기값, 가입금 이체). 문서 5장 협의 4개(`product_type` 값, 예적금 계좌 비밀번호, 만기일 계산 기준, 대출 계좌 여부) | 문서 작성 완료, **사용자가 전달 예정** |
 | 팀3 | 대출금 입금(`AccountService.deposit()`) | 남음 |

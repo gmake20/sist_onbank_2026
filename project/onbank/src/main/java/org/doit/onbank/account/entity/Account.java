@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -37,13 +39,15 @@ public class Account {
 	@Column(length = 30)
 	private String accountNumber;		// 실제 계좌번호
 
+	@Enumerated(EnumType.STRING)
 	@Column(length = 30)
-	private String accountType;			// 계좌 유형 (입출금, 예적금, 대출 등)
+	private AccountType accountType;	// 계좌 유형 (입출금, 예적금, 대출). 테스트 계좌는 NULL 일 수 있음
 
 	private Long balance;			// 현재 잔액
 
+	@Enumerated(EnumType.STRING)
 	@Column(length = 20)
-	private String accountStatus;		// 계좌 상태 (AccountStatus 상수)
+	private AccountStatus accountStatus;	// 계좌 상태
 
 	@Column(length = 255)
 	private String passwordHash;		// 계좌 비밀번호 (해시)
@@ -80,8 +84,8 @@ public class Account {
 	private Long todayTransferAmount;	// 당일 누적 이체 금액 (한도 체크용)
 
 	@Builder
-	private Account(Long memberId, String accountNumber, String accountType, Long balance,
-			String accountStatus, String passwordHash, LocalDateTime lastTransactionAt, LocalDate signupDate,
+	private Account(Long memberId, String accountNumber, AccountType accountType, Long balance,
+			AccountStatus accountStatus, String passwordHash, LocalDateTime lastTransactionAt, LocalDate signupDate,
 			LocalDate expiredDate, BigDecimal interestRate, Integer signupPeriod, Long monthlyPayment,
 			Long loanAmount, Long loanBalance, Integer paymentDay, String repaymentMethod,
 			Integer currentPaymentRound, Integer totalPaymentRounds, Long todayTransferAmount) {
@@ -108,7 +112,7 @@ public class Account {
 
 	// 계좌 개설 : 잔액·당일 이체액 0, 비밀번호 오류 0, 정상(ACTIVE) 상태로 만든다
 	// balance, today_transfer_amount 가 NULL 이면 입금·이체 계산에서 오류가 나므로 반드시 0으로 넣는다
-	public static Account open(Long memberId, String accountNumber, String accountType, String passwordHash,
+	public static Account open(Long memberId, String accountNumber, AccountType accountType, String passwordHash,
 			LocalDate signupDate) {
 		return Account.builder()
 				.memberId(memberId)
@@ -150,7 +154,7 @@ public class Account {
 
 	// 해지 : 정상·동결 계좌, 잔액이 0일 때만. 되돌리지 않는다
 	public void close() {
-		if (!AccountStatus.ACTIVE.equals(accountStatus) && !AccountStatus.FROZEN.equals(accountStatus)) {
+		if (accountStatus != AccountStatus.ACTIVE && accountStatus != AccountStatus.FROZEN) {
 			throw new IllegalStateException("해지할 수 없는 계좌 상태입니다: " + accountStatus);
 		}
 		if (balance != null && balance != 0L) {
@@ -159,8 +163,8 @@ public class Account {
 		this.accountStatus = AccountStatus.CLOSED;
 	}
 
-	private void requireStatus(String expected, String message) {
-		if (!expected.equals(accountStatus)) {
+	private void requireStatus(AccountStatus expected, String message) {
+		if (accountStatus != expected) {
 			throw new IllegalStateException(message + " (현재 상태: " + accountStatus + ")");
 		}
 	}
@@ -225,11 +229,11 @@ public class Account {
 	}
 
 	public boolean canDeposit() {
-		return AccountStatus.ACTIVE.equals(accountStatus) || AccountStatus.FROZEN.equals(accountStatus);
+		return accountStatus != null && accountStatus.isDepositable();
 	}
 
 	public boolean canWithdraw() {
-		return AccountStatus.ACTIVE.equals(accountStatus);
+		return accountStatus != null && accountStatus.isWithdrawable();
 	}
 
 	private void validateAmount(long amount) {

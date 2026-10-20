@@ -66,8 +66,8 @@
                         <th>상태</th>
                         <td>
                             <span class="status-badge"
-                                  th:classappend="${'status-' + #strings.toLowerCase(account.accountStatus)}"
-                                  th:text="${statusNames[account.accountStatus] ?: account.accountStatus}">정상</span>
+                                  th:classappend="${'status-' + #strings.toLowerCase(account.accountStatus?.name())}"
+                                  th:text="${account.accountStatus?.label}">정상</span>
                         </td>
                     </tr>
                     <tr>

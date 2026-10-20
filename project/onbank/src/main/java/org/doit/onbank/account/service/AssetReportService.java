@@ -39,7 +39,8 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
 // 자산관리 리포트 (기획서 7. 자산관리)
-// 화면을 열 때 계산하고, 최근 6개월 값을 asset_report 에 회원·기준년월당 1행으로 저장(있으면 갱신)한다
+// 화면을 열 때 계산하고, 최근 6개월 값을 asset_report 에 회원·기준년월당 1행으로 저장한다
+// 이번 달은 열 때마다 갱신하고, 지난달은 처음 한 번만 계산해 저장한 뒤 그 값을 계속 쓴다
 // 팀3 테이블 조회가 실패해도 화면은 열리고, 그 부분만 "불러오지 못했습니다"로 안내한다
 // @Transactional 을 붙이지 않는다 : 팀3 조회가 실패하면 바깥 트랜잭션이 rollback-only 가 되어 저장까지 실패하므로
 //   조회·저장은 Repository 메서드 각자의 트랜잭션으로 처리한다
@@ -78,7 +79,7 @@ public class AssetReportService {
 		Map<String, Long> cardUsed = readOrWarn("카드 사용",
 				() -> toMap(assetReportRepository.findMonthlyCardUsage(memberId, from, to)), null, warnings);
 		List<LoanSummary> loans = readOrWarn("대출",
-				() -> assetReportRepository.findApprovedLoans(memberId), List.of(), warnings);
+				() -> assetReportRepository.findActiveLoans(memberId), List.of(), warnings);
 		List<SubscriptionSummary> subscriptions = readOrWarn("예적금",
 				() -> assetReportRepository.findActiveSubscriptions(memberId), List.of(), warnings);
 
@@ -128,23 +129,31 @@ public class AssetReportService {
 		return list;
 	}
 
-	// 회원·기준년월당 1행 : 있으면 값만 바꾸고 없으면 새로 만든다
+	// 회원·기준년월당 1행
+	// 지난달까지는 마감된 기록이라 저장된 행이 있으면 그대로 쓴다 (다시 계산해 덮어쓰지 않음)
+	// 이번 달과, 아직 저장된 적 없는 지난달만 계산해서 저장한다 (이번 달은 있으면 값만 바꿈)
 	private Map<String, AssetReport> saveReports(Long memberId, List<YearMonth> months,
 			Map<String, MonthlyCashFlow> flows, Map<String, Long> loanPaid) {
+		String currentKey = key(YearMonth.now());
 		List<String> keys = months.stream().map(AssetReportService::key).toList();
+		// 같은 달 행이 여러 개면(DB에 직접 넣은 경우 등) 가장 나중에 넣은 행을 쓴다
 		Map<String, AssetReport> saved = new LinkedHashMap<>();
 		assetReportRepository.findByAccountIdAndStandardYearMonthIn(memberId, keys)
-				.forEach(report -> saved.putIfAbsent(report.getStandardYearMonth(), report));
+				.forEach(report -> saved.merge(report.getStandardYearMonth(), report, AssetReportService::newer));
 
 		List<AssetReport> toSave = new ArrayList<>();
 		for (String ym : keys) {
+			if (saved.containsKey(ym) && ym.compareTo(currentKey) < 0) {
+				continue;	// 마감된 달
+			}
 			MonthlyCashFlow flow = flows.get(ym);
 			long in = flow == null ? 0L : value(flow.getInAmount());
-			long out = flow == null ? 0L : value(flow.getOutAmount());
 			long savings = flow == null ? 0L : value(flow.getSavingsAmount());
 			long utility = flow == null ? 0L : value(flow.getUtilityBillAmount());
 			long maintenance = flow == null ? 0L : value(flow.getMaintenanceFeeAmount());
 			Long loan = loanPaid == null ? null : loanPaid.getOrDefault(ym, 0L);	// 조회 실패면 모름(NULL)
+			// 대출 상환은 팀3 거래 기록에만 있어 출금에 더한다. 대출금 지급은 소득이 아니므로 입금에 넣지 않는다
+			long out = (flow == null ? 0L : value(flow.getOutAmount())) + value(loan);
 
 			AssetReport report = saved.get(ym);
 			if (report == null) {
@@ -165,23 +174,31 @@ public class AssetReportService {
 			toSave.add(report);
 		}
 
-		Map<String, AssetReport> result = new LinkedHashMap<>();
-		assetReportRepository.saveAll(toSave).forEach(report -> result.put(report.getStandardYearMonth(), report));
+		Map<String, AssetReport> result = new LinkedHashMap<>(saved);
+		if (!toSave.isEmpty()) {
+			assetReportRepository.saveAll(toSave).forEach(report -> result.put(report.getStandardYearMonth(), report));
+		}
 		return result;
+	}
+
+	private static AssetReport newer(AssetReport a, AssetReport b) {
+		long idA = a.getAssetReportId() == null ? 0L : a.getAssetReportId();
+		long idB = b.getAssetReportId() == null ? 0L : b.getAssetReportId();
+		return idB > idA ? b : a;
 	}
 
 	// 자산 구성 : 정상·동결 계좌 잔액 (개설대기·해지 제외). 유형이 비어 있는 계좌는 입출금으로 본다
 	private List<Slice> composition(List<Account> accounts) {
-		Map<String, Long> sums = new LinkedHashMap<>();
+		Map<AccountType, Long> sums = new LinkedHashMap<>();
 		sums.put(AccountType.CHECKING, 0L);
 		sums.put(AccountType.DEPOSIT, 0L);
 		sums.put(AccountType.SAVINGS, 0L);
 		for (Account account : accounts) {
-			if (!AccountStatus.ACTIVE.equals(account.getAccountStatus())
-					&& !AccountStatus.FROZEN.equals(account.getAccountStatus())) {
+			if (account.getAccountStatus() != AccountStatus.ACTIVE
+					&& account.getAccountStatus() != AccountStatus.FROZEN) {
 				continue;
 			}
-			String type = account.getAccountType() == null ? AccountType.CHECKING : account.getAccountType();
+			AccountType type = account.getAccountType() == null ? AccountType.CHECKING : account.getAccountType();
 			if (sums.containsKey(type)) {
 				sums.merge(type, value(account.getBalance()), Long::sum);
 			}
@@ -192,7 +209,7 @@ public class AssetReportService {
 		List<Slice> slices = new ArrayList<>();
 		double start = 0;
 		int slot = 1;
-		for (Map.Entry<String, Long> entry : sums.entrySet()) {
+		for (Map.Entry<AccountType, Long> entry : sums.entrySet()) {
 			double pct = percent(entry.getValue(), total);
 			String dashArray = "";
 			String dashOffset = "";
@@ -201,7 +218,7 @@ public class AssetReportService {
 				dashArray = format(length) + " " + format(100 - length);
 				dashOffset = format(-start);
 			}
-			slices.add(new Slice(typeLabel(entry.getKey()), "series-" + slot++, entry.getValue(), pct, dashArray, dashOffset));
+			slices.add(new Slice(entry.getKey().getLabel(), "series-" + slot++, entry.getValue(), pct, dashArray, dashOffset));
 			start += pct;
 		}
 		return slices;
@@ -217,7 +234,7 @@ public class AssetReportService {
 		}
 		List<ItemBar> items = new ArrayList<>();
 		items.add(item("저축액", values[0], max, "예금·적금 계좌로 들어온 금액"));
-		items.add(item("대출 이자·상환", values[1], max, "대출 상환 스케줄에서 납부한 금액"));
+		items.add(item("대출 이자·상환", values[1], max, "대출 상환으로 출금된 금액 (원금 + 이자)"));
 		items.add(item("카드 사용액", values[2], max, "ONBANK 카드 사용 금액"));
 		items.add(item("공과금", values[3], max, "메모에 공과금·전기·가스·수도·통신·세금이 들어간 출금"));
 		items.add(item("관리비", values[4], max, "메모에 관리비가 들어간 출금"));
@@ -233,16 +250,16 @@ public class AssetReportService {
 	}
 
 	private LoanRow loanRow(LoanSummary loan) {
-		long approved = value(loan.getApprovedAmount());
-		long repaid = Math.min(value(loan.getRepaidPrincipal()), approved);
-		long remaining = approved - repaid;
+		long principal = value(loan.getPrincipalAmount());
+		long remaining = Math.max(0L, Math.min(value(loan.getRemainingBalance()), principal));
+		long repaid = principal - remaining;
 		BigDecimal rate = loan.getInterestRate();
 		// 월 예상 이자 : 남은 원금 × 연 금리 ÷ 12 (단순 계산, 실제 상환 방식과 다를 수 있음)
 		long monthlyInterest = rate == null ? 0L
 				: BigDecimal.valueOf(remaining).multiply(rate)
 						.divide(BigDecimal.valueOf(1200), 0, RoundingMode.HALF_UP).longValue();
-		return new LoanRow(loan.getProductName() == null ? "대출" : loan.getProductName(), approved, remaining,
-				percent(repaid, approved), rate, monthlyInterest, loan.getMaturityDate(), loan.getNextDueDate());
+		return new LoanRow(loan.getProductName() == null ? "대출" : loan.getProductName(), principal, remaining,
+				percent(repaid, principal), rate, monthlyInterest, loan.getMaturityDate(), loan.getNextDueDate());
 	}
 
 	private SubscriptionRow subscriptionRow(SubscriptionSummary subscription) {
@@ -280,14 +297,6 @@ public class AssetReportService {
 
 	private static Map<String, Long> toMap(List<MonthlyAmount> rows) {
 		return rows.stream().collect(Collectors.toMap(MonthlyAmount::getYm, row -> value(row.getAmount())));
-	}
-
-	private static String typeLabel(String accountType) {
-		return switch (accountType) {
-			case AccountType.DEPOSIT -> "예금";
-			case AccountType.SAVINGS -> "적금";
-			default -> "입출금";
-		};
 	}
 
 	private static String productTypeLabel(String productType) {

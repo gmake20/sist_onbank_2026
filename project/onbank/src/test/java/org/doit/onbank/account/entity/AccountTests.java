@@ -12,7 +12,7 @@ class AccountTests {
 
 	private final LocalDateTime now = LocalDateTime.of(2026, 10, 15, 14, 30);
 
-	private Account account(String status, long balance) {
+	private Account account(AccountStatus status, long balance) {
 		return Account.builder()
 				.memberId(1L)
 				.accountNumber("TEST-0001")
@@ -45,7 +45,7 @@ class AccountTests {
 
 	@Test
 	void depositRejectedWhenPendingOrClosed() {
-		for (String status : new String[] { AccountStatus.PENDING, AccountStatus.CLOSED }) {
+		for (AccountStatus status : new AccountStatus[] { AccountStatus.PENDING, AccountStatus.CLOSED }) {
 			Account account = account(status, 0L);
 
 			assertThatThrownBy(() -> account.deposit(5_000L, now))
@@ -95,7 +95,7 @@ class AccountTests {
 
 	@Test
 	void withdrawRejectedWhenNotActive() {
-		for (String status : new String[] { AccountStatus.FROZEN, AccountStatus.PENDING, AccountStatus.CLOSED }) {
+		for (AccountStatus status : new AccountStatus[] { AccountStatus.FROZEN, AccountStatus.PENDING, AccountStatus.CLOSED }) {
 			Account account = account(status, 10_000L);
 
 			assertThatThrownBy(() -> account.withdraw(1_000L, now))

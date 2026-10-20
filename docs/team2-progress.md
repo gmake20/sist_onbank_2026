@@ -47,11 +47,11 @@
 5. **금액은 모두 BIGINT(원 단위)** ↔ 엔티티 `Long`. 이자율은 `DECIMAL(7,4)` ↔ `BigDecimal`.
 6. **가입일은 `signup_date` 그대로** 사용한다.
 7. **예적금·대출 계약 컬럼 10개는 삭제하지 않고 팀2에서 독립적으로 사용**: `expired_date`, `interest_rate`, `signup_period`, `monthly_payment`, `loan_amount`, `loan_balance`, `payment_day`, `repayment_method`, `current_payment_round`, `total_payment_rounds`. 팀3과 겹치는 대응표는 데이터 사전 1장에 있다.
-8. **유형·상태 컬럼은 `String`**: enum을 쓰지 않는다. 확정된 값은 상수 클래스(`AccountStatus`, `AccountType`, `TransactionType`, `TransactionStatus`, `TransferType`)로 참조해 오타를 막는다. `account_type`, `transfer_type` 값은 10-16 확정 (handoff 1-1).
+8. **유형·상태 컬럼은 `String`**: 확정된 값은 상수 클래스(`TransactionType`, `TransactionStatus`, `TransferType`)로 참조해 오타를 막는다. **10-20 사용자 결정으로 `AccountStatus`·`AccountType`은 enum으로 바꿨다** (DB 값 그대로, 팀3 비교 코드도 함께 수정). `account_type`, `transfer_type` 값은 10-16 확정 (handoff 1-1).
 9. **다른 테이블 참조는 연관관계 없이 `Long` ID 필드**로 둔다.
 10. **제약 조건은 최소한만**: 모든 테이블 PK, `account.member_id NOT NULL`, `account.password_fail_count NOT NULL DEFAULT 0`, `account.account_number UNIQUE`. FK, CHECK, 인덱스는 두지 않는다.
 11. **DB 운영**: `ddl-auto=validate`라 서버는 테이블을 검사만 한다. 테이블 생성·변경은 워크벤치에서 SQL을 직접 실행한다. 컬럼을 바꾸면 SQL 변경 이력에 ALTER를 기록하고 엔티티도 함께 바꾼다.
-12. **예약이체·정기이체는 팀3 담당**: 팀2는 입금·출금·이체 메서드를 제공하고, 팀3이 그 메서드를 호출해 구현한다.
+12. **예약이체·정기이체는 팀2 담당** (기획서 12장 원래 배정. 한때 팀3 담당으로 바꿨다가 10-20 사용자 결정으로 되돌림): 화면·테이블·스케줄러·실행 모두 팀2가 구현한다.
 13. **계좌 상태 `account_status` 4개** (2026-10-15 확정)
 
     | 값 | 뜻 | 입금 | 출금 |
@@ -70,7 +70,7 @@
 16. **거래 번호 `transaction_sqno`**: `yyyyMMddHHmmss-난수6자리` (예: `20261015143012-482915`). 두 번 클릭으로 인한 중복 처리는 이 번호가 아니라 버튼 중복 클릭 방지 + PRG 패턴으로 막는다
 17. **현금 출금은 이체 한도와 별개**: `today_transfer_amount`에는 이체(`TRANSFER_OUT`)만 누적한다. 입금·출금은 `touchTransaction`으로 날짜만 갱신한다
 18. **(10-19) 이체 인증**: 10만 원 이하 계좌 비밀번호만 / 초과 계좌 비밀번호 + OTP(팀1). 본인 계좌끼리는 OTP 생략. PIN은 만들지 않고 계좌 비밀번호가 간편 인증 역할. OTP 미등록 회원도 10만 원 이하는 이체 가능. 판단은 모두 서버에서 (handoff 1-1)
-19. **(10-19) 자산 리포트**: 조회할 때 계산 + 최근 6개월 `asset_report` 저장(회원·기준년월당 1행, `account_id`에 member_id). 공과금·관리비는 거래 메모 키워드, 투자는 출처 없음. 대출은 팀3 승인 건 기준 (handoff 2-000)
+19. **(10-19) 자산 리포트**: 조회할 때 계산 + 최근 6개월 `asset_report` 저장(회원·기준년월당 1행, `account_id`에 member_id). 공과금·관리비는 거래 메모 키워드, 투자는 출처 없음. 대출은 팀3 승인 건 기준 → **10-20 실행된 대출(`loan_account`) 기준으로 수정** (handoff 2-000)
 
 ## 4. Account 엔티티 메서드
 
@@ -160,10 +160,10 @@
 ## 7. 팀원과 합의가 필요한 것
 
 - ~~팀1: OTP를 등록하지 않은 회원의 이체 정책~~ → 10-19 사용자 결정: 10만 원 이하는 허용, 초과는 OTP 등록 안내 (팀원 공유 예정)
-- 팀1: OTP 암호화 키 공유
+- ~~팀1: OTP 암호화 키 공유~~ → 10-20 키 받아 입력함
 - 팀3: 공용 DB `loan_repayment_schedule` 금액 컬럼 타입 불일치 (서버 시작 실패)
 - 팀4: `fds_transfer_block` 사기계좌 검사를 이체에서 호출할지
 - 팀3: 대출금 입금 메서드 시그니처. 예: `accountService.deposit(accountId, amount, "대출금 입금")`
-- 팀3: 예약이체·정기이체에서 호출할 이체 메서드 시그니처
+- ~~팀3: 예약이체·정기이체에서 호출할 이체 메서드 시그니처~~ → 10-20 팀2가 직접 구현하기로 해 협의 불필요
 - 팀4: 동결·해제 화면에서 호출할 메서드 (`FROZEN` 상태 사용)
 - 팀4: 이체 완료 이벤트 클래스 이름과 필드

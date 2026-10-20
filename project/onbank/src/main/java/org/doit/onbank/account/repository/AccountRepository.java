@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.doit.onbank.account.entity.Account;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.doit.onbank.account.entity.AccountStatus;
+import org.doit.onbank.account.entity.AccountType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,8 +38,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 	// 10/17 입출금 가능한 계좌만 받기 - 이지훈 추가
 	List<Account> findByMemberIdAndAccountTypeAndAccountStatus(
 			Long memberId,
-			String accountType,
-			String accountStatus
+			AccountType accountType,
+			AccountStatus accountStatus
 	);
 
 	// 10/17 명의와 일치하는지 검증 - 이지훈 추가
@@ -46,6 +47,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 			Long accountId,
 			Long memberId
 	);
+	
+	// 10/20 이지훈 추가 
+	List<Account> findByMemberId(Long memberId);
 	
 	
 }

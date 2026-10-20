@@ -9,4 +9,6 @@ public interface SavingsPaymentRepository extends JpaRepository<SavingsPayment,L
 	List<SavingsPayment> findByAccount_IdOrderByInstallmentNoAsc(Long id);
     
 	boolean existsByAccount_IdAndInstallmentNo(Long id,int installmentNo);
+	
+	List<SavingsPayment> findByAccount_Id(Long accountId);
 }
