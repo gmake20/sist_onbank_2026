@@ -1,0 +1,630 @@
+body {
+	background: #f6f8fc
+}
+
+.sm-page {
+	color: #152c52;
+	min-height: 70vh
+}
+
+.sm-container {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 33px 24px 80px
+}
+
+.sm-crumb {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	font-size: 13px;
+	color: #8493ab;
+	margin-bottom: 28px
+}
+
+.sm-crumb a {
+	color: #7587a4;
+	text-decoration: none
+}
+
+.sm-crumb strong {
+	color: #2c4568
+}
+
+.sm-header {
+	display: flex;
+	align-items: end;
+	justify-content: space-between;
+	gap: 25px;
+	margin-bottom: 30px
+}
+
+.sm-kicker {
+	font-size: 12px;
+	letter-spacing: .11em;
+	font-weight: 800;
+	color: #2c67e8
+}
+
+.sm-header h1 {
+	font-size: 34px;
+	line-height: 1.25;
+	letter-spacing: -.04em;
+	margin: 11px 0
+}
+
+.sm-header p, .sm-section-heading p {
+	font-size: 14px;
+	color: #8190a9;
+	margin: 0
+}
+
+.sm-top-link, .sm-detail-link {
+	border: 1px solid #d7e2f4;
+	padding: 12px 17px;
+	border-radius: 9px;
+	background: #fff;
+	color: #245bc7;
+	font-size: 13px;
+	font-weight: 700;
+	text-decoration: none;
+	white-space: nowrap
+}
+
+.sm-alert {
+	background: #e5f7ed;
+	padding: 14px 18px;
+	border-radius: 9px;
+	color: #13814e;
+	margin-bottom: 20px
+}
+
+.sm-alert-error {
+	background: #fff0ee;
+	color: #ba4141
+}
+
+.sm-summary {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 15px;
+	margin: 0 0 36px
+}
+
+.sm-summary>div {
+	background: #fff;
+	border: 1px solid #e1e8f4;
+	border-radius: 14px;
+	padding: 22px 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-shadow: 0 8px 25px #203d6607
+}
+
+.sm-summary span {
+	color: #8390a4;
+	font-size: 13px
+}
+
+.sm-summary strong {
+	font-size: 26px;
+	letter-spacing: -.03em
+}
+
+.sm-section {
+	margin-bottom: 32px
+}
+
+.sm-section-heading {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+	margin-bottom: 19px
+}
+
+.sm-section-heading h2 {
+	font-size: 23px;
+	letter-spacing: -.04em;
+	margin: 0 0 8px
+}
+
+.sm-section-heading>span {
+	font-size: 13px;
+	font-weight: 700;
+	color: #6f81a2
+}
+
+.sm-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 17px
+}
+
+.sm-account-card {
+	display: block;
+	background: white;
+	border: 1px solid #e1e8f4;
+	border-radius: 15px;
+	padding: 24px;
+	color: inherit;
+	text-decoration: none;
+	box-shadow: 0 9px 27px #213b6207;
+	transition: box-shadow .16s, border-color .16s, transform .16s
+}
+
+.sm-account-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 13px 35px #213b6214
+}
+
+.sm-account-card.selected {
+	border: 2px solid #3b72ed;
+	padding: 23px;
+	box-shadow: 0 10px 35px #3263c51b
+}
+
+.sm-card-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between
+}
+
+.sm-type, .sm-state {
+	display: inline-block;
+	border-radius: 30px;
+	padding: 6px 11px;
+	font-size: 12px;
+	font-weight: 700;
+	background: #eaf1ff;
+	color: #2c65d7
+}
+
+.sm-state {
+	background: #e9f7ee;
+	color: #168554
+}
+
+.sm-account-card h3 {
+	font-size: 18px;
+	margin: 17px 0 24px;
+	letter-spacing: -.03em
+}
+
+.sm-card-amount {
+	display: flex;
+	flex-direction: column;
+	gap: 7px
+}
+
+.sm-card-amount small {
+	font-size: 12px;
+	color: #8895a9
+}
+
+.sm-card-amount strong {
+	font-size: 26px;
+	letter-spacing: -.03em
+}
+
+.sm-card-footer {
+	display: flex;
+	gap: 20px;
+	flex-wrap: wrap;
+	margin: 23px 0 0;
+	font-size: 12px;
+	color: #8390a7
+}
+
+.sm-card-footer b {
+	margin-left: 6px;
+	font-weight: 600;
+	color: #425777
+}
+
+.sm-card-bottom {
+	border-top: 1px solid #edf0f5;
+	padding-top: 15px;
+	margin-top: 18px;
+	display: flex;
+	justify-content: space-between;
+	font-size: 13px;
+	color: #3165da;
+	font-weight: 700
+}
+
+.sm-detail {
+	background: #fff;
+	border: 1px solid #e1e8f4;
+	padding: 27px;
+	border-radius: 16px;
+	box-shadow: 0 9px 27px #213b6207
+}
+
+.sm-selection-info {
+	display: flex;
+	gap: 22px;
+	flex-wrap: wrap;
+	font-size: 13px;
+	color: #8291a9;
+	margin: 0 0 25px
+}
+
+.sm-selection-info b {
+	color: #25416a;
+	margin-left: 7px
+}
+
+.sm-progress-panel {
+	border: 1px solid #e1eafa;
+	background: #f7faff;
+	border-radius: 12px;
+	padding: 21px;
+	margin-bottom: 18px
+}
+
+.sm-progress-top {
+	display: flex;
+	justify-content: space-between;
+	gap: 15px;
+	font-size: 14px
+}
+
+.sm-progress-top span {
+	font-weight: 700;
+	color: #376bda
+}
+
+.sm-progress-track {
+	height: 9px;
+	background: #e0e9f6;
+	border-radius: 20px;
+	overflow: hidden;
+	margin: 18px 0
+}
+
+.sm-progress-bar {
+	height: 100%;
+	background: #3975e9;
+	border-radius: 20px
+}
+
+.sm-counts {
+	display: flex;
+	gap: 22px;
+	flex-wrap: wrap;
+	font-size: 13px;
+	color: #6f829e
+}
+
+.sm-counts b {
+	color: #203d68;
+	margin-left: 5px
+}
+
+.sm-overdue-text, .sm-overdue-text b {
+	color: #c54b39 !important
+}
+
+.sm-warning {
+	background: #fff5e9;
+	border: 1px solid #ffe0b4;
+	color: #9a6222;
+	padding: 14px 16px;
+	border-radius: 10px;
+	line-height: 1.7;
+	font-size: 13px;
+	margin-bottom: 16px
+}
+
+.sm-table-wrap {
+	overflow-x: auto
+}
+
+.sm-table {
+	width: 100%;
+	border-collapse: collapse;
+	min-width: 670px
+}
+
+.sm-table th, .sm-table td {
+	padding: 17px 13px;
+	text-align: left;
+	border-bottom: 1px solid #edf0f6;
+	font-size: 14px
+}
+
+.sm-table th {
+	background: #f6f8fc;
+	color: #6d809e;
+	font-weight: 700
+}
+
+.sm-table td {
+	color: #293f63
+}
+
+.sm-table .sm-amount {
+	font-weight: 700
+}
+
+.sm-badge {
+	display: inline-block;
+	padding: 6px 10px;
+	border-radius: 8px;
+	font-size: 12px;
+	font-weight: 700
+}
+
+.sm-badge.paid {
+	background: #e7f8ef;
+	color: #15804a
+}
+
+.sm-badge.late-paid {
+	background: #e8f3fb;
+	color: #3270a3
+}
+
+.sm-badge.upcoming {
+	background: #edf2fa;
+	color: #697e9a
+}
+
+.sm-badge.overdue {
+	background: #fff0ec;
+	color: #c24a35
+}
+
+.sm-actions {
+	margin-top: 24px;
+	display: flex;
+	justify-content: flex-end
+}
+
+.sm-actions a, .sm-deposit-note a {
+	background: #2d65df;
+	padding: 12px 18px;
+	color: white;
+	border-radius: 9px;
+	text-decoration: none;
+	font-size: 13px;
+	font-weight: 700
+}
+
+.sm-deposit-note {
+	background: #f7faff;
+	border: 1px solid #e1eafa;
+	border-radius: 12px;
+	padding: 26px
+}
+
+.sm-deposit-note h3 {
+	font-size: 18px;
+	margin: 0 0 10px
+}
+
+.sm-deposit-note p {
+	font-size: 13px;
+	color: #7788a1;
+	line-height: 1.7;
+	margin-bottom: 25px
+}
+
+.sm-footnote {
+	font-size: 12px;
+	line-height: 1.8;
+	color: #8b98ac;
+	margin-top: 22px
+}
+
+.sm-empty {
+	text-align: center;
+	background: #fff;
+	border: 1px solid #e1e8f4;
+	border-radius: 16px;
+	padding: 55px 20px
+}
+
+.sm-empty-icon {
+	font-size: 36px;
+	color: #90a2bd
+}
+
+.sm-empty h2 {
+	margin: 16px 0 8px
+}
+
+.sm-empty p {
+	color: #8290a7;
+	font-size: 14px
+}
+
+.sm-empty a {
+	display: inline-block;
+	background: #2d65df;
+	color: white;
+	text-decoration: none;
+	padding: 13px 19px;
+	border-radius: 9px;
+	font-weight: 700;
+	margin-top: 12px
+}
+
+@media ( max-width :750px) {
+	.sm-container {
+		padding: 25px 15px 60px
+	}
+	.sm-header {
+		align-items: flex-start;
+		flex-direction: column
+	}
+	.sm-header h1 {
+		font-size: 29px
+	}
+	.sm-summary {
+		grid-template-columns: 1fr
+	}
+	.sm-grid {
+		grid-template-columns: 1fr
+	}
+	.sm-detail {
+		padding: 18px
+	}
+	.sm-section-heading {
+		align-items: flex-start;
+		flex-direction: column
+	}
+	.sm-progress-top {
+		font-size: 12px
+	}
+	.sm-card-amount strong {
+		font-size: 23px
+	}
+}
+
+/* 수동 납입 버튼 */
+.sm-pay-button {
+	padding: 9px 12px;
+	border: 0;
+	border-radius: 8px;
+	background: #255de2;
+	color: #fff;
+	font-size: 13px;
+	font-weight: 700;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.sm-pay-button:hover {
+	background: #1746ae;
+}
+
+.sm-pay-button:focus-visible {
+	outline: 3px solid #a4bdfd;
+	outline-offset: 2px;
+}
+
+.sm-pay-muted {
+	color: #94a3b8;
+}
+
+.sm-table-wrap {
+	overflow-x: auto;
+}
+
+.sm-table th, .sm-table td {
+	white-space: nowrap;
+}
+
+
+/* 납입 스케줄 페이지네이션 */
+.sm-schedule-pagination {
+    margin: 24px 0 30px;
+    padding-top: 12px;
+    border-top: 1px solid #e8edf4;
+}
+
+
+/* ========================================
+   ONBANK Pagination
+======================================== */
+
+.sm-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    width: 100%;
+    margin: 32px auto;
+    padding: 16px 0;
+
+    text-align: center;
+}
+
+/* 페이지 번호 및 이전/다음 버튼 */
+.sm-pagination .sm-page-number,
+.sm-pagination .sm-page-btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 auto;
+
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+
+    background: #ffffff;
+    color: #475569;
+
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+
+    transition: all 0.2s ease;
+}
+
+/* 마우스 오버 */
+.sm-pagination .sm-page-number:hover,
+.sm-pagination .sm-page-btn:hover {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #93c5fd;
+}
+
+/* 현재 페이지 */
+.sm-pagination .sm-page-number.active {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.15);
+}
+
+/* 납입 스케줄 페이징 구분 */
+.sm-schedule-pagination {
+    margin-top: 24px;
+    margin-bottom: 24px;
+    border-top: 1px solid #edf2f7;
+}
+
+/* 모바일 */
+@media (max-width: 480px) {
+    .sm-pagination {
+        gap: 5px;
+        margin: 20px auto;
+    }
+
+    .sm-pagination .sm-page-number,
+    .sm-pagination .sm-page-btn {
+        min-width: 34px;
+        height: 36px;
+        padding: 0 9px;
+        font-size: 12px;
+    }
+}
+
+/* AJAX 페이지 변경 효과 */
+#savingsAjaxContent {
+    position: relative;
+    transition: opacity 0.2s ease;
+}
+
+#savingsAjaxContent.sm-loading {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.sm-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>예적금 계산기 | ONBANK</title>
+  <link rel="stylesheet" th:href="@{/css/index.css}">
+  <link rel="stylesheet" th:href="@{/css/savings/savings-calculator.css}">
+  <script th:src="@{/js/savings/savings-calculator.js}" defer></script>
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+<main class="sc-page">
+  <div class="sc-wrap">
+    <nav class="sc-crumb"><a th:href="@{/}">홈</a><span>›</span><a th:href="@{/savings}">예적금</a><span>›</span><strong>예적금 계산기</strong></nav>
+    <section class="sc-hero">
+      <div><span class="sc-eyebrow">ONBANK · SAVINGS CALCULATOR</span><h1>나의 저축, 만기에는<br><em>얼마가 될까요?</em></h1><p>예치금액과 기간, 금리를 입력하고 예상 만기 수령액을 확인하세요.</p></div>
+      <div class="sc-hero-art" aria-hidden="true"><span>₩</span><strong>+</strong></div>
+    </section>
+    <div class="sc-layout">
+      <section class="sc-card sc-form-card">
+        <div class="sc-card-title"><div><span class="sc-step">01</span><h2>계산 조건</h2></div><p>단리 · 월 단위 예상 계산</p></div>
+        <div class="sc-tabs" role="group" aria-label="상품 유형"><button type="button" data-kind="FIXED_DEPOSIT" class="is-active" aria-pressed="true">정기예금</button><button type="button" data-kind="INSTALLMENT_SAVINGS" aria-pressed="false">정기적금</button></div>
+        <div class="sc-field"><label for="scAmount" id="scAmountLabel">예치 원금</label><div class="sc-input-wrap"><input id="scAmount" type="number" min="1" max="1000000000000" step="1" value="10000000" inputmode="numeric"><span>원</span></div><p class="sc-help" id="scAmountHelp">가입 시 한 번에 맡기는 금액입니다.</p></div>
+        <div class="sc-presets"><button type="button" data-add="100000">+10만원</button><button type="button" data-add="1000000">+100만원</button><button type="button" data-add="10000000">+1,000만원</button><button type="button" id="scResetAmount">초기화</button></div>
+        <div class="sc-two-col">
+          <div class="sc-field"><label for="scMonths">가입 기간</label><div class="sc-input-wrap"><select id="scMonths"><option value="3">3개월</option><option value="6">6개월</option><option value="12" selected>12개월</option><option value="24">24개월</option><option value="36">36개월</option><option value="60">60개월</option></select></div></div>
+          <div class="sc-field"><label for="scRate">연 이율 (세전)</label><div class="sc-input-wrap"><input id="scRate" type="number" min="0" max="20" step="0.01" value="3.20" inputmode="decimal"><span>%</span></div></div>
+        </div>
+        <div class="sc-assumption"><strong>계산 기준</strong><p>예금: 원금 전액을 설정 기간 동안 예치<br>적금: 매월 초 같은 금액을 납입(첫 납입금 12개월, 마지막 납입금 1개월 예치)<br>세금: 일반과세 15.4% 가정</p></div>
+        <button type="button" class="sc-calculate" id="scCalculate">예상 수령액 계산하기 <span>→</span></button>
+        <p class="sc-error" id="scError" role="alert" hidden></p>
+      </section>
+      <aside class="sc-card sc-results" aria-live="polite">
+        <div class="sc-card-title"><div><span class="sc-step">02</span><h2>예상 계산 결과</h2></div></div>
+        <p class="sc-result-eyebrow">예상 세후 만기 수령액</p>
+        <div class="sc-grand-total"><strong id="scMaturity">—</strong><span>원</span></div>
+        <div class="sc-highlight"><span>내가 납입한 원금</span><strong id="scPrincipal">—</strong></div>
+        <div class="sc-row"><span>예상 세전 이자</span><strong id="scGross">—</strong></div>
+        <div class="sc-row"><span>예상 세금 (15.4%)</span><strong id="scTax">—</strong></div>
+        <div class="sc-row sc-net"><span>예상 세후 이자</span><strong id="scNet">—</strong></div>
+        <div class="sc-meter" aria-label="납입 원금과 세후 이자 비율"><div id="scMeterInterest"></div></div>
+        <div class="sc-legend"><span>● 납입 원금</span><span>● 세후 이자</span></div>
+        <a class="sc-products-link" th:href="@{/savings/products}">예적금 상품 비교하기 <span>↗</span></a>
+        <p class="sc-disclaimer">※ 단리 및 월 단위 예시 계산입니다. 실제 상품은 일수 계산, 납입 시점, 우대금리, 이자 과세·원 단위 처리 등에 따라 금액이 달라질 수 있습니다. 계산 결과는 계약 조건이나 지급 약속이 아닙니다.</p>
+      </aside>
+    </div>
+  </div>
+</main>
+</body>
+</html>

@@ -34,6 +34,14 @@
 			<div class="sv-detail-layout">
 				<section class="sv-detail-info">
 					<h2>상품 가입 안내</h2>
+					<a class="sv-back"
+						th:href="@{/savings/calculator(
+						       type=${product.type.name()},
+						       months=${product.termMonths},
+						       rate=${product.annualRate},
+						       amount=${product.minAmount}
+						   )}">
+						이 상품으로 만기 금액 계산하기 → </a>
 					<dl>
 						<div>
 							<dt>상품 종류</dt>
