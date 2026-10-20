@@ -87,4 +87,19 @@ public class LoanRepaymentSchedule {
         this.remainingBalance = remainingBalance;
         this.status = LoanRepaymentStatus.PENDING;
     }
+    
+    public void markPaid() {
+        if (this.status == LoanRepaymentStatus.PAID) {
+            throw new IllegalStateException(
+                    "이미 납부한 상환 회차입니다.");
+        }
+
+        if (this.status != LoanRepaymentStatus.PENDING
+                && this.status != LoanRepaymentStatus.OVERDUE) {
+            throw new IllegalStateException(
+                    "납부할 수 없는 상환 상태입니다.");
+        }
+
+        this.status = LoanRepaymentStatus.PAID;
+    }
 }
