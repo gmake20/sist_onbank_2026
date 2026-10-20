@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>내 예적금 | ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}">
+<link rel="stylesheet" th:href="@{/css/savings/savings.css}">
+</head>
+<body>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+	<main class="save-wrap">
+		<div class="save-head">
+			<span>ONBANK · MY SAVINGS</span>
+			<h1>내 예적금 계좌</h1>
+			<p>가입한 예적금 현황을 확인하세요.</p>
+		</div>
+		<a th:href="@{/savings/products}">상품 목록 →</a>
+		<p th:if="${#lists.isEmpty(accounts)}">아직 가입한 예적금이 없습니다.</p>
+		<section class="save-grid">
+			<a class="save-card save-link" th:each="a:${accounts}"
+				th:href="@{/savings/{id}(id=${a.id})}"><span class="pill"
+				th:text="${a.status}"></span>
+			<h2 th:text="${a.product.name}"></h2>
+				<p>
+					원금 <strong
+						th:text="${#numbers.formatInteger(a.principal,1,'COMMA')}"></strong>원
+				</p>
+				<p>
+					만기일 <span th:text="${a.maturityOn}"></span>
+				</p></a>
+		</section>
+	</main>
+</body>
+</html>

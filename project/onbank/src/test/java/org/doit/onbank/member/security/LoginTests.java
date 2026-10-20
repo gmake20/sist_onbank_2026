@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.doit.onbank.member.entity.Member;
+import org.doit.onbank.member.entity.MemberStatus;
 import org.doit.onbank.member.repository.MemberRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,6 +85,7 @@ class LoginTests {
 		}
 		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password("wrong"))
 				.andExpect(redirectedUrl("/login?locked"));
+		assertThat(member.getStatus()).isEqualTo(MemberStatus.LOCKED);
 		assertThat(member.getLoginLockedAt()).isNotNull();
 
 		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password(rawPassword))
@@ -91,6 +93,12 @@ class LoginTests {
 				.andExpect(redirectedUrl("/login?locked"));
 		mockMvc.perform(get("/login").param("locked", ""))
 				.andExpect(content().string(containsString("5회 잘못 입력")));
+
+		// 잠금 해제하면 정상(ACTIVE)으로 돌아가고 다시 로그인 가능
+		member.unlockLogin();
+		assertThat(member.getStatus()).isEqualTo(MemberStatus.ACTIVE);
+		mockMvc.perform(formLogin("/login").userParameter("loginId").user(loginId).password(rawPassword))
+				.andExpect(authenticated());
 	}
 
 	// 성공하면 실패 횟수 초기화

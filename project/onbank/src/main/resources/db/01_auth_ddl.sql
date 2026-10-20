@@ -16,7 +16,7 @@ CREATE TABLE members (
     verification_status VARCHAR(20)     NOT NULL DEFAULT 'NONE'
                         COMMENT '본인확인 상태: NONE 미확인 / PENDING 심사중 / VERIFIED 완료 / REJECTED 반려',
     login_fail_count    INT             NOT NULL DEFAULT 0,
-    login_locked_at     DATETIME(6)              COMMENT '로그인 5회 실패 잠금 시각. NULL이면 잠기지 않음',
+    login_locked_at     DATETIME(6)              COMMENT '로그인 5회 실패로 잠긴 시각 (기록용). 잠김 여부는 status = LOCKED',
     terms_agreed_at     DATETIME(6)     NOT NULL,
     marketing_agree_yn  CHAR(1)         NOT NULL DEFAULT 'N',
     created_at          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -26,7 +26,7 @@ CREATE TABLE members (
     CONSTRAINT uk_members_login_id UNIQUE (login_id),
     CONSTRAINT uk_members_email UNIQUE (email),          -- NULL은 여러 개 허용
     CONSTRAINT uk_members_phone UNIQUE (phone),
-    CONSTRAINT ck_members_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'WITHDRAWN')),
+    CONSTRAINT ck_members_status CHECK (status IN ('ACTIVE', 'LOCKED', 'SUSPENDED', 'WITHDRAWN')),
     CONSTRAINT ck_members_verification CHECK (verification_status IN ('NONE', 'PENDING', 'VERIFIED', 'REJECTED')),
     CONSTRAINT ck_members_marketing CHECK (marketing_agree_yn IN ('Y', 'N')),
     -- 탈퇴 회원만 이메일·휴대폰이 비어 있을 수 있음
@@ -104,7 +104,7 @@ CREATE TABLE employee (
     status              VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE',
     temp_pw_yn          CHAR(1)         NOT NULL DEFAULT 'Y' COMMENT '임시 비밀번호 여부 - Y면 첫 로그인 시 비밀번호 변경 강제',
     login_fail_count    INT             NOT NULL DEFAULT 0,
-    login_locked_at     DATETIME(6),
+    login_locked_at     DATETIME(6)              COMMENT '로그인 5회 실패로 잠긴 시각 (기록용). 잠김 여부는 status = LOCKED',
     hired_at            DATE            NOT NULL,
     retired_at          DATE,
     created_at          DATETIME(6)     NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -114,7 +114,7 @@ CREATE TABLE employee (
     CONSTRAINT uk_employee_email UNIQUE (email),
     CONSTRAINT fk_employee_branch FOREIGN KEY (branch_id) REFERENCES branch (branch_id),
     CONSTRAINT ck_employee_role CHECK (role IN ('STAFF', 'MANAGER')),
-    CONSTRAINT ck_employee_status CHECK (status IN ('ACTIVE', 'ON_LEAVE', 'RETIRED')),
+    CONSTRAINT ck_employee_status CHECK (status IN ('ACTIVE', 'LOCKED', 'ON_LEAVE', 'RETIRED')),
     CONSTRAINT ck_employee_temp_pw CHECK (temp_pw_yn IN ('Y', 'N')),
     -- 퇴사 상태와 퇴사일은 함께 존재
     CONSTRAINT ck_employee_retired CHECK (

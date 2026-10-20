@@ -68,6 +68,7 @@
                     <td>
                         <span class="adm-badge" th:switch="${e.status.name()}">
                             <th:block th:case="'ACTIVE'">ACTIVE 재직</th:block>
+                            <th:block th:case="'LOCKED'">LOCKED 로그인 잠금</th:block>
                             <th:block th:case="'ON_LEAVE'">ON_LEAVE 휴직</th:block>
                             <th:block th:case="'RETIRED'">RETIRED 퇴사</th:block>
                         </span>

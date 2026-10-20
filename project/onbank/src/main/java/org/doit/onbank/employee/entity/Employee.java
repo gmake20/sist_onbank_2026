@@ -73,7 +73,7 @@ public class Employee extends BaseEntity {
 	@Column(nullable = false)
 	private int loginFailCount = 0;
 
-	private LocalDateTime loginLockedAt;	// NULL이면 잠기지 않음
+	private LocalDateTime loginLockedAt;	// 잠긴 시각 기록용. 잠김 여부는 status = LOCKED 로 판단
 
 	@Column(nullable = false)
 	private LocalDate hiredAt;
@@ -97,15 +97,18 @@ public class Employee extends BaseEntity {
 	}
 
 	// ---------- 로그인 실패 잠금 (LoginFailureHandler에서 호출) ----------
+	// 잠금은 status = LOCKED (관리자와 같은 방식). 재직(ACTIVE)일 때만 잠근다
+	// 휴직·퇴사 직원은 Spring Security가 비밀번호 확인 전에 막으므로 여기까지 오지 않는다
 	// 시간이 지나도 자동으로 풀리지 않는다. 관리자 화면에서 unlockLogin()으로 해제
 
 	// 비밀번호 오류 1회 기록. maxFailCount회가 되면 잠근다. 잠긴 상태면 true
 	public boolean recordLoginFailure(int maxFailCount, LocalDateTime now) {
 		loginFailCount++;
-		if (loginFailCount >= maxFailCount && loginLockedAt == null) {
+		if (loginFailCount >= maxFailCount && status == EmployeeStatus.ACTIVE) {
+			status = EmployeeStatus.LOCKED;
 			loginLockedAt = now;
 		}
-		return loginLockedAt != null;
+		return status == EmployeeStatus.LOCKED;
 	}
 
 	// 로그인 성공 : 실패 횟수 초기화
@@ -117,6 +120,9 @@ public class Employee extends BaseEntity {
 	public void unlockLogin() {
 		loginFailCount = 0;
 		loginLockedAt = null;
+		if (status == EmployeeStatus.LOCKED) {
+			status = EmployeeStatus.ACTIVE;
+		}
 	}
 
 	// 비밀번호 변경 (본인이 변경 화면에서). 임시 비밀번호 표시도 해제한다

@@ -107,4 +107,9 @@ public class OtpDevice {
 	public void dispose() {
 		status = OtpStatus.DISPOSED;
 	}
+
+	// 분실 신고 (사용중·정지 기기). 이후 이 기기로는 검증할 수 없고, 회원은 새 OTP를 발급받을 수 있다
+	public void reportLost() {
+		status = OtpStatus.LOST;
+	}
 }

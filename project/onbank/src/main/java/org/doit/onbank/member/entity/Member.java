@@ -66,7 +66,7 @@ public class Member extends BaseEntity {
 	@Column(nullable = false)
 	private int loginFailCount = 0;
 
-	private LocalDateTime loginLockedAt;	// NULL이면 잠기지 않음
+	private LocalDateTime loginLockedAt;	// 잠긴 시각 기록용. 잠김 여부는 status = LOCKED 로 판단
 
 	@Column(nullable = false)
 	private LocalDateTime termsAgreedAt;
@@ -93,14 +93,17 @@ public class Member extends BaseEntity {
 	}
 
 	// ---------- 로그인 실패 잠금 (LoginFailureHandler에서 호출) ----------
+	// 잠금은 status = LOCKED (관리자와 같은 방식). 정상(ACTIVE)일 때만 잠근다
+	// 정지·탈퇴 회원은 Spring Security가 비밀번호 확인 전에 막으므로 여기까지 오지 않는다
 
 	// 비밀번호 오류 1회 기록. maxFailCount회가 되면 잠근다. 잠긴 상태면 true
 	public boolean recordLoginFailure(int maxFailCount, LocalDateTime now) {
 		loginFailCount++;
-		if (loginFailCount >= maxFailCount && loginLockedAt == null) {
+		if (loginFailCount >= maxFailCount && status == MemberStatus.ACTIVE) {
+			status = MemberStatus.LOCKED;
 			loginLockedAt = now;
 		}
-		return loginLockedAt != null;
+		return status == MemberStatus.LOCKED;
 	}
 
 	// 로그인 성공 : 실패 횟수 초기화
@@ -112,5 +115,8 @@ public class Member extends BaseEntity {
 	public void unlockLogin() {
 		loginFailCount = 0;
 		loginLockedAt = null;
+		if (status == MemberStatus.LOCKED) {
+			status = MemberStatus.ACTIVE;
+		}
 	}
 }

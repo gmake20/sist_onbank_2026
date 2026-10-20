@@ -28,7 +28,7 @@ public class EmployeePrincipal implements UserDetails, CredentialsContainer, Bac
 	private final boolean tempPassword;	// true면 비밀번호 변경 화면으로 보냄 (LoginSuccessHandler, TempPasswordFilter)
 	private String password;			// 로그인 성공 후 eraseCredentials()로 지움
 
-	private final boolean locked;		// 5회 실패 잠금 (login_locked_at)
+	private final boolean locked;		// 5회 실패 잠금 (status = LOCKED)
 	private final boolean enabled;		// 휴직(ON_LEAVE), 퇴사(RETIRED)면 false
 
 	public EmployeePrincipal(Employee employee) {
@@ -39,8 +39,9 @@ public class EmployeePrincipal implements UserDetails, CredentialsContainer, Bac
 		this.branchId = employee.getBranchId();
 		this.tempPassword = employee.isTempPassword();
 		this.password = employee.getPassword();
-		this.locked = employee.getLoginLockedAt() != null;
-		this.enabled = employee.getStatus() == EmployeeStatus.ACTIVE;
+		// 잠금은 enabled에 넣지 않는다 → ?disabled 가 아니라 ?locked 로 안내되도록
+		this.locked = employee.getStatus() == EmployeeStatus.LOCKED;
+		this.enabled = employee.getStatus() == EmployeeStatus.ACTIVE || locked;
 	}
 
 	// ROLE_STAFF 또는 ROLE_MANAGER (MANAGER는 RoleHierarchy로 STAFF 권한도 가짐)
