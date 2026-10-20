@@ -91,7 +91,7 @@ O = 사용 가능, X = 사용 불가
 | 403 오류 화면 (S-03) | 관리자 파트 | `SecurityConfig` 주석: "공통 오류 화면에서 처리" | 관리자 파트 (README 12장의 공통 예외처리 담당) |
 | 잠금 해제 | 관리자 계정: ACT-003 / 회원: MEM-004 | ~~회원은 `Member.unlock()` 있음~~ (2026-10-16 정정: 팀 레포 어느 브랜치에도 없음. `Member`·`Employee`·`Admin` 모두 상태를 바꾸는 메서드가 없음) | 화면은 관리자 파트, 잠금 해제 메서드는 각 엔티티 담당자 것 호출 |
 
-참고: 잠금 방식이 테이블마다 다릅니다. `admin`은 `status = 'LOCKED'` + `login_fail_count`(TINYINT)이고, `employee`·`members`는 `login_locked_at`(일시) + `login_fail_count`입니다. 핸들러를 공통으로 만들 때 이 차이를 맞춰야 합니다.
+참고: 세 테이블 모두 잠금을 `status = 'LOCKED'` + `login_fail_count`로 표시합니다(2026-10-20 `employee`·`members`도 관리자 방식으로 통일). `employee`·`members`는 잠긴 시각을 `login_locked_at`에 따로 기록합니다.
 
 ---
 

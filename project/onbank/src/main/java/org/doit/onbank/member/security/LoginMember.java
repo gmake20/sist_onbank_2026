@@ -23,7 +23,7 @@ public class LoginMember implements UserDetails, CredentialsContainer {
 	private final String name;
 	private String password;	// 로그인 성공 후 eraseCredentials()로 지움
 
-	private final boolean locked;	// 5회 실패 잠금
+	private final boolean locked;	// 5회 실패 잠금 (status = LOCKED)
 	private final boolean enabled;	// 정지(SUSPENDED), 탈퇴(WITHDRAWN)면 false
 
 	public LoginMember(Member member) {
@@ -31,8 +31,9 @@ public class LoginMember implements UserDetails, CredentialsContainer {
 		this.loginId = member.getLoginId();
 		this.name = member.getName();
 		this.password = member.getPassword();
-		this.locked = member.getLoginLockedAt() != null;
-		this.enabled = member.getStatus() == MemberStatus.ACTIVE;
+		// 잠금은 enabled에 넣지 않는다 → ?disabled 가 아니라 ?locked 로 안내되도록
+		this.locked = member.getStatus() == MemberStatus.LOCKED;
+		this.enabled = member.getStatus() == MemberStatus.ACTIVE || locked;
 	}
 
 	// 고객은 모두 USER 권한 (직원은 employee 테이블에서 따로 로그인)
