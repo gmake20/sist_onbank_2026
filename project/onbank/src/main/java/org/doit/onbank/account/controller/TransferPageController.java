@@ -1,6 +1,7 @@
 package org.doit.onbank.account.controller;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -16,10 +17,12 @@ import org.doit.onbank.account.dto.TransferLimitInfo;
 import org.doit.onbank.account.dto.TransferReceipt;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountFavorite;
+import org.doit.onbank.account.entity.ScheduledTransfer;
 import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.account.service.AccountTransferService;
 import org.doit.onbank.account.service.OtpRequiredException;
+import org.doit.onbank.account.service.ScheduledTransferService;
 import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.member.security.LoginMember;
 import org.springframework.http.ResponseEntity;
@@ -39,15 +42,19 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 // 이체 화면 : 정보입력 → 확인(받는 분 이름) → 결과 영수증
+// 예약·정기이체도 같은 화면에서 등록한다 (이체실행일자 [예약]/[정기] → 일시 입력 → 등록 후 예약·정기이체 목록으로)
 // /mybank/** 는 SecurityConfig 에서 로그인한 고객(ROLE_USER)만 접근 가능
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/mybank/transfer")
 public class TransferPageController {
 
+	private static final DateTimeFormatter EXECUTE_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
+
 	private final AccountService accountService;
 	private final AccountTransferService accountTransferService;
 	private final AccountFavoriteService accountFavoriteService;
+	private final ScheduledTransferService scheduledTransferService;
 
 	// ---------- 1. 정보입력 ----------
 
@@ -74,6 +81,28 @@ public class TransferPageController {
 		}
 
 		try {
+			// 정기이체 : [정기]를 골라 매월 날짜·시각을 넣었으면 등록만 한 뒤 예약·정기이체 목록으로
+			if (form.isRecurring()) {
+				ScheduledTransfer subscribed = scheduledTransferService.subscribe(me.getMemberId(), form.getFromAccountId(),
+						form.getPassword(), form.getOtpCode(), form.getToAccountNumber(), form.getAmount(),
+						form.getSenderMemo(), form.getReceiverMemo(), form.getTransferDay(), form.getRecurringTime(),
+						form.getEndDate());
+				redirectAttributes.addFlashAttribute("successMessage", String.format(
+						"정기이체를 등록했습니다. 매월 %d일 %,d원이 이체되며, 첫 이체는 %s입니다.", subscribed.getTransferDay(),
+						subscribed.getTransferAmount(), subscribed.getNextExecuteAt().format(EXECUTE_AT_FORMAT)));
+				return "redirect:/mybank/transfer/scheduled";
+			}
+
+			// 예약이체 : [예약]을 골라 일시를 넣었으면 이체하지 않고 등록만 한 뒤 예약 목록으로
+			if (form.isScheduled()) {
+				ScheduledTransfer reserved = scheduledTransferService.reserve(me.getMemberId(), form.getFromAccountId(),
+						form.getPassword(), form.getOtpCode(), form.getToAccountNumber(), form.getAmount(),
+						form.getSenderMemo(), form.getReceiverMemo(), form.getExecuteAt());
+				redirectAttributes.addFlashAttribute("successMessage", String.format("예약이체를 등록했습니다. %s에 %,d원이 이체됩니다.",
+						reserved.getNextExecuteAt().format(EXECUTE_AT_FORMAT), reserved.getTransferAmount()));
+				return "redirect:/mybank/transfer/scheduled";
+			}
+
 			TransferReceipt receipt = accountTransferService.transfer(me.getMemberId(), form.getFromAccountId(),
 					form.getPassword(), form.getOtpCode(), form.getToAccountNumber(), form.getAmount(),
 					form.getSenderMemo(), form.getReceiverMemo());

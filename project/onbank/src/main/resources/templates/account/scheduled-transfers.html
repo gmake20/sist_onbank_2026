@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>예약·정기이체 조회 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="account-container">
+        <h2 class="page-title">예약·정기이체 조회·취소</h2>
+
+        <div class="alert alert-info" th:if="${successMessage}" th:text="${successMessage}"></div>
+        <div class="alert alert-error" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+
+        <div class="account-section">
+            <div class="section-title-wrap">
+                <h3>예약·정기이체 목록</h3>
+            </div>
+            <div class="section-header">
+                <div class="left-area">
+                    <span class="total-balance">등록 : <strong th:text="|${#lists.size(transfers)}건|">0건</strong></span>
+                </div>
+                <div class="right-area">
+                    <a class="btn-quick" th:href="@{/mybank/transfer}">+ 예약·정기이체 등록</a>
+                </div>
+            </div>
+            <table class="account-table">
+                <colgroup>
+                    <col style="width: 15%;">
+                    <col style="width: 16%;">
+                    <col style="width: 16%;">
+                    <col style="width: 12%;">
+                    <col style="width: 9%;">
+                    <col style="width: 22%;">
+                    <col style="width: 10%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>실행 일시</th>
+                        <th>출금계좌</th>
+                        <th>입금계좌</th>
+                        <th>금액</th>
+                        <th>상태</th>
+                        <th>결과</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="t : ${transfers}">
+                        <!-- 예약 : 실행 일시 / 정기 : 매월 N일 시:분 + 다음 회차(진행 중일 때) + 종료일 -->
+                        <td th:if="${!t.recurring}">
+                            <span class="schedule-kind">예약</span><br>
+                            <span th:text="${#temporals.format(t.nextExecuteAt, 'yyyy.MM.dd HH:mm')}">2026.10.21 09:00</span>
+                        </td>
+                        <td th:if="${t.recurring}">
+                            <span class="schedule-kind recurring">정기</span><br>
+                            <span th:text="|매월 ${t.transferDay}일 ${#temporals.format(t.nextExecuteAt, 'HH:mm')}|">매월 25일 09:00</span>
+                            <br th:if="${t.status.name() == 'WAITING'}">
+                            <span class="sub-text" th:if="${t.status.name() == 'WAITING'}"
+                                  th:text="|다음 ${#temporals.format(t.nextExecuteAt, 'yyyy.MM.dd')}|">다음 2026.11.25</span>
+                            <br>
+                            <span class="sub-text" th:text="${t.endDate != null} ? |~ ${#temporals.format(t.endDate, 'yyyy.MM.dd')}| : '해지할 때까지'">해지할 때까지</span>
+                        </td>
+                        <td th:text="${accountNumbers[t.accountId] ?: '-'}">1002-862-000000</td>
+                        <td th:text="|ONBANK ${t.depositAccountNumber}|">ONBANK 1002-123-456789</td>
+                        <td class="num" th:text="|${#numbers.formatInteger(t.transferAmount, 1, 'COMMA')}원|">50,000원</td>
+                        <!-- 상태 색 : 대기 노랑 / 완료 남색 / 실패 빨강 / 취소·중지 회색 (account.css status-badge)
+                             정기이체의 대기는 매월 계속 실행 중이라는 뜻이라 "진행중"으로 보여 준다 -->
+                        <td th:switch="${t.status.name()}">
+                            <span th:case="'WAITING'" class="status-badge status-pending"
+                                  th:text="${t.recurring} ? '진행중' : ${t.status.label}">대기</span>
+                            <span th:case="'COMPLETED'" class="status-badge" th:text="${t.status.label}">완료</span>
+                            <span th:case="'FAILED'" class="status-badge status-frozen" th:text="${t.status.label}">실패</span>
+                            <span th:case="*" class="status-badge status-closed" th:text="${t.status.label}">취소</span>
+                        </td>
+                        <td>
+                            <span th:text="${t.lastResult ?: '-'}">-</span>
+                            <br th:if="${t.lastExecutedAt}">
+                            <span class="sub-text" th:if="${t.lastExecutedAt}"
+                                  th:text="|${#temporals.format(t.lastExecutedAt, 'MM.dd HH:mm')} 실행|">10.21 09:00 실행</span>
+                        </td>
+                        <td class="actions">
+                            <!-- 대기 중인 건만 실행·취소할 수 있다 (서버도 다시 검사) -->
+                            <!-- 지금 실행 : 시연용. 예약 일시를 기다리지 않고 스케줄러와 같은 방식으로 바로 실행 -->
+                            <!-- 정기이체 [지금 실행] : 다음 회차를 앞당겨 실행하고, 그다음 회차로 넘어간다 -->
+                            <form class="inline-form js-once-form" method="post" th:if="${t.status.name() == 'WAITING'}"
+                                  th:action="@{/mybank/transfer/scheduled/{id}/run(id=${t.scheduledTransferId})}"
+                                  th:attr="data-confirm=${t.recurring}
+                                        ? |다음 회차(${#temporals.format(t.nextExecuteAt, 'yyyy.MM.dd')})를 지금 바로 이체할까요? 이후 회차는 그다음 달부터입니다. (시연용)|
+                                        : '예약 일시를 기다리지 않고 지금 바로 이체할까요? (시연용)'">
+                                <button type="submit" class="btn-sm">지금 실행</button>
+                            </form>
+                            <!-- 예약이체는 [취소], 정기이체는 [해지] (같은 cancel 주소, 상태는 둘 다 취소로 바뀐다) -->
+                            <form class="inline-form js-once-form" method="post" th:if="${t.status.name() == 'WAITING'}"
+                                  th:action="@{/mybank/transfer/scheduled/{id}/cancel(id=${t.scheduledTransferId})}"
+                                  th:attr="data-confirm=${t.recurring} ? '이 정기이체를 해지할까요? 해지하면 다음 회차부터 이체되지 않습니다.' : '이 예약이체를 취소할까요?'">
+                                <button type="submit" class="btn-sm" th:text="${t.recurring} ? '해지' : '취소'">취소</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(transfers)}">
+                        <td colspan="7" class="empty-row">
+                            <p>등록한 예약·정기이체가 없습니다.<br>이체 화면 이체실행일자에서 [예약] 또는 [정기]를 골라 등록할 수 있습니다.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="notice-section">
+            <div class="notice-header">📄 알아두세요!</div>
+            <div class="notice-content">
+                <ul>
+                    <li>예약이체는 지정한 일시에 자동으로 실행됩니다 (1분 간격으로 확인). 실행 전까지는 이 화면에서 취소할 수 있습니다.</li>
+                    <li>[지금 실행]은 시연용 기능으로, 예약 일시를 기다리지 않고 바로 이체합니다.</li>
+                    <li>실행할 때 잔액이 부족하거나 이체한도를 넘으면 이체되지 않고 '실패'로 표시됩니다.</li>
+                    <li>출금계좌·입금계좌·금액·실행 일시가 모두 같은 예약이체는 중복으로 등록할 수 없습니다.</li>
+                    <li>정기이체는 매월 지정한 날·시각에 자동으로 실행되며, 그 달에 없는 날(예: 31일)은 말일에 이체됩니다.</li>
+                    <li>정기이체의 한 회차가 잔액 부족 등으로 실패하면 그 회차는 이체되지 않고 결과에 사유가 표시되며, 다음 달에 다시 실행됩니다.</li>
+                    <li>정기이체는 종료일이 지나면 '완료'로 끝나고, 종료일이 없으면 [해지]할 때까지 계속됩니다.</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+
+    <script th:src="@{/js/account.js}"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# 팀원2 작업 인수인계 (2026-10-19 정리)
+# 팀원2 작업 인수인계 (2026-10-21 정리)
 
 > 새 세션에서 Claude에게 이렇게 요청하세요.
 > **"docs/team2-handoff.md 와 docs/team2-progress.md 읽고 이어서 작업하자"**
@@ -6,28 +6,33 @@
 > - 이 파일: 최근 작업 상태, 바로 다음에 할 일, 주의할 점 (**최신**)
 > - [team2-progress.md](team2-progress.md): 기본 결정 사항(3장), 엔티티 메서드, 이체 설계, 전체 할 일 목록. **10-16 이후 결정은 이 파일 1-1이 기준**
 > - [schema-team2-dictionary.md](schema-team2-dictionary.md): 테이블 컬럼 설명
-> - [team2-account-number-rule.md](team2-account-number-rule.md): 팀3에 공유할 계좌번호 규칙·예적금 계좌 생성 방법
+> - ~~team2-account-number-rule.md~~: 10-20 사용자가 삭제 (팀3 예적금이 main에 들어와 더 필요 없음)
 
 ---
 
 ## 0. 시작하기 전에 확인할 것
 
-1. **브랜치 상태 (10-19)**
-   - 10-16 작업은 PR #33, 10-17 작업(내 계좌 / 상대계좌 즐겨찾기)은 PR #36으로 **main에 머지됨**
-   - **10-19 작업(이체 OTP 연결, 자산 리포트)은 이 PC `account` 브랜치에 커밋하지 않은 상태로 있다.** 사용자가 지시하면 커밋·푸시 → main PR은 사용자가 GitHub에서 만들고 머지 (이 PC에는 `gh`가 없어 Claude가 PR을 만들 수 없음)
-   - 로컬 `account`는 10-19 시작 시 `origin/main`과 같게 맞춰져 있었다 (`origin/account`보다 43커밋 앞섬, main 머지분이라 문제 없음)
+1. **브랜치 상태 (10-21)**
+   - **main에 머지된 팀2 PR**: #33(10-16), #36(10-17), #53(10-19 이체 OTP·자산 리포트), #60(10-20 `f3bdcf2` 자산 리포트 대출 수정·enum 전환·이체 편의 기능), **#64(`9c7aead` 예약이체 + `3e4de02` merge 후 팀3 enum 비교·스케줄링 정리·문서)** → 아래 10-20 "푸시 전" 항목은 #64로 모두 main에 들어감
+   - **10-21 정기이체(5.5) 커밋 → `origin/account` 푸시 완료** (사용자 지시). main PR은 아직 (사용자가 GitHub에서)
+   - **10-20 로컬 `account`에만 있는 커밋 (푸시 전)**
+     - `9c7aead` 예약이체 등록·조회·취소·자동 실행 (기획서 5.4)
+     - merge 커밋: `origin/main`(#62까지)을 `account`에 합침 → 팀1 `MemberStatus.LOCKED`·`EmployeeStatus.LOCKED`, 팀3 예적금·자동납입·대출 상환 코드가 들어옴
+   - **커밋하지 않은 파일 (10-20)**: merge 후 고친 팀3 문자열 비교 2곳(`LoanRepaymentService`, `SavingsProductDetailController`), `ScheduledTransferScheduler`(`@EnableScheduling` 제거), 문서 3개(이 파일, progress). 사용자가 지시하면 커밋 → 푸시 → main PR (사용자가 GitHub에서. 이 PC에는 `gh` 없음)
+   - `application-local.properties.example`은 10-20 현재 OTP 안내 2줄이 지워진 상태로 수정돼 있다 → **커밋하지 않는다** (팀1 견본 파일. 되돌릴지는 사용자 결정)
    - 다른 PC에서 받기:
      ```
      git fetch origin
      git checkout account
      git pull origin account
      ```
-   - 받아졌는지 확인: `project/onbank/src/main/java/org/doit/onbank/account/service/AssetReportService.java` 가 있으면 10-19 작업까지 받아진 것
+   - 받아졌는지 확인: `project/onbank/src/main/java/org/doit/onbank/account/service/ScheduledTransferService.java` 가 있으면 10-20 작업까지 받아진 것
    - 커밋하지 않은 파일이 있으면 pull 이 막힌다. 먼저 `git status` 로 확인 (`docs/data-team2-mysql.sql` 아이디 줄은 PC마다 다르므로 커밋하지 않는다)
    - PR이 머지된 뒤 새 작업을 시작할 때는 `git pull origin main`으로 `account`를 main과 맞춘다
 2. PC마다 따로 있는 것 (Git에 없음)
    - `CLAUDE.local.md`: 개인 작업 원칙 (`.git/info/exclude`로 제외)
-   - `application-local.properties`: 공용 DB(cafe24) 접속 정보 + **(10-19) `onbank.otp.seed-key=팀1 공유 키`** (없으면 OTP 발급·검증 시 "OTP 암호화 키가 설정되지 않았습니다" 오류. 10-19 기준 이 PC에는 없음, 팀1에 요청함)
+   - `application-local.properties`: 공용 DB(cafe24) 접속 정보 + **`onbank.otp.seed-key=팀1 공유 키`** (없으면 OTP 발급·검증 시 "OTP 암호화 키가 설정되지 않았습니다" 오류. **10-20 이 PC에 입력함**. 한 줄에 `onbank.otp.seed-key=`가 두 번 들어가지 않게 주의). 선택: `onbank.scheduled-transfer.enabled=false`로 이 PC의 예약이체 스케줄러만 끌 수 있다
+   - 키 같은 비밀값은 `application.properties`나 `.example`(Git에 올라감)에 넣지 않는다
    - `docs/private/team2-portfolio-log.md`: 포트폴리오 정리 누적 파일 (`.git/info/exclude`로 제외)
 3. 집 PC에는 mysql 명령줄 도구가 있다 (`C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe`). Claude가 공용 DB를 **조회만** 할 수 있다. 데이터 변경(INSERT/UPDATE/DELETE)은 사용자가 워크벤치에서 직접 한다
 
@@ -41,6 +46,7 @@
 - 사소한 선택은 판단해서 진행하되 가정을 밝히고, 결과를 크게 바꾸는 것만 질문한다
 - **(10-16 추가) 기획서 [심화]·[선택] 기능은 판단해서 바로 구현하지 않는다.** 범위·결정할 것·작업량을 짧게 정리해 구현할지 먼저 묻는다. 구현하기로 한 기능도 화면·버튼 추가처럼 범위를 넓힐 때는 다시 묻는다
 - `index.html`, `index.css`, `SecurityConfig` 등 공용 파일을 바꿀 때는 사용자에게 알리고, 커밋 전에 다른 팀 변경과 겹치는지 확인한다
+- **(10-20 추가) 수정 보고 방식**: 파일을 고치거나 새로 만들면 "완료했습니다"로 끝내지 않는다. **파일마다 무엇을 / 어떻게(비포·애프터 코드) / 왜** 고쳤는지 쓰고, 동작 흐름(입력 → 처리 → 결과)과 확인 방법까지 설명한다. 표로 요약만 하지 않는다. 사용자가 전체 코드(3천 줄 이상)를 직접 이해하고 발표·유지보수할 수 있게 하기 위함
 - **(10-17 추가) 포트폴리오 정리**: 작업이 끝난 뒤 사용자가 **"포트폴리오 정리해 줘"**(또는 "포폴 정리해 줘")라고 하면, 그 작업에서 발표·포트폴리오에 쓸 트러블슈팅·설계 결정을 `[분류] 제목 / 한 줄 요약 / 배경 → 문제 → 원인 → 선택지(표) → 해결 → 결과 → 배운 점 / 관련 파일·커밋` 형식으로 정리해 **답변에 복사할 수 있는 텍스트로 바로 제공**하고, 같은 내용을 Git 제외 폴더 `docs/private/team2-portfolio-log.md`에 이어서 추가한다 (`.git/info/exclude`로 제외되어 이 PC에만 있다). 확인한 사실과 수치만 쓰고 사용자의 결정은 표시하며, **이 내용은 저장소에 커밋하지 않는다** (사용자가 개인 저장소에 따로 보관)
 
 ### 1-1. 2026-10-16 이후 확정한 결정
@@ -51,8 +57,8 @@
 | `transfer_type` 값 | `IMMEDIATE` 즉시 / `SCHEDULED` 예약 / `RECURRING` 정기 (상수 클래스 `TransferType`). 예약·정기는 팀2 예약·정기이체 실행에서 사용 (10-20 팀2 담당으로 되돌림) |
 | 당행·타행 구분 | `financial_institution_id` NULL = 당행(ONBANK) |
 | 이체한도 읽기 | 팀2 `AccountRepository.findTransferLimit()` 에서 `members` 두 컬럼을 SQL로 직접 조회 (팀1 `Member` 엔티티는 수정 안 함) |
-| 한도 기본값 | `members` 한도가 NULL이면 **1일 5,000,000원 / 1회 1,000,000원** (`AccountTransferService.DEFAULT_*`) |
-| OTP | 이체에서 건너뜀. 팀1 OTP가 나오면 연결 |
+| 한도 기본값 | `members` 한도가 NULL이면 **1일 10,000,000원 / 1회 3,000,000원** (`AccountTransferService.DEFAULT_*`, **10-20 사용자가 500만/100만에서 올림**). 테스트는 숫자 대신 이 상수로 계산하게 바꿈 |
+| OTP | 10-19 이체에 연결 완료 (아래 "이체 인증") |
 | 메인 링크 | `index.html` 퀵메뉴 "조회" → `/mybank/accounts`, "이체" → `/mybank/transfer` (팀3 "대출" 링크는 그대로) |
 | 전계좌조회 화면 | 사용자 원본 `list.html` 구성 유지(입출금/예금·신탁/적금 3영역, 컬럼 5개). `account_type` NULL 계좌는 입출금으로 표시. `my-accounts.html`은 삭제 |
 | 계좌번호 형식 | 유형별 앞자리 `앞자리4-난수3-난수6`. 입출금 `1002` / 예금 `2002` / 적금 `3002` / 대출 `4002` (`AccountNumberGenerator`, 중복이면 5회까지 재시도) |
@@ -72,8 +78,103 @@
 | **(10-19) PIN** | PIN 6자리는 만들지 않는다. 기존 계좌 비밀번호 4자리(BCrypt, 5회 잠금)가 간편 인증 역할 (auth.md "간편비밀번호 미구현" 결정과 맞춤) |
 | **(10-19) OTP 미등록 회원** | 전부 막지 않는다. 기준 금액 이하는 이체 가능, 초과는 "OTP 등록이 필요해요" + [OTP 등록하기](`/mybank/security/otp`). OTP 발급·검증·오류 10회 정지는 팀1 `OtpService` 그대로 사용 (팀2는 호출만) |
 | **(10-19) 이체 화면** | 사용자 목업 구성 유지, 필요한 것만 추가: 한글 금액, 금액 입력 즉시 안내(잔액 초과 / 1회 한도 초과 / OTP 미등록), 입금계좌번호·금액 입력 전 [확인] 비활성, 확인 영역에 OTP 입력칸(필요할 때만) |
+| **(10-20) 계좌 상태·유형** | `AccountStatus`, `AccountType`을 String 상수 → **enum**으로 (사용자 결정). DB 값은 그대로. `AccountStatus`는 `label`·입금/출금 가능 여부를 가진다. **비교는 `==`. `"CHECKING".equals(enum)`은 컴파일되지만 항상 false** (7장) |
+| **(10-20) 계좌번호 입력** | 이체·즐겨찾기 화면에서 숫자만 치면 4-3-6 하이픈 자동 입력 (`account.js` `.js-account-number`). 서버도 13자리 숫자면 하이픈을 넣어 찾는다 (`AccountNumberGenerator.normalize`) |
+| **(10-20) OTP 등록 후 이체 복귀** | OTP 화면(팀1 `security/otp.html`) 사용중 상태에 [이체 화면으로 돌아가기]. [OTP 등록하기]를 누를 때 이체 입력값을 `sessionStorage`에 저장(비밀번호·OTP 제외, 30분, 한 번 복원하면 삭제)했다가 복원 |
+| **(10-20) 자산 리포트 저장** | 이번 달만 매번 갱신, **지난달은 저장된 행을 그대로** (지난 기록은 수정하지 않음, 사용자 결정). 대출 상환은 출금에 포함, 대출금 지급은 입금에서 제외 |
+| **(10-20) 예약·정기이체 담당** | **팀2** (기획서 원래 배정으로 되돌림) |
+| **(10-20) 예약이체 설계** | 테이블 `scheduled_transfer` 하나로 예약(`SCHEDULED`)·정기(`RECURRING`). 실행 일시는 **날짜+시각(분 단위)**. **등록할 때 비밀번호(·OTP) 확인**, 실행은 인증 없이 `transferPreAuthorized()`(잔액·한도·계좌 상태는 실행 시점에 다시 검사). 1년 이내, 출금·입금·금액·일시가 같은 대기 건은 중복 등록 불가 |
+| **(10-20) 예약이체 화면** | 등록은 **이체 화면** [예약이체일지정] (사용자 선택 A). 조회·취소는 `/mybank/transfer/scheduled`. 진입: 전계좌조회 상단 큰 버튼(사용자 선택 B), 이체 화면 버튼, 등록 직후 이동. 시연용 [지금 실행] |
+| **(10-20) 예약이체 실행** | 스케줄러 매분 0초. 성공은 이체+완료 표시를 **한 트랜잭션**, 실패는 롤백 뒤 **새 트랜잭션**에서 사유 기록. 행 잠금 후 상태를 다시 봐서 여러 서버가 동시에 돌아도 중복 이체 없음. 서버가 꺼져 있던 동안의 건은 켜진 뒤 첫 분에 실행 |
+| **(10-20) 버튼 크기** | 자주 가는 화면 버튼은 `btn-sm`이 작아서 `.btn-quick`(16px, 굵게)을 새로 둠 (사용자 요청) |
+| **(10-21) 정기이체 등록 위치** | 이체 화면 이체실행일자 줄을 **[즉시] [예약] [정기] 라디오**로 (사용자 선택). 정기 = 매월 N일(1~31) 시:분 + 종료일(선택, 비우면 해지할 때까지). 기존 [예약이체일지정] 버튼은 [예약] 라디오로 바뀜 |
+| **(10-21) 정기이체 첫 회차** | 지금 이후 가장 가까운 "매월 N일 시:분". 그 달에 없는 날이면 말일 (31일 → 11월 30일, 12월은 다시 31일) |
+| **(10-21) 정기 회차 실패** | 그 회차만 사유 기록(`실패 : 사유`), 상태는 대기 유지, 다음 달 다시 실행. 재시도 없음 (사용자 선택). 종료일을 넘으면 완료 |
+| **(10-21) 정기이체 관리** | 목록에서 **[해지]만** (사용자 선택. 중지·재개·수정 없음, `PAUSED`는 쓰지 않음). 시연용 [지금 실행]은 예약이체와 같이 둠 (다음 회차를 앞당겨 실행 → 그다음 달로) |
+| **(10-21) 화면 이름** | 기획서 용어 그대로 **"정기이체"** (사용자: 팀3 `/savings/auto-transfers` "정기이체 현황"과 따로 작업하므로 겹쳐도 됨). 팀2 목록 화면 이름은 "예약·정기이체 조회·취소" |
+| **(10-21) 밀린 회차** | 서버가 몇 달 꺼져 있었으면 켜진 뒤 1회만 실행하고 지금 이후 회차로 넘어간다 (밀린 달을 몰아서 이체하지 않음, 판단해서 정함) |
 
 ## 2. 작업 요약
+
+### 2-00000. 2026-10-21 한 일 : 정기이체 (기획서 5.5)
+
+| 파일 | 내용 |
+|---|---|
+| `entity/ScheduledTransfer` | `subscribe()`(정기 등록), `nextOccurrence()`(회차 계산, 말일 처리), `isRecurring()`, `isLastSucceeded()`. `markSucceeded/markFailed`가 정기면 상태를 대기로 두고 `moveToNextRound()`로 다음 회차 (종료일 넘으면 완료) |
+| `service/ScheduledTransferService` | `subscribe()` 추가. 예약·정기 공통 검사(계좌 상태 → 중복 → 인증)를 `checkAndAuthorize()`로 묶음. `recordFailure(..., force)` : 스케줄러 실행이면 `isDue`일 때만 기록 (다른 서버가 이 회차를 성공시켜 다음 달로 넘어갔으면 한 달을 더 건너뛰지 않게) |
+| `service/ScheduledTransferRunner` | `recordFailure`에 `force` 전달, 문구 "대기 중인 이체만" |
+| `controller/TransferPageController` | `form.isRecurring()`이면 `subscribe()` → 목록으로, 문구 "정기이체를 등록했습니다. 매월 25일 50,000원이 이체되며, 첫 이체는 2026.10.25 09:00입니다." |
+| `controller/ScheduledTransferPageController` | 해지 문구 "정기이체를 해지했습니다.", [지금 실행] 성공 판단을 상태 대신 `isLastSucceeded()` |
+| `dto/TransferForm` | `transferDay`(1~31), `recurringTime`(HH:mm), `endDate`, `isRecurring()` |
+| `transfer.html`, `transfer.js` | 라디오 [즉시][예약][정기] → `setScheduleMode('now'/'scheduled'/'recurring')`. 정기 기본값 매월 오늘 날짜 09:00. 확인 영역 "매월 25일 09:00 (첫 이체 2026.10.25, 해지할 때까지)", 버튼 [정기이체등록]. 종료일 검사, OTP 등록 복귀 시 정기 입력값도 복원 |
+| `scheduled-transfers.html` | 제목 "예약·정기이체 조회·취소", 실행 일시 칸에 [예약]/[정기] 표시, 정기는 "매월 N일 시:분 / 다음 yyyy.MM.dd / ~ 종료일", 대기 상태를 "진행중"으로, 버튼 [해지], 안내 3줄 추가 |
+| `list.html` | 상단 버튼 "📅 예약·정기이체 조회" |
+| `account.css` | `.schedule-mode`(라디오), `.schedule-kind`(예약/정기 표시) |
+| 테스트 | 엔티티 13개, Service 6개, 화면 7개 추가. 기존 `recordFailure` 호출·문구 수정. **팀2 230개 / 전체 354개 통과** (10-21) |
+
+- 테이블·DDL·데이터 사전은 바꾸지 않음 (10-20에 `transfer_day`, `end_date` 준비돼 있었음). 정기이체의 시각은 `next_execute_at`의 시각을 그대로 쓴다
+- **(10-21) 파비콘 추가 (공용, 사용자 요청)**: `static/favicon.ico` (남색 둥근 사각형 + 흰 "ON", 16·32·48px). 브라우저가 `/favicon.ico`를 자동 요청하므로 템플릿은 수정하지 않음. 안 보이면 브라우저 캐시 → 시크릿 창으로 확인. 팀에 "파비콘 넣었다" 알리기
+
+#### 2-00000-1. 브라우저 확인할 것 (서버 재시작 후)
+
+1. 이체 화면 이체실행일자 : [즉시] 선택 상태로 열림 → [예약] 누르면 기존처럼 날짜·시각 → [정기] 누르면 "매월 (오늘 날짜)일 09:00, 종료일" 칸
+2. **정기 등록**: [정기] → 매월 오늘 날짜, 시각을 2~3분 뒤로 → [확인] → 확인 영역 "매월 21일 HH:mm (첫 이체 2026.10.21, 해지할 때까지)", 버튼 [정기이체등록] → 목록 "정기 / 매월 21일 HH:mm / 다음 2026.10.21 / 해지할 때까지 / 진행중"
+3. **자동 실행**: 시각이 지나고 새로고침 → 결과 "이체 완료", 다음 "2026.11.21", 상태는 진행중 그대로, 잔액 감소
+4. **[지금 실행]**: 다음 회차가 한 달 뒤로 넘어가는지 (예: 다음 11.21 → 12.21)
+5. **실패**: 잔액보다 큰 금액 정기 등록 → [지금 실행] → "정기이체를 실행하지 못했습니다. 실패 : 잔액이 부족합니다.", 상태 진행중, 다음 회차는 다음 달
+6. **종료일**: 종료일을 첫 회차보다 앞으로 → "종료일은 첫 이체일(...) 이후로 선택하세요." / 종료일 = 첫 회차 날짜로 등록 → [지금 실행] 한 번 → 상태 "완료"
+7. **31일**: 매월 31일 선택 → 확인 영역 첫 이체가 이번 달/다음 달 말일로 나오는지 (10월은 31일, 11월이면 30일)
+8. **해지**: [해지] → 확인 창 → "정기이체를 해지했습니다.", 상태 "취소", 버튼 사라짐
+9. 10만 원 초과 타인 계좌 정기 등록 → OTP 칸, [OTP 등록하기] 갔다 오면 정기 입력값 복원
+10. 확인으로 생긴 정기이체는 매월 계속 실행되므로 **확인 후 꼭 [해지]** (또는 `DELETE FROM scheduled_transfer WHERE member_id = 회원ID`)
+
+### 2-0000. 2026-10-20 한 일
+
+| 작업 | 내용 | 확인 |
+|---|---|---|
+| 자산 리포트 대출 수정 | 대출 잔액을 `loan_account.REMAINING_BALANCE`로, 월 상환액을 `account_loan_transaction`으로 (팀3가 대출 실행 기능을 넣으며 구조가 바뀜). 상환액은 출금에 포함. 지난달은 저장값 유지, 같은 달 중복 행은 id 큰 행 | 테스트, SQL 공용 DB 조회 확인 (user1 총자산 37,204,850 / 대출 잔액 36,918,183) |
+| enum 전환 | `AccountStatus`, `AccountType` → enum. 팀2 코드·화면·테스트, 팀3 문자열 비교(대출 신청·실행·지급, merge 후 대출 상환·예적금 상세)까지 수정 | 전체 테스트 |
+| 이체 편의 | 계좌번호 하이픈 자동 입력 + 서버 보정, OTP 화면 [이체 화면으로 돌아가기], OTP 등록 후 이체 입력값 복원 | 테스트, **브라우저 확인 전** |
+| **예약이체 (5.4)** | 1단계 테이블·엔티티 → 2단계 `transfer()`를 `authorize()`/`execute()`로 분리 + `transferPreAuthorized()` → 3단계 등록·조회·취소 화면 → 4단계 스케줄러·[지금 실행] (2-0000-1) | 테스트, **브라우저 확인 전** |
+| 바로가기 버튼 | 전계좌조회 상단 [이체하기] [📅 예약이체 조회·취소] (`.btn-quick`) | **브라우저 확인 전** |
+| main 합치기 | `origin/main`(#62까지) merge. 팀1 `LOCKED` enum이 없어 나던 `No enum constant ...MemberStatus.LOCKED`가 해결됨 (DB는 고치지 않음) | 전체 **328개 통과** |
+| 보고 규칙 | 1장 "수정 보고 방식" 추가 | |
+
+#### 2-0000-1. 예약이체 구조
+
+```
+[등록] 이체 화면 [예약이체일지정] → 날짜·시각 입력 → [확인] → [예약등록]
+       POST /mybank/transfer (executeDate, executeTime 있으면 예약)
+       → ScheduledTransferService.reserve()
+           ① 일시 : 분 단위, 지금 이후 ~ 365일
+           ② 출금계좌 : 본인 것, 출금 가능 상태 (동결이면 거절)
+           ③ 중복 : 같은 출금·입금·금액·일시의 대기 건
+           ④ AccountTransferService.authorize() : 금액·받는 계좌·1회 한도·비밀번호·OTP (즉시이체와 같은 코드)
+           ⑤ 저장 (WAITING)
+       ①~③을 ④보다 먼저 : 어차피 안 되는 요청으로 비밀번호 오류 횟수·OTP가 소모되지 않게
+[조회] GET /mybank/transfer/scheduled  : 목록 (대기 건에만 [지금 실행] [취소])
+[취소] POST /mybank/transfer/scheduled/{id}/cancel : 본인 것 + 대기·중지만
+[실행] ScheduledTransferScheduler (매분 0초) → ScheduledTransferRunner.runDue()   ← 트랜잭션 없음, 1건씩
+         → ScheduledTransferService.execute(id)   ← 트랜잭션 : 행 잠금 → 다시 확인 → transferPreAuthorized → 완료
+         → 실패하면 예외로 전체 롤백 → recordFailure(id, 사유)   ← 새 트랜잭션 : 대기일 때만 실패 기록
+       [지금 실행] POST /{id}/run → runner.runNow() → 같은 execute(force=true)
+```
+
+- 새 파일: `entity/ScheduledTransfer`, `ScheduleType`, `ScheduledTransferStatus`, `repository/ScheduledTransferRepository`, `service/ScheduledTransferService`, `ScheduledTransferRunner`, `scheduler/ScheduledTransferScheduler`, `controller/ScheduledTransferPageController`, `templates/account/scheduled-transfers.html`, 테스트 4개 (`ScheduledTransferTests`, `ScheduledTransferServiceTests`, `ScheduledTransferRunnerTests`, `ScheduledTransferPageControllerTests`)
+- 수정: `AccountTransferService`, `TransferForm`(`executeDate`, `executeTime`), `TransferPageController`, `transfer.html`, `transfer.js`, `account.js`(`data-confirm`), `account.css`(`.btn-quick`), `list.html`, `03_account_ddl.sql`, 데이터 사전
+- 공용 DB에 `scheduled_transfer` 생성 완료 (10-20 사용자, `OnbankApplicationTests` validate 통과)
+- 정기이체(5.5)는 **다음 작업**: 테이블·`transferDay`·`endDate`·`PAUSED`는 이미 준비. 정할 것은 2-3 참고
+
+#### 2-0000-2. 브라우저 확인할 것 (서버 재시작 후)
+
+1. **예약 자동 실행**: 이체 화면 이체실행일자 [예약] (10-21부터 버튼 대신 라디오) → 기본값(지금+10분, 10분 단위)이 들어가는지 → 2~3분 뒤로 바꿔 [확인] → 확인 영역 "이체실행일자: 2026.10.20 15:40 예약", 버튼 [예약등록] → 목록 "대기" → 시각이 지나고 새로고침 → "완료 / 이체 완료 / 10.20 15:40 실행", 잔액 감소, 서버 콘솔 `예약이체 1건 실행`
+2. **[지금 실행]**: 내일로 예약 → [지금 실행] → 확인 창 → "50,000원을 이체했습니다", 상태 완료
+3. **실패**: 잔액보다 큰 금액 예약 → [지금 실행] → "실행하지 못했습니다. 잔액이 부족합니다.", 빨간 "실패", 잔액 그대로
+4. **중복·취소**: 같은 내용 다시 등록 → "같은 내용의 예약이체가 이미 등록되어 있습니다." / [취소] → 확인 창에서 취소를 누르면 그대로, 확인을 누르면 "취소"
+5. **10만 원 초과 타인 계좌 예약** → 확인 영역에 OTP 칸, 등록할 때 OTP 검증
+6. **등록 실패 후 다시 그린 화면**(예: 비밀번호 틀림) → 예약 모드가 열린 채 일시가 남아 있는지
+7. 전계좌조회 상단 큰 버튼 2개, 이체 화면 [📅 예약이체 조회·취소], 계좌번호 하이픈 자동 입력, OTP 등록 후 [이체 화면으로 돌아가기] → 입력값 복원
+8. 확인으로 생긴 예약은 공용 DB `scheduled_transfer`에 남는다 (정리: `DELETE FROM scheduled_transfer WHERE member_id = 회원ID`)
 
 ### 2-00. 2026-10-19 한 일
 
@@ -113,8 +214,8 @@
 - 새 파일: `AssetReportPageController`, `AssetReportService`, `AssetReportRepository`, `MonthlyCashFlow`, `MonthlyAmount`, `LoanSummary`, `SubscriptionSummary`, `dto/AssetReportView`, `templates/account/assets.html`, `asset-diff.html`, `css/asset.css`, `js/asset.js`, 테스트 2개 (`AssetReportServiceTests` 6개, `AssetReportPageControllerTests` 6개)
 - 수정: `AssetReport.update(...)`, `schema-team2-dictionary.md`
 - 테스트: 팀2 **170개 통과**. 집계 SQL 5개는 공용 DB에서 mysql 조회로 확인 (user1: 10월 입금 200,000 / 출금 60,000, 승인 대출 4건)
-- **(10-19 확인) 지금 공용 DB로는 서버가 뜨지 않는다**: 팀3 `loan_repayment_schedule`의 `PRINCIPAL/INTEREST/TOTAL_AMOUNT`가 공용 DB에서 `decimal(19,0)`인데 팀3 엔티티는 `Long`(BIGINT) → `ddl-auto=validate` 실패. main 코드 그대로도 `contextLoads` 실패. 팀3 확인 필요 (팀2 코드 문제 아님)
-- 브라우저 확인 전 (위 문제 해결 후): 헤더 "자산관리" → 리포트, 월 선택, 도넛·막대 마우스 안내, 표로 보기, 대출 4건 표시
+- ~~(10-19) 공용 DB로는 서버가 뜨지 않는다 (팀3 `loan_repayment_schedule` 금액 타입)~~ → **10-20 해결됨** (팀3 엔티티가 `BigDecimal`로 바뀌어 `OnbankApplicationTests` 통과)
+- 브라우저 확인 전: 헤더 "자산관리" → 리포트, 월 선택, 도넛·막대 마우스 안내, 표로 보기, 대출 3건 표시 (10-20 user1 기준)
 
 ### 2-0. 2026-10-17 한 일
 
@@ -146,32 +247,36 @@
 - 새 파일: `AccountOpenPageController`, `FavoritePageController`, `FavoriteEditForm`, `FavoriteForm`, `OpenAccountForm`, `OpenAccountReceipt`, `AccountFavoriteRepository`, `RecentDepositAccount`, `AccountFavoriteService`, `AccountManageService`, `AccountNumberGenerator`, `AccountOpenService`, 템플릿 `favorite-edit`, `favorite-toggle`, `favorites`, `open-result`, `open`, 테스트 8개, `docs/team2-account-number-rule.md`
 - 커밋 메시지: `계좌 개설·상태 변경·즐겨찾기 기능 구현 및 팀3 계좌번호 규칙 문서 추가`
 
-### 2-3. 다음에 할 일 (순서대로)
+### 2-3. 다음에 할 일 (순서대로, 10-20 기준)
 
-1. **팀3 공용 DB 타입 문제 해결 대기**: `loan_repayment_schedule` 금액 3컬럼이 `decimal(19,0)` ↔ 팀3 엔티티 `Long` → 서버가 뜨지 않는다 (2-000). 사용자가 팀3에 전달. 해결 전에는 브라우저 확인 불가
-2. **팀1 OTP 키 받기** → `application-local.properties`에 `onbank.otp.seed-key` 추가
-3. **브라우저 확인** (서버 재시작 후): 이체 OTP (2-00), 자산 리포트 (2-000), 계좌 개설 4-1, 메인 "빠른메뉴 >" [계좌 개설]. 즐겨찾기는 10-19 사용자 확인 완료
-4. 확인 결과 문제가 있으면 수정 → **사용자가 지시하면** 커밋·푸시 → PR (사용자)
-5. 팀원 공유 문구 전달 (사용자가 직접, 10-19 대화에서 작성): OTP 연결 규칙, 팀1 키 요청, 팀3 `transfer()` 시그니처 변경, 팀4 `fds_transfer_block` 문의
-6. 팀3에 [team2-account-number-rule.md](team2-account-number-rule.md) 전달, 팀4에 `AccountManageService` 메서드 전달 (10장)
-7. **남은 작업 후보 — 사용자에게 먼저 묻는다**
+0. **(10-22 시작할 때) 정기이체 코드 이해하기 (사용자 요청)**: 10-21 사용자가 "코드를 Claude가 다 써서 내가 이해해야 한다"고 함. Claude가 설명을 길게 하지 말고 **질문 → 사용자가 답 → 맞은 점·빠진 점만 짚기** 방식으로 진행 (방식은 시작할 때 사용자에게 다시 확인). 대상: `ScheduledTransfer.java`(회차 계산·성공/실패 처리) → `ScheduledTransferService.java`(등록 순서·`recordFailure`의 `isDue`) → `ScheduledTransferRunner.java`(트랜잭션을 따로 여는 이유). 질문 예시는 `docs/private/team2-portfolio-log.md` 10-21 항목 "직접 설명할 수 있어야 하는 것". 이후 작은 수정(기본 시각 09:00 → 10:00 등)을 사용자가 직접 해 보도록 제안
+1. **브라우저 확인 (사용자)**: 정기이체 2-00000-1, 예약이체 2-0000-2, 이체 OTP 2-00, 자산 리포트 2-000, 계좌 개설 4-1
+2. 확인 결과 문제가 있으면 수정 → **사용자가 지시하면** 커밋 → 푸시. main PR은 사용자가 GitHub에서
+3. ~~정기이체 (5.5)~~ → **10-21 구현 완료** (2-00000, 결정은 1-1 "(10-21)" 행)
+4. 팀원 공유 문구 전달 (사용자가 직접): 10장 "남음" 항목
+5. **남은 작업 후보 — 사용자에게 먼저 묻는다**
    - **사기계좌 확인** (10-19 사용자가 정한 남은 작업): 팀4 `fds_transfer_block` 답을 받은 뒤 이체 Service에 검사 추가
    - 다건이체: 사용자 검토 중 (10-19 대화. 설계 방향: 이체 전 합계로 잔액·한도 검사 → 건별 트랜잭션 실행 → 건별 결과. OTP는 처음 한 번만 검증하고 인증 없는 내부 이체 메서드로 실행해야 함 — 팀1 OTP가 같은 번호 재사용을 막으므로)
    - 6.1 거래내역 페이징·필터: 10-19 사용자가 **건너뛰기로 함**
    - 즐겨찾기 관리 화면을 내 계좌·상대계좌로 나눌지 (2-0)
-   - [심화] 4.4 계좌 별명, 4.6 계좌 해지, 4.7 계좌 비밀번호 변경, 5.4 예약이체(**팀2, 10-20 진행 예정**), 6.4 CSV 다운로드 / [선택] 계좌 개설 20영업일 제한, 5.5 정기이체(**팀2**)
+   - [심화] 4.4 계좌 별명, 4.6 계좌 해지, 4.7 계좌 비밀번호 변경, ~~5.4 예약이체~~(10-20 완료), 6.4 CSV 다운로드 / [선택] 계좌 개설 20영업일 제한, ~~5.5 정기이체~~(10-21 완료)
+   - 예약이체: 서버가 오래 꺼져 있다 켜졌을 때 너무 지난 건을 실패 처리할지 (지금은 늦게라도 실행. 정기이체는 1회만 실행하고 지금 이후 회차로 넘어감)
+   - 정기이체 [중지]/[재개]·수정: 10-21 사용자가 [해지]만 선택. 필요해지면 `PAUSED` 상태가 이미 있어 엔티티 메서드·버튼만 추가하면 됨
 
 ## 3. 현재 상태 한눈에
 
 | 단계 | 상태 |
 |---|---|
-| 테이블·엔티티 6개 | 완료 (공용 DB 생성, validate 통과) |
+| 테이블·엔티티 7개 | 완료 (공용 DB 생성, validate 통과). 10-20 `scheduled_transfer` 추가 |
 | 입출금 (엔티티·Service·화면) | 완료, 브라우저 확인 완료 |
 | **이체 (당행 즉시이체)** | **완료, 브라우저 확인 완료 (10-16)** |
 | **전계좌조회 화면 (`list.html` 원본 구성)** | **완료, 브라우저 확인 완료 (10-16)** |
-| 팀2 테스트 | **170개 통과** (DB 없이, 10-19). `contextLoads`는 **팀3 공용 DB 타입 문제로 실패 중** (2-000) |
-| **이체 OTP 연결 (10만 원 초과)** | 코드·테스트 완료 (10-19). **커밋 전, 브라우저 확인 전** (2-00). OTP 키 필요 |
-| **자산 리포트 (`/mybank/assets`)** | 코드·테스트 완료, 집계 SQL 공용 DB 조회 확인 (10-19). **커밋 전, 브라우저 확인 전** (2-000) |
+| 테스트 | **전체 354개 통과** (10-21 정기이체 추가 후, `OnbankApplicationTests` 포함. 팀2 230개) |
+| **이체 OTP 연결 (10만 원 초과)** | 완료, main 머지됨 (#53). OTP 키 입력함 (10-20). **브라우저 확인 전** (2-00) |
+| **자산 리포트 (`/mybank/assets`)** | 완료, main 머지됨 (#53, #60). 10-20 대출·지난달 저장 수정. **브라우저 확인 전** (2-000) |
+| **enum 전환·하이픈·OTP 복귀·입력값 복원** | 완료, main 머지됨 (#60, 10-20). **브라우저 확인 전** |
+| **예약이체 (5.4)** | 완료, main 머지됨 (#64). **브라우저 확인 전** (2-0000-2) |
+| **정기이체 (5.5)** | 완료 (10-21, `account` 푸시, main PR 전). **브라우저 확인 전** (2-00000-1) |
 | **계좌 개설 (입출금, 즉시 개설)** | 코드·테스트 완료, main 머지됨 (10-16). **브라우저 확인 전** (아래 4장) |
 | 상태 변경 메서드 (승인·반려·동결·해제·해지·잠금 해제) | 코드·테스트 완료, main 머지됨 (10-16). 호출하는 화면은 팀4 |
 | **즐겨찾기** | 완료, main 머지됨, **브라우저 확인 완료 (10-19 사용자)** |
@@ -247,7 +352,7 @@
 - 즐겨찾기 관리 화면(`/mybank/favorites`) 진입점: 메인 "빠른메뉴 >" [즐겨찾기 목록 조회], 이체 화면 선택 창 "즐겨찾기 관리 ›", 등록 후 이동 (10-16 사용자 요청으로 메인 링크 추가)
 - 이체 완료 화면에서 **출금계좌(내 계좌)**도 즐겨찾기할지 사용자 확인 필요 (지금은 받는 분 계좌만)
 
-## 6. 구현 구조 요약 (10-19 기준)
+## 6. 구현 구조 요약 (10-20 기준)
 
 ```
 [화면] /mybank/** (SecurityConfig: ROLE_USER 로그인 필요)
@@ -259,6 +364,7 @@
   TransferPageController  /mybank/transfer
      GET  /mybank/transfer[?from={id}]        → transfer.html (사용자 목업 구성 유지 + 확인 단계)
      POST /mybank/transfer                    → 성공 시 redirect /mybank/transfer/result (PRG, flash "receipt")
+                                                (10-20) executeDate·executeTime 이 있으면 예약 등록 → redirect /mybank/transfer/scheduled
      GET  /mybank/transfer/result             → transfer-result.html (영수증 없으면 입력 화면으로)
      GET  /mybank/transfer/recipient?accountNumber=  → JSON 받는 분 이름(가림, 예: 김*수)
      GET  /mybank/transfer/limit?accountId=          → JSON 1회/1일 한도, 오늘 이체액, 남은 한도
@@ -270,6 +376,10 @@
      GET/POST /mybank/favorites/{id}/edit     → favorite-edit.html (별칭·메모)
      POST /mybank/favorites/{id}/move         → direction=up|down
      POST /mybank/favorites/{id}/delete       → 삭제 후 목록으로 (returnTo=accounts면 전계좌조회로)
+  ScheduledTransferPageController (10-20, 10-21 정기 추가)  /mybank/transfer/scheduled
+     GET  /mybank/transfer/scheduled          → scheduled-transfers.html (내 예약·정기 목록)
+     POST /mybank/transfer/scheduled/{id}/cancel → 취소 / 정기는 해지 (본인 것, 대기·중지만)
+     POST /mybank/transfer/scheduled/{id}/run    → [지금 실행] 시연용 (스케줄러와 같은 실행 경로)
   AssetReportPageController (10-19)
      GET  /asset                              → redirect /mybank/assets (헤더 "자산관리" 링크)
      GET  /mybank/assets[?month=yyyy-MM]      → assets.html (자산 리포트, 최근 12개월 중 선택)
@@ -277,8 +387,11 @@
 
 [Service]
   AccountService          deposit / withdraw / getMyAccounts / getMyAccount / getMyHistories
-  AccountTransferService  transfer / findRecipient / getLimit
+  AccountTransferService  transfer / authorize / transferPreAuthorized / findRecipient / getLimit
      transfer(memberId, fromAccountId, rawPassword, otpCode, toAccountNumber, amount, senderMemo, receiverMemo)
+     (10-20) transfer = authorize(검증+비밀번호+OTP) + execute(잠금→1일 한도→잔액→기록, private)
+             authorize()            : 예약 등록도 같은 인증을 쓴다
+             transferPreAuthorized(): 인증 없이 validate + execute (예약 실행용, 화면에 연결하지 않음)
      transfer 순서: 입금계좌 확인 → 같은 계좌 금지 → 1회 한도 → (10만 원 초과 타인 이체면) OTP 등록 여부·번호 형식
                   → 비밀번호(REQUIRES_NEW) → OTP 검증(팀1 OtpService.verify) → 두 계좌 ID 오름차순 잠금
                   → 본인 계좌 확인 → 1일 한도
@@ -291,16 +404,29 @@
   AssetReportService      getReport(memberId, month) : 집계 → 최근 6개월 asset_report 저장(갱신) → 화면용 AssetReportView
                           (@Transactional 없음, 팀3 조회 실패는 warnings 로 안내)
   AssetReportRepository   월별 입출금(본인 계좌끼리 제외) + 팀3 대출·상환·예적금·카드 SQL 조회 (읽기만)
-  AccountPasswordVerifier (REQUIRES_NEW), TransactionSqnoGenerator, AccountNumberGenerator
+  ScheduledTransferService (10-20) reserve / subscribe(10-21 정기) / getMine / cancel / execute(트랜잭션: 잠금→재확인→이체→완료·다음 회차)
+                           / recordFailure(새 트랜잭션, force=false 면 isDue 일 때만)
+                           reserve·subscribe 공통 : checkAndAuthorize (계좌 상태 → 중복 → authorize)
+  ScheduledTransferRunner  (10-20) runDue / runNow / runOne  ← @Transactional 없음 (1건씩 커밋, 실패 기록을 따로 하기 위해)
+  ScheduledTransferScheduler (10-20, account/scheduler) @Scheduled 매분 0초 → runner.runDue
+                           @EnableScheduling 은 공용 config/SchedulingConfig (팀3). 끄기: onbank.scheduled-transfer.enabled=false
+  AccountPasswordVerifier (REQUIRES_NEW), TransactionSqnoGenerator, AccountNumberGenerator(+ normalize: 13자리 숫자 → 4-3-6)
 
 [Entity] Account: open(정적 생성) / activate / reject / freeze / unfreeze / close
                   / deposit / withdraw / transferOut(오늘 이체 누적) / transferIn
                   / getTodayTransferAmountOn(date)(조회만) / touchTransaction / 비밀번호 오류 메서드
-         enum: AccountStatus(label·입금/출금 가능 여부), AccountType(label) (10-20)
+         ScheduledTransfer (10-20): reserve(정적 생성) / isDue / cancel / markSucceeded / markFailed(200자로 자름)
+                  (10-21) subscribe(정기 정적 생성) / nextOccurrence(회차 계산, 말일) / isRecurring / isLastSucceeded
+                          정기면 markSucceeded·markFailed 가 대기 유지 + moveToNextRound (종료일 넘으면 완료)
+         enum: AccountStatus(label·입금/출금 가능 여부), AccountType(label), ScheduleType(label·transferType),
+               ScheduledTransferStatus(label) (10-20)
          상수: TransactionType, TransactionStatus, TransferType
 
-[화면 스크립트] static/js/account.js (금액 버튼, 중복 제출 방지), static/js/transfer.js (잔액·오류횟수·한도 조회, 받는 분 확인, 확인 단계, Enter 제출 막기, 입금계좌 선택 창,
-               10-19: 한글 금액, 금액 즉시 안내, [확인] 비활성, OTP 입력칸), static/js/asset.js (기준월 선택, 그래프 마우스 안내)
+[화면 스크립트] static/js/account.js (금액 버튼, 중복 제출 방지, 10-20: 계좌번호 하이픈 .js-account-number, 제출 전 확인 창 form[data-confirm])
+               static/js/transfer.js (잔액·오류횟수·한도 조회, 받는 분 확인, 확인 단계, Enter 제출 막기, 입금계좌 선택 창,
+               10-19: 한글 금액, 금액 즉시 안내, [확인] 비활성, OTP 입력칸,
+               10-20: 예약 모드 setScheduleMode (입력칸 disabled 면 전송 안 됨 → 즉시이체), OTP 등록 전 입력값 sessionStorage 저장·복원)
+               static/js/asset.js (기준월 선택, 그래프 마우스 안내)
 [자산 리포트 화면] templates/account/assets.html + asset-diff.html(지난달 대비 문구 조각), static/css/asset.css (SVG 도넛, CSS 막대)
 [공용 화면] index.html 퀵메뉴 "빠른메뉴 >" 펼침 목록(#quickMenuPanel: 계좌 개설, 즐겨찾기 목록 조회) + index.css .quick-menu-panel
             펼침 목록은 #quickMenuPanel 하나만 둔다 (스크립트가 id로 찾으므로 패널을 복사하지 말고 <a>만 추가)
@@ -329,6 +455,14 @@
 - **(10-19) 팀3 테이블은 DDL 파일(`onbank_loan.sql`)과 공용 DB 실제 구조가 다르다** (예: 대출은 `loan`이 아니라 `loan_account`, 상환 스케줄은 10-20 기준 `LOAN_ACCOUNT_ID`로 연결되고 옛 `APPLICATION_ID` 칼럼은 비어 있음). 팀3 테이블을 SQL로 읽을 때는 `information_schema.columns`로 실제 컬럼을 먼저 확인
 - **(10-19) 다른 팀 테이블 조회가 실패할 수 있는 Service에는 바깥 `@Transactional`을 붙이지 않는다.** Repository 안에서 난 예외가 바깥 트랜잭션을 rollback-only 로 만들어, 예외를 잡아도 뒤의 저장이 실패한다 (`AssetReportService`)
 - **(10-19) 공용 DB를 조회만 해서 확인하는 방법**: mysql 명령줄로 SELECT 실행 (접속 정보는 `application-local.properties`에서 읽음). Spring 통합 테스트는 `contextLoads`가 실패하면 쓸 수 없다
+- **(10-20) enum 비교는 `==`. `"CHECKING".equals(account.getAccountType())`는 컴파일 오류 없이 항상 false.** main을 합칠 때마다 `grep -rn '"CHECKING"\|"ACTIVE"' src/main/java`로 다른 팀의 새 문자열 비교를 찾는다 (10-20 merge에서 팀3 대출 상환·예적금 상세 2곳 발견해 고침). `AccountType.CHECKING.equals(enum)`은 enum끼리라 정상
+- **(10-20) `No enum constant ...` 오류는 DB 값이 아니라 브랜치가 뒤처진 경우가 많다.** 다른 팀이 main에서 enum 값(예: `LOCKED`)을 추가하고 그 코드로 DB에 저장하면, 옛 코드는 읽다가 실패한다. DB를 `UPDATE`하지 말고 `origin/main`을 합친다
+- **(10-20) 트랜잭션 안에서 난 예외는 잡아도 그 트랜잭션에 저장할 수 없다 (rollback-only).** 예약이체 실패 기록은 실행 트랜잭션이 롤백된 뒤 새 트랜잭션(`recordFailure`)에서 한다. 그래서 순서를 맡는 `ScheduledTransferRunner`에는 `@Transactional`을 붙이지 않는다
+- **(10-20) 스케줄러는 팀원마다 서버를 띄우면 여러 개 돈다 (공용 DB).** 실행 전 `findByIdForUpdate`로 행을 잠그고 상태를 다시 봐야 같은 건이 두 번 이체되지 않는다
+- **(10-20) Spring Boot 4의 `@WebMvcTest` 패키지는 `org.springframework.boot.webmvc.test.autoconfigure`.** 예전 `...boot.test.autoconfigure.web.servlet`은 없다. 새 화면 테스트는 기존 테스트의 import를 복사
+- **(10-20) `<input type="time">` 값은 `09:30`.** `@DateTimeFormat(iso = ISO.TIME)`은 다시 그릴 때 초·시간대까지 붙여 입력칸이 비므로 `pattern = "HH:mm"`
+- **(10-20) 테스트에 한도 같은 설정값을 숫자로 쓰지 않는다.** 사용자가 기본 한도를 바꾸자 테스트 2개가 깨졌다 → `DEFAULT_ONCE_LIMIT + 1`처럼 상수로 계산
+- **(10-20) 화면에 확인 창이 필요한 폼은 `data-confirm="문구"`만 붙이면 된다** (`account.js`). 중복 제출 방지보다 먼저 등록돼 있어 [취소]를 눌러도 버튼이 잠기지 않는다
 
 ## 8. 공용 DB 현재 데이터 (10-16 조회 기준)
 
@@ -339,17 +473,20 @@
 - `data-team2-mysql.sql` 15번째 줄 아이디는 각자 PC에서 바꿔 쓰고 **커밋하지 않는다**
 - **(10-19 조회)** 계좌 5개(테스트 3 + 개설 `CHECKING` 2), 거래내역 6건, `asset_report` 0건. 팀3: `loan_application` 11건(user1 승인 4건, 8,100만 원), 예적금·카드·상환 스케줄 0건
 - 자산 리포트 화면을 열면 `asset_report`에 회원당 최근 6개월 행이 생긴다 (정리: `DELETE FROM asset_report WHERE account_id = 회원ID`)
+- **(10-20 조회)** user1: 입출금 `CHECKING` 1002-376-992742 잔액 36,914,850 (대출금 3,700만 입금 − 상환 85,150) + 테스트 계좌. 팀3 `loan_account` 3건(잔액 합 36,918,183), `account_loan_transaction` 지급 3·상환 1. `asset_report` user1 202605~202609에 **사용자가 넣은 시연 데이터(id 22~26)** 와 앱이 만든 0원 행(id 1~5)이 같은 달에 함께 있음 → 화면은 id 큰 행 사용, 0원 행은 사용자가 지울 예정
+- **(10-20)** `members` LOCKED 2명, `employee` LOCKED 1명 (팀1 로그인 잠금 기능 결과. 고치지 않음). `scheduled_transfer` 테이블 생성 (0건)
 
 ## 9. 자주 쓰는 명령 (`project/onbank` 폴더에서)
 
 ```
 ./gradlew compileJava                                   # 컴파일
-./gradlew test --tests "org.doit.onbank.account.*"      # 팀2 테스트 170개 (DB 불필요)
+./gradlew test --tests "org.doit.onbank.account.*"      # 팀2 테스트 (DB 불필요)
+./gradlew test                                          # 전체 354개 (10-21, 공용 DB 연결 테스트 포함)
 ./gradlew test --tests "org.doit.onbank.OnbankApplicationTests"   # 서버가 뜨는지 (공용 DB 연결, 읽기만)
 ./gradlew bootRun                                       # 서버 실행 (포트 80), PowerShell 은 .\gradlew.bat bootRun
 ```
 
-- 로그인 http://localhost/login → 전계좌조회 http://localhost/mybank/accounts → 이체 http://localhost/mybank/transfer → 자산관리 http://localhost/mybank/assets (헤더 "자산관리") → OTP 발급 http://localhost/mybank/security/otp
+- 로그인 http://localhost/login → 전계좌조회 http://localhost/mybank/accounts → 이체 http://localhost/mybank/transfer → 예약·정기이체 조회 http://localhost/mybank/transfer/scheduled → 자산관리 http://localhost/mybank/assets (헤더 "자산관리") → OTP 발급 http://localhost/mybank/security/otp
 
 ## 10. 팀에 전달·협의할 것
 
@@ -364,11 +501,14 @@
 | 팀1 | **OTP 암호화 키(`onbank.otp.seed-key`) 공유 요청** | 받음 (10-20 사용자가 입력) |
 | 팀3 | **(10-20) `AccountStatus`·`AccountType` enum 전환**: `account.getAccountType()`/`getAccountStatus()`가 String이 아니라 enum을 돌려준다. 비교는 `== AccountType.CHECKING` / `== AccountStatus.ACTIVE`. 팀3 코드(`LoanApplicationService`, `LoanExecutionService`, `AccountTransferService.disburseLoan`)의 문자열 비교는 팀2가 같이 고쳤고 주석으로 남아 있던 enum 버전으로 바꿈. `AccountRepository.findByMemberIdAndAccountTypeAndAccountStatus` 매개변수도 enum. 화면에서 `${account.accountType}`은 전과 같이 `CHECKING`으로 출력되고, 한글은 `.label` | 남음 (팀3에 알리기) |
 | 팀1 | **(10-20) 팀1 화면 `security/otp.html` 수정**: 사용중(ACTIVE) 상태의 [번호 확인] 옆에 [이체 화면으로 돌아가기] 버튼 추가 (사용자 요청). 팀1에 알리기 | 남음 |
-| 팀3 | **공용 DB `loan_repayment_schedule` 금액 3컬럼 `decimal(19,0)` ↔ 엔티티 `Long` 불일치로 서버 시작 실패** | 남음 (10-19 발견, 문구 작성) |
+| 팀3 | ~~공용 DB `loan_repayment_schedule` 금액 3컬럼 타입 불일치로 서버 시작 실패~~ | **해결 (10-20 확인)**: 팀3 엔티티가 `BigDecimal`로 바뀜 |
+| 팀3 | **(10-20) main 합친 뒤 팀3 코드 2곳의 문자열 비교를 enum으로 고침**: `LoanRepaymentService`(대출 상환 계좌 검사, 그대로면 상환이 항상 실패), `SavingsProductDetailController`(예적금 가입 출금계좌 목록, 그대로면 항상 빈 목록). 팀3가 주석으로 남긴 enum 버전으로 바꿈. **커밋 전** | 남음 (팀3에 알리기) |
+| 팀3 | **(10-20) `config/SchedulingConfig`(`@EnableScheduling`)를 팀2 예약이체 스케줄러도 같이 쓴다.** 지우면 예약이체 자동 실행이 멈춘다 | 남음 (팀3에 알리기) |
+| 팀3 | **(10-20) 화면 이름 "정기이체" 겹침**: 팀3 `/savings/auto-transfers` 제목이 "정기이체 현황"(적금 자동납입). 팀2 정기이체(5.5, 다른 계좌로 매월 이체)를 만들 때 이름을 어떻게 나눌지 | **10-21 사용자 결정: 따로 작업하므로 둘 다 "정기이체" 그대로** (알릴 필요 없음) |
 | ~~팀3~~ | ~~예약·정기이체가 호출할 이체 메서드 시그니처~~ → **10-20 예약·정기이체를 팀2가 직접 맡기로 함** (기획서 원래 배정). 팀3에 "예약·정기이체는 팀2가 한다"고 알리기 | 남음 (알리기만) |
 | 팀3 | 자산 리포트가 팀3 테이블 5개를 SQL로 읽는다 (`AssetReportRepository`). 컬럼 이름이 바뀌면 알려 달라고 요청 | 남음 |
-| 팀3 | **예금·적금 가입 시 계좌 생성**: [team2-account-number-rule.md](team2-account-number-rule.md) 전달 (계좌번호 규칙, `AccountNumberGenerator` 사용, 초기값, 가입금 이체). 문서 5장 협의 4개(`product_type` 값, 예적금 계좌 비밀번호, 만기일 계산 기준, 대출 계좌 여부) | 문서 작성 완료, **사용자가 전달 예정** |
-| 팀3 | 대출금 입금(`AccountService.deposit()`) | 남음 |
+| 팀3 | ~~예금·적금 가입 시 계좌 생성 규칙 문서 전달~~ | 10-20 사용자가 문서 삭제 (팀3 예적금이 main에 들어옴) |
+| 팀3 | ~~대출금 입금(`AccountService.deposit()`)~~ | 해결: 팀3가 `AccountTransferService.disburseLoan()`으로 구현 (`account_loan_transaction`에 기록, `transaction_history`에는 안 남김) |
 | 팀4 | 동결·해제·잠금 해제 화면에서 호출할 메서드 | **만듦 (10-16)**: `AccountManageService.freeze/unfreeze/close/unlockPassword/activatePending/rejectPending(accountId)`. 커밋 후 팀4에 전달 |
 | 팀4 | 이체 완료 이벤트 클래스 이름과 필드 (`AccountTransferService` 8번 자리) | 남음 |
 | 팀4 | `02_admin_ddl.sql` 참조 테이블 이름 | 해결됨 (v0.7에서 `account`, `account_transfer`, `transaction_history`로 수정) |

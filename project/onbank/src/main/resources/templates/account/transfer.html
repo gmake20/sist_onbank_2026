@@ -177,8 +177,47 @@
                     <tr>
                         <th>이체실행일자</th>
                         <td>
-                            <strong style="margin-right: 15px;" th:text="${#temporals.format(today, 'yyyy년 MM월 dd일')}">2026년 10월 12일</strong>
-                            <button type="button" class="btn-sm btn-outline">예약이체일지정</button>
+                            <!-- [즉시] [예약] [정기] 중 하나를 고른다 (transfer.js setScheduleMode)
+                                 즉시 : 오늘 날짜만 보인다
+                                 예약 : 날짜·시각 입력칸 / 정기 : 매월 N일·시각·종료일(선택) 입력칸이 열린다
+                                 고르지 않은 쪽 입력칸은 disabled 라 전송되지 않는다 → 서버는 받은 값으로 즉시·예약·정기를 구분
+                                 라디오 scheduleMode 는 화면 전환용 (TransferForm 에 없는 값이라 서버는 무시) -->
+                            <div class="schedule-mode">
+                                <label><input type="radio" name="scheduleMode" class="js-schedule-mode" value="now" checked> 즉시</label>
+                                <label><input type="radio" name="scheduleMode" class="js-schedule-mode" value="scheduled"> 예약</label>
+                                <label><input type="radio" name="scheduleMode" class="js-schedule-mode" value="recurring"> 정기</label>
+                            </div>
+                            <strong class="js-now-text" style="margin-right: 15px;"
+                                    th:text="|${#temporals.format(today, 'yyyy년 MM월 dd일')} (즉시)|">2026년 10월 12일 (즉시)</strong>
+                            <span class="js-schedule-fields" hidden>
+                                <input type="date" class="form-input js-execute-date" style="width: 170px;"
+                                       th:field="*{executeDate}" th:attr="min=${today}" disabled>
+                                <input type="time" class="form-input js-execute-time" style="width: 130px;"
+                                       th:field="*{executeTime}" step="60" disabled>
+                            </span>
+                            <span class="js-recurring-fields" hidden>
+                                매월
+                                <select class="form-input js-transfer-day" style="width: 80px;" th:field="*{transferDay}" disabled>
+                                    <option th:each="day : ${#numbers.sequence(1, 31)}" th:value="${day}" th:text="${day}">1</option>
+                                </select>
+                                일
+                                <input type="time" class="form-input js-recurring-time" style="width: 130px;"
+                                       th:field="*{recurringTime}" step="60" disabled>
+                                <span style="margin-left: 10px;">종료일</span>
+                                <input type="date" class="form-input js-end-date" style="width: 170px;"
+                                       th:field="*{endDate}" th:attr="min=${today}" disabled>
+                                <span class="sub-text">(비우면 해지할 때까지)</span>
+                            </span>
+                            <a class="btn-quick btn-quick-outline" style="padding: 8px 18px; font-size: 14px; margin-left: 6px;"
+                               th:href="@{/mybank/transfer/scheduled}">📅 예약·정기이체 조회</a>
+                            <p class="field-error" th:if="${#fields.hasErrors('transferDay')}" th:errors="*{transferDay}"></p>
+                            <p class="sub-text js-schedule-guide" hidden>
+                                지정한 일시에 자동으로 이체됩니다. 잔액·한도는 실행할 때 확인하며, 부족하면 이체되지 않습니다.
+                            </p>
+                            <p class="sub-text js-recurring-guide" hidden>
+                                매월 지정한 날·시각에 자동으로 이체됩니다. 그 달에 없는 날(예: 31일)은 말일에 이체됩니다.
+                                잔액·한도가 부족한 회차는 이체되지 않고 다음 달에 다시 실행됩니다.
+                            </p>
                         </td>
                     </tr>
                 </tbody>
@@ -222,6 +261,7 @@
                     <tr><th>입금계좌번호</th><td class="js-confirm-to"></td></tr>
                     <tr><th>받는 분</th><td><strong class="js-confirm-name"></strong></td></tr>
                     <tr><th>이체금액</th><td><strong class="text-blue js-confirm-amount"></strong></td></tr>
+                    <tr><th>이체실행일자</th><td><strong class="js-confirm-when">즉시</strong></td></tr>
                     <!-- 기준 금액을 넘는 타인 계좌 이체일 때만 보인다 (숨겨져 있을 때는 disabled 라 전송되지 않음) -->
                     <tr class="js-otp-row" hidden>
                         <th>OTP 인증번호</th>
@@ -234,10 +274,10 @@
                     </tr>
                 </tbody>
             </table>
-            <p class="sub-text">받는 분 이름을 확인한 뒤 [이체실행]을 누르세요. 이체 후에는 취소할 수 없습니다.</p>
+            <p class="sub-text js-confirm-guide">받는 분 이름을 확인한 뒤 [이체실행]을 누르세요. 이체 후에는 취소할 수 없습니다.</p>
             <div class="submit-action">
                 <button type="button" class="btn-outline js-edit">수정</button>
-                <button type="submit" class="btn-submit">이체실행</button>
+                <button type="submit" class="btn-submit js-submit">이체실행</button>
             </div>
         </div>
 
