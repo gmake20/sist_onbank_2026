@@ -3,6 +3,7 @@ package org.doit.onbank.member.security;
 import java.util.Collection;
 import java.util.List;
 
+import org.doit.onbank.common.security.TempPasswordUser;
 import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.entity.MemberStatus;
 import org.springframework.security.core.CredentialsContainer;
@@ -16,7 +17,7 @@ import lombok.Getter;
 // 다른 팀원은 컨트롤러에서 @AuthenticationPrincipal LoginMember me 로 받아 me.getMemberId()를 사용
 // 엔티티(Member)를 그대로 세션에 두지 않고 필요한 값만 복사한다
 @Getter
-public class LoginMember implements UserDetails, CredentialsContainer {
+public class LoginMember implements UserDetails, CredentialsContainer, TempPasswordUser {
 
 	private final Long memberId;
 	private final String loginId;
@@ -25,6 +26,7 @@ public class LoginMember implements UserDetails, CredentialsContainer {
 
 	private final boolean locked;	// 5회 실패 잠금 (status = LOCKED)
 	private final boolean enabled;	// 정지(SUSPENDED), 탈퇴(WITHDRAWN)면 false
+	private final boolean tempPassword;	// true면 비밀번호 변경 화면으로 보냄 (LoginSuccessHandler, TempPasswordFilter)
 
 	public LoginMember(Member member) {
 		this.memberId = member.getMemberId();
@@ -34,6 +36,7 @@ public class LoginMember implements UserDetails, CredentialsContainer {
 		// 잠금은 enabled에 넣지 않는다 → ?disabled 가 아니라 ?locked 로 안내되도록
 		this.locked = member.getStatus() == MemberStatus.LOCKED;
 		this.enabled = member.getStatus() == MemberStatus.ACTIVE || locked;
+		this.tempPassword = member.isTempPassword();
 	}
 
 	// 고객은 모두 USER 권한 (직원은 employee 테이블에서 따로 로그인)

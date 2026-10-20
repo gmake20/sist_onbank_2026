@@ -28,11 +28,13 @@
             <!-- 아이디가 없는지, 비밀번호가 틀렸는지 구분하지 않고 같은 문구로 안내 -->
             <p class="login-error" th:if="${param.error}">아이디 또는 비밀번호가 올바르지 않습니다.</p>
             <!-- 실패 사유별 안내 (LoginFailureHandler) -->
-            <p class="login-error" th:if="${param.locked}">비밀번호를 5회 잘못 입력하여 로그인이 제한되었습니다. 고객센터로 문의해 주세요.</p>
+            <p class="login-error" th:if="${param.locked}">비밀번호를 5회 잘못 입력하여 로그인이 제한되었습니다. 비밀번호 찾기로 임시 비밀번호를 받아 주세요.</p>
             <p class="login-error" th:if="${param.disabled}">이용이 정지되었거나 탈퇴한 계정입니다. 고객센터로 문의해 주세요.</p>
             <p class="login-error" th:if="${param.expired}">보안을 위해 화면이 만료되었습니다. 다시 로그인해 주세요.</p>
-            <!-- 회원가입 완료 후 이동해 온 경우 (SignupController의 flash 속성) -->
+            <!-- 회원가입 완료, 임시 비밀번호 발송 후 이동해 온 경우 (SignupController, PasswordFindController의 flash 속성) -->
             <p class="login-info" th:if="${msg}" th:text="${msg}"></p>
+            <!-- 비밀번호 변경 후 로그아웃되어 온 경우 (MyPageController) -->
+            <p class="login-info" th:if="${param.changed}">비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해 주세요.</p>
 
             <input type="text" name="loginId" placeholder="아이디" required autofocus>
             <input type="password" name="password" placeholder="비밀번호" required>
@@ -40,6 +42,7 @@
         </form>
 
         <p class="login-link">아직 회원이 아니신가요? <a th:href="@{/signup}">회원가입</a></p>
+        <p class="login-link">비밀번호를 잊으셨나요? <a th:href="@{/password/find}">비밀번호 찾기</a></p>
     </main>
 
     <div th:replace="~{fragments/footer :: footerFragment}"></div>
