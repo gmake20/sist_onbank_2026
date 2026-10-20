@@ -93,6 +93,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         confirmButton.disabled = !(toAccountInput.value.trim() && amount >= 1);
     }
+    // 예약이체 : [예약이체일지정]을 누르면 날짜·시각 입력칸이 열린다
+    // 닫혀 있을 때는 입력칸이 disabled 라 전송되지 않는다 → 서버는 일시가 없으면 즉시이체로 처리
+    const toggleScheduleButton = form.querySelector('.js-toggle-schedule');
+    const scheduleFields = form.querySelector('.js-schedule-fields');
+    const executeDateInput = form.querySelector('.js-execute-date');
+    const executeTimeInput = form.querySelector('.js-execute-time');
+    const isScheduled = () => !executeDateInput.disabled;
+    const pad = (number) => String(number).padStart(2, '0');
+
+    function setScheduleMode(on) {
+        scheduleFields.hidden = !on;
+        executeDateInput.disabled = !on;
+        executeTimeInput.disabled = !on;
+        form.querySelector('.js-now-text').hidden = on;
+        form.querySelector('.js-schedule-guide').hidden = !on;
+        toggleScheduleButton.textContent = on ? '즉시이체로 변경' : '예약이체일지정';
+        // 처음 열면 기본값 : 지금부터 10분 뒤를 10분 단위로 올림 (예: 15:23 → 15:40)
+        if (on && !executeDateInput.value) {
+            const at = new Date(Date.now() + 10 * 60 * 1000);
+            at.setMinutes(Math.ceil(at.getMinutes() / 10) * 10, 0, 0);
+            executeDateInput.value = at.getFullYear() + '-' + pad(at.getMonth() + 1) + '-' + pad(at.getDate());
+            executeTimeInput.value = pad(at.getHours()) + ':' + pad(at.getMinutes());
+        }
+    }
+    toggleScheduleButton.addEventListener('click', () => {
+        setScheduleMode(!isScheduled());
+        showStep(1);	// 확인 단계였다면 다시 확인받도록
+    });
+    // 예약 등록이 실패해 서버가 다시 그린 화면 : 입력했던 일시가 남아 있으면 예약 모드로 연다
+    if (executeDateInput.value || executeTimeInput.value) {
+        setScheduleMode(true);
+    }
+
     // 입력값 임시 저장 : [OTP 등록하기]로 OTP 화면에 갔다가 돌아오면 입력하던 값을 다시 채운다
     // 비밀번호·OTP 번호는 저장하지 않는다. 이 탭에서만 유지(sessionStorage)되고, 30분이 지나거나 한 번 복원하면 지운다
     const DRAFT_KEY = 'onbank.transferDraft';
@@ -106,7 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fromAccountId: fromSelect ? fromSelect.value : '',
                 toAccountNumber: toAccountInput.value,
                 amount: amountInput.value,
-                memos: Object.fromEntries(memoInputs.map((input) => [input.name, input.value]))
+                memos: Object.fromEntries(memoInputs.map((input) => [input.name, input.value])),
+                executeDate: isScheduled() ? executeDateInput.value : '',
+                executeTime: isScheduled() ? executeTimeInput.value : ''
             };
             try {
                 sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -138,6 +173,11 @@ document.addEventListener('DOMContentLoaded', () => {
         memoInputs.forEach((input) => {
             input.value = (draft.memos && draft.memos[input.name]) || '';
         });
+        if (draft.executeDate) {
+            executeDateInput.value = draft.executeDate;
+            executeTimeInput.value = draft.executeTime || '';
+            setScheduleMode(true);
+        }
     })();
 
     amountInput.addEventListener('input', updateAmountGuide);
@@ -214,6 +254,16 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelector('.js-confirm-name').textContent = data.name;
             form.querySelector('.js-confirm-amount').textContent = won(amountInput.value);
 
+            // 즉시 / 예약에 따라 실행일자, 안내 문구, 버튼 이름을 바꾼다
+            const scheduled = isScheduled();
+            form.querySelector('.js-confirm-when').textContent = scheduled
+                ? executeDateInput.value.replaceAll('-', '.') + ' ' + executeTimeInput.value + ' 예약 (그때 자동 이체)'
+                : '즉시';
+            form.querySelector('.js-confirm-guide').textContent = scheduled
+                ? '받는 분 이름을 확인한 뒤 [예약등록]을 누르세요. 실행 전까지 예약이체 조회 화면에서 취소할 수 있습니다.'
+                : '받는 분 이름을 확인한 뒤 [이체실행]을 누르세요. 이체 후에는 취소할 수 없습니다.';
+            form.querySelector('.js-submit').textContent = scheduled ? '예약등록' : '이체실행';
+
             // OTP 입력칸 : 필요할 때만 보이고 전송된다
             const otp = needsOtp();
             otpRow.hidden = !otp;
@@ -273,6 +323,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!toAccountInput.value.trim()) {
             return '입금계좌번호를 입력하세요.';
+        }
+        // 예약 일시 : 비었거나 지난 시각이면 확인 단계로 가지 않는다 (서버도 다시 검사)
+        if (isScheduled()) {
+            if (!executeDateInput.value || !executeTimeInput.value) {
+                return '예약 일시를 선택하세요.';
+            }
+            if (new Date(executeDateInput.value + 'T' + executeTimeInput.value) <= new Date()) {
+                return '예약 일시는 지금 이후로 선택하세요.';
+            }
         }
         return '';
     }

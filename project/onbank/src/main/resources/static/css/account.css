@@ -632,3 +632,37 @@ a.btn-join {
     color: #003366;
     text-decoration: none;
 }
+
+/* 바로가기 버튼 (10-20) : 자주 쓰는 화면으로 가는 큰 버튼 (btn-sm 은 작아서 눈에 잘 띄지 않음) */
+.quick-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+a.btn-quick {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 26px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 24px;
+    border: 2px solid #003366;
+    background-color: #003366;
+    color: #fff;
+    text-decoration: none;
+}
+
+a.btn-quick:hover {
+    background-color: #00264d;
+}
+
+a.btn-quick.btn-quick-outline {
+    background-color: #fff;
+    color: #003366;
+}
+
+a.btn-quick.btn-quick-outline:hover {
+    background-color: #eef2f7;
+}

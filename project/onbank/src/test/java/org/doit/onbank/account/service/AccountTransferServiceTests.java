@@ -244,9 +244,10 @@ class AccountTransferServiceTests {
 	void transferFailsWhenOverOnceLimit() {
 		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
 		given(accountRepository.findByAccountNumber("TEST-0002")).willReturn(Optional.of(to));
-		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());	// 1회 기본 100만 원
+		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());	// 한도 NULL → 1회 기본 한도
+		long overOnce = AccountTransferService.DEFAULT_ONCE_LIMIT + 1;	// 기본 한도가 바뀌어도 깨지지 않게 상수로 계산
 
-		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", 1_000_001L, null, null))
+		assertThatThrownBy(() -> service.transfer(MY_ID, 1L, "1234", null, "TEST-0002", overOnce, null, null))
 				.hasMessageContaining("1회 이체한도");
 		verify(accountPasswordVerifier, never()).verify(anyLong(), anyLong(), anyString());
 	}
@@ -271,8 +272,9 @@ class AccountTransferServiceTests {
 	@Test
 	void transferFailsWhenOverDailyLimit() {
 		Account from = account(1L, MY_ID, "TEST-0001", AccountStatus.ACTIVE, 10_000_000L);
-		ReflectionTestUtils.setField(from, "todayTransferAmount", 4_500_000L);
-		ReflectionTestUtils.setField(from, "lastTransactionAt", java.time.LocalDateTime.now());	// 오늘 450만 원 이체함
+		// 오늘 (1일 기본 한도 - 50만 원)을 이미 이체함 → 남은 한도 50만 원 (기본 한도가 바뀌어도 깨지지 않게 상수로 계산)
+		ReflectionTestUtils.setField(from, "todayTransferAmount", AccountTransferService.DEFAULT_DAILY_LIMIT - 500_000L);
+		ReflectionTestUtils.setField(from, "lastTransactionAt", java.time.LocalDateTime.now());
 		Account to = account(2L, OTHER_ID, "TEST-0002", AccountStatus.ACTIVE, 0L);
 		givenTransferable(from, to);
 		givenOtpActive();	// 60만 원 → OTP 필요
@@ -436,5 +438,47 @@ class AccountTransferServiceTests {
 		assertThat(to.getBalance()).isEqualTo(500_000L);
 		verify(otpService, never()).findCurrent(anyLong());
 		verify(otpService, never()).verify(anyLong(), any());
+	}
+
+	// ---------- 예약·정기이체 실행 (인증 없이) ----------
+
+	// 등록할 때 인증을 마쳤으므로 비밀번호·OTP를 묻지 않고, 기록에 예약 유형을 남긴다
+	@Test
+	void preAuthorizedTransferSkipsAuthAndRecordsType() {
+		Account from = account(1L, MY_ID, "1002-111-111111", AccountStatus.ACTIVE, 1_000_000L);
+		Account to = account(2L, OTHER_ID, "1002-222-222222", AccountStatus.ACTIVE, 0L);
+		given(accountRepository.findByAccountNumber(to.getAccountNumber())).willReturn(Optional.of(to));
+		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());
+		given(accountRepository.findByIdForUpdate(1L)).willReturn(Optional.of(from));
+		given(accountRepository.findByIdForUpdate(2L)).willReturn(Optional.of(to));
+		givenRecordable();
+
+		service.transferPreAuthorized(MY_ID, 1L, to.getAccountNumber(), 300_000L, null, null, TransferType.SCHEDULED);
+
+		assertThat(from.getBalance()).isEqualTo(700_000L);
+		assertThat(to.getBalance()).isEqualTo(300_000L);
+		ArgumentCaptor<AccountTransfer> transfer = ArgumentCaptor.forClass(AccountTransfer.class);
+		verify(accountTransferRepository).save(transfer.capture());
+		assertThat(transfer.getValue().getTransferType()).isEqualTo(TransferType.SCHEDULED);
+		verify(accountPasswordVerifier, never()).verify(anyLong(), anyLong(), any());	// 10만 원을 넘어도 인증 없음
+		verify(otpService, never()).verify(anyLong(), any());
+	}
+
+	// 실행 시점에 잔액이 모자라면 예외 (스케줄러가 실패로 기록) : 잔액은 바뀌지 않는다
+	@Test
+	void preAuthorizedTransferFailsWhenBalanceIsShort() {
+		Account from = account(1L, MY_ID, "1002-111-111111", AccountStatus.ACTIVE, 10_000L);
+		Account to = account(2L, OTHER_ID, "1002-222-222222", AccountStatus.ACTIVE, 0L);
+		given(accountRepository.findByAccountNumber(to.getAccountNumber())).willReturn(Optional.of(to));
+		given(accountRepository.findTransferLimit(MY_ID)).willReturn(Optional.empty());
+		given(accountRepository.findByIdForUpdate(1L)).willReturn(Optional.of(from));
+		given(accountRepository.findByIdForUpdate(2L)).willReturn(Optional.of(to));
+
+		assertThatThrownBy(() -> service.transferPreAuthorized(MY_ID, 1L, to.getAccountNumber(), 50_000L,
+				null, null, TransferType.RECURRING))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("잔액");
+		assertThat(from.getBalance()).isEqualTo(10_000L);
+		verify(accountTransferRepository, never()).save(any());
 	}
 }

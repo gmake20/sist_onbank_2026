@@ -71,6 +71,7 @@
 17. **현금 출금은 이체 한도와 별개**: `today_transfer_amount`에는 이체(`TRANSFER_OUT`)만 누적한다. 입금·출금은 `touchTransaction`으로 날짜만 갱신한다
 18. **(10-19) 이체 인증**: 10만 원 이하 계좌 비밀번호만 / 초과 계좌 비밀번호 + OTP(팀1). 본인 계좌끼리는 OTP 생략. PIN은 만들지 않고 계좌 비밀번호가 간편 인증 역할. OTP 미등록 회원도 10만 원 이하는 이체 가능. 판단은 모두 서버에서 (handoff 1-1)
 19. **(10-19) 자산 리포트**: 조회할 때 계산 + 최근 6개월 `asset_report` 저장(회원·기준년월당 1행, `account_id`에 member_id). 공과금·관리비는 거래 메모 키워드, 투자는 출처 없음. 대출은 팀3 승인 건 기준 → **10-20 실행된 대출(`loan_account`) 기준으로 수정** (handoff 2-000)
+20. **(10-20) 예약·정기이체 설계**: 한 테이블 `scheduled_transfer`(유형 `SCHEDULED`/`RECURRING`). 등록할 때 비밀번호(·OTP) 확인, 실행은 스케줄러가 인증 없이 `AccountTransferService.transferPreAuthorized()` 호출(잔액·한도·상태는 실행 시점에 다시 검사). 실행 일시는 날짜+시각(`next_execute_at`). 같은 건 중복 실행은 행 잠금(`findByIdForUpdate`) 후 상태를 다시 보고 막는다. 진행: 1단계 테이블·엔티티, 2단계 `transfer()` 분리, 3단계 등록(이체 화면 [예약이체일지정])·목록·취소(`/mybank/transfer/scheduled`), 4단계 스케줄러(`ScheduledTransferScheduler` 매분 0초, 끄기 `onbank.scheduled-transfer.enabled=false`)·[지금 실행](시연용) 완료 / 5단계 정기이체 남음. 실행 성공은 이체+완료 표시를 한 트랜잭션으로, 실패는 롤백 후 새 트랜잭션에서 기록 (`ScheduledTransferRunner`)
 
 ## 4. Account 엔티티 메서드
 

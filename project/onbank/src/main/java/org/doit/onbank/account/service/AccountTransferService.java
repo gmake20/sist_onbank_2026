@@ -45,8 +45,8 @@ import lombok.extern.log4j.Log4j2;
 public class AccountTransferService {
 
 	// members 한도 컬럼이 비어 있을 때 쓰는 기본 한도 (2026-10-15 사용자 결정)
-	public static final long DEFAULT_DAILY_LIMIT = 5_000_000L;
-	public static final long DEFAULT_ONCE_LIMIT = 1_000_000L;
+	public static final long DEFAULT_DAILY_LIMIT = 10_000_000L;
+	public static final long DEFAULT_ONCE_LIMIT = 3_000_000L;
 
 	// 이 금액을 넘는 이체는 계좌 비밀번호에 더해 OTP 6자리를 요구한다 (2026-10-19 사용자 결정)
 	// 이하는 계좌 비밀번호만, ONBANK 본인 계좌끼리 이체는 금액과 관계없이 OTP 생략
@@ -63,24 +63,23 @@ public class AccountTransferService {
 	private final AccountTransactionRepository accountTransactionRepository;
 	private final OtpService otpService;
 
-	// 이체 (기획서 11-1장 순서)
+	// 이체 (기획서 11-1장 순서) : 1~3 검증·인증은 authorize(), 4~7 실행은 execute() 가 한다
 	// otpCode : 기준 금액을 넘는 타인 계좌 이체일 때만 확인한다 (그 외에는 null 이어도 됨)
 	@Transactional
 	public TransferReceipt transfer(Long memberId, Long fromAccountId, String rawPassword, String otpCode,
 			String toAccountNumber, long amount, String senderMemo, String receiverMemo) {
+		TransferTarget target = authorize(memberId, fromAccountId, rawPassword, otpCode, toAccountNumber, amount);
+		return execute(memberId, fromAccountId, target, amount, senderMemo, receiverMemo, TransferType.IMMEDIATE);
+	}
+
+	// 1~3. 검증 + 계좌 비밀번호 + OTP (즉시이체, 예약이체 등록 공통). 돈은 움직이지 않는다
+	// 예약이체 등록(ScheduledTransferService)은 이 메서드로 인증만 하고 저장해 두었다가, 실행일에 transferPreAuthorized() 로 이체한다
+	// 호출하는 쪽 트랜잭션 안에서 실행된다 (비밀번호 오류 횟수는 AccountPasswordVerifier 가 따로 커밋)
+	public TransferTarget authorize(Long memberId, Long fromAccountId, String rawPassword, String otpCode,
+			String toAccountNumber, long amount) {
 		// 1. 입력 검증 (잠그기 전에 할 수 있는 것)
-		if (amount <= 0) {
-			throw new IllegalArgumentException("이체금액은 0보다 커야 합니다.");
-		}
-		Account toAccountInfo = findDepositAccount(toAccountNumber);
-		if (Objects.equals(toAccountInfo.getAccountId(), fromAccountId)) {
-			throw new IllegalArgumentException("출금계좌와 같은 계좌로는 이체할 수 없습니다.");
-		}
-		TransferLimitInfo limit = getLimit(memberId, null);
-		if (amount > limit.onceLimit()) {
-			throw new IllegalArgumentException("1회 이체한도("
-					+ String.format("%,d", limit.onceLimit()) + "원)를 초과했습니다.");
-		}
+		TransferTarget target = validate(memberId, fromAccountId, toAccountNumber, amount);
+		Account toAccountInfo = target.toAccount();
 		// OTP가 필요한지는 화면이 보낸 값이 아니라 서버가 금액·받는 분으로 판단한다
 		// 등록 여부는 비밀번호 확인 전에 본다 (OTP가 없어 어차피 못 하는 이체로 비밀번호 오류 횟수가 늘지 않게)
 		boolean otpRequired = requiresOtp(memberId, toAccountInfo.getMemberId(), amount);
@@ -105,9 +104,47 @@ public class AccountTransferService {
 		if (otpRequired) {
 			otpService.verify(memberId, otpCode);
 		}
+		return target;
+	}
+
+	// 예약·정기이체 실행 (스케줄러가 호출) : 등록할 때 비밀번호·OTP를 확인했으므로 인증 없이 이체한다
+	// 잔액·한도·계좌 상태는 실행 시점 기준으로 다시 검사하므로 그 사이 바뀌었으면 예외가 난다 (호출하는 쪽이 실패로 기록)
+	@Transactional
+	public TransferReceipt transferPreAuthorized(Long memberId, Long fromAccountId, String toAccountNumber,
+			long amount, String senderMemo, String receiverMemo, String transferType) {
+		TransferTarget target = validate(memberId, fromAccountId, toAccountNumber, amount);
+		return execute(memberId, fromAccountId, target, amount, senderMemo, receiverMemo, transferType);
+	}
+
+	// 입력 검증 결과 : 받는 계좌(잠그기 전 조회값)와 회원 한도
+	public record TransferTarget(Account toAccount, TransferLimitInfo limit) {
+	}
+
+	// 1. 입력 검증 (잠그기 전에 할 수 있는 것) : 금액, 받는 계좌, 같은 계좌, 1회 한도
+	private TransferTarget validate(Long memberId, Long fromAccountId, String toAccountNumber, long amount) {
+		if (amount <= 0) {
+			throw new IllegalArgumentException("이체금액은 0보다 커야 합니다.");
+		}
+		Account toAccountInfo = findDepositAccount(toAccountNumber);
+		if (Objects.equals(toAccountInfo.getAccountId(), fromAccountId)) {
+			throw new IllegalArgumentException("출금계좌와 같은 계좌로는 이체할 수 없습니다.");
+		}
+		TransferLimitInfo limit = getLimit(memberId, null);
+		if (amount > limit.onceLimit()) {
+			throw new IllegalArgumentException("1회 이체한도("
+					+ String.format("%,d", limit.onceLimit()) + "원)를 초과했습니다.");
+		}
+		return new TransferTarget(toAccountInfo, limit);
+	}
+
+	// 4~7. 인증을 마친 이체 실행 (즉시·예약·정기 공통) : 잠금 → 1일 한도 → 잔액 변경 → 기록
+	// 호출하는 public 메서드의 트랜잭션 안에서 실행된다
+	private TransferReceipt execute(Long memberId, Long fromAccountId, TransferTarget target, long amount,
+			String senderMemo, String receiverMemo, String transferType) {
+		TransferLimitInfo limit = target.limit();
 
 		// 4. 두 계좌를 ID 오름차순으로 잠근다 (서로 반대 방향 이체가 동시에 와도 데드락이 나지 않게)
-		Long toAccountId = toAccountInfo.getAccountId();
+		Long toAccountId = target.toAccount().getAccountId();
 		Account first = findForUpdate(Math.min(fromAccountId, toAccountId));
 		Account second = findForUpdate(Math.max(fromAccountId, toAccountId));
 		Account from = fromAccountId.equals(first.getAccountId()) ? first : second;
@@ -145,7 +182,7 @@ public class AccountTransferService {
 				.senderMemo(senderContent)
 				.receiverMemo(receiverContent)
 				.transferAt(now)
-				.transferType(TransferType.IMMEDIATE)
+				.transferType(transferType)
 				.transactionSqno(sqno)
 				.build());
 		record(from, TransactionType.TRANSFER_OUT, amount, senderContent, now, sqno);
