@@ -6,6 +6,7 @@ import java.util.List;
 import org.doit.onbank.member.security.LoginMember;
 import org.doit.onbank.savings.entity.SavingsAccount;
 import org.doit.onbank.savings.repository.SavingsAccountRepository;
+import org.doit.onbank.savings.service.SavingsAutoTransferService;
 import org.doit.onbank.savings.service.SavingsScheduleViewService;
 import org.doit.onbank.savings.service.SavingsService;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,8 @@ public class SavingsController {
 	private final SavingsService savings;
 	private final SavingsScheduleViewService scheduleViewService;
 	private final SavingsAccountRepository savingsAccountRepository;
+	
+	private final SavingsAutoTransferService autoTransferService;
 
 	@GetMapping("/products")
 	public String products(@AuthenticationPrincipal LoginMember me,Model model){
@@ -44,9 +47,6 @@ public class SavingsController {
 
 		return "savings/products";
 	}
-
-
-
 
 	@GetMapping("/mine")
 	@Transactional(readOnly = true)

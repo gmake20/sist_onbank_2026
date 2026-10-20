@@ -1,88 +1,175 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>예적금 상세 | ONBANK</title>
-<link rel="stylesheet" th:href="@{/css/index.css}">
-<link rel="stylesheet" th:href="@{/css/savings/savings.css}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${account.product.name + ' · 예적금 상세 | ONBANK'}">예적금 상세 | ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/savings/savings-detail.css}">
 </head>
 <body>
-	<div th:replace="~{fragments/header :: headerFragment}"></div>
-	<main class="save-wrap">
-		<div class="save-head">
-			<span>ONBANK · SAVINGS DETAIL</span>
-			<h1 th:text="${account.product.name}"></h1>
-			<p th:text="|계좌 ID #${account.id} · ${account.status}|"></p>
-		</div>
-		<p class="alert" th:if="${message}" th:text="${message}"></p>
-		<p class="alert error" th:if="${error}" th:text="${error}"></p>
-		<a th:href="@{/savings/mine}">← 내 예적금 목록</a>
-		<section class="save-grid">
-			<div class="save-card">
-				<h2>계약 정보</h2>
-				<p>
-					예치/누적 납입 원금: <strong
-						th:text="${#numbers.formatInteger(account.principal,1,'COMMA')}"></strong>원
-				</p>
-				<p>
-					약정 금리: <strong th:text="${account.contractRate}"></strong>%
-				</p>
-				<p>
-					가입일: <span th:text="${account.openedOn}"></span>
-				</p>
-				<p>
-					만기일: <span th:text="${account.maturityOn}"></span>
-				</p>
-				<p>
-					출금/만기입금 계좌 ID: <span th:text="${account.sourceAccountId}"></span>
-				</p>
-			</div>
-			<div class="save-card">
-				<h2>이용하기</h2>
-				<form
-					th:if="${account.status.name() == 'ACTIVE' and account.product.type.name() == 'INSTALLMENT_SAVINGS'}"
-					th:action="@{/savings/{id}/pay(id=${account.id})}" method="post">
-					<input th:if="${_csrf != null}" type="hidden"
-						th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-					<p>
-						정액 납입액: <strong
-							th:text="${#numbers.formatInteger(account.monthlyAmount,1,'COMMA')}"></strong>원
-					</p>
-					<button type="submit">다음 회차 납입</button>
-				</form>
-				<form th:if="${account.status.name() == 'ACTIVE'}"
-					th:action="@{/savings/{id}/close(id=${account.id})}" method="post">
-					<input th:if="${_csrf != null}" type="hidden"
-						th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-					<button type="submit" class="outline"
-						onclick="return confirm('만기 해지하고 입출금계좌로 원리금을 지급하시겠습니까?');">만기
-						해지</button>
-					<p class="minor">만기일 이전에는 해지할 수 없습니다. 예상이자는 실제 납입일 기준으로 정산됩니다.</p>
-				</form>
-			</div>
-		</section>
-		<section class="save-card">
-			<h2>납입 내역</h2>
-			<div class="scroll">
-				<table>
-					<thead>
-						<tr>
-							<th>회차</th>
-							<th>납입일</th>
-							<th>납입액</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr th:each="p:${payments}">
-							<td th:text="${p.installmentNo}"></td>
-							<td th:text="${p.paidOn}"></td>
-							<td th:text="${#numbers.formatInteger(p.amount,1,'COMMA')}"></td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</section>
-	</main>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+<main class="sd-page">
+    <div class="sd-container">
+        <nav class="sd-breadcrumb" aria-label="현재 위치">
+            <a th:href="@{/}">홈</a><span>›</span>
+            <a th:href="@{/savings}">예적금</a><span>›</span>
+            <a th:href="@{/savings/mine}">내 예적금</a><span>›</span>
+            <strong>상세</strong>
+        </nav>
+
+        <header class="sd-heading">
+            <div>
+                <span class="sd-eyebrow">ONBANK · SAVINGS ACCOUNT</span>
+                <h1>예적금 계좌 상세</h1>
+                <p>계약 정보와 납입 내역을 한곳에서 확인하세요.</p>
+            </div>
+            <a class="sd-back" th:href="@{/savings/mine}">← 내 예적금 목록</a>
+        </header>
+
+        <div class="sd-alert" role="status" th:if="${message != null}" th:text="${message}"></div>
+        <div class="sd-alert sd-alert-error" role="alert" th:if="${error != null}" th:text="${error}"></div>
+
+        <section class="sd-hero" aria-label="계좌 요약">
+            <div class="sd-hero-top">
+                <div class="sd-chips">
+                    <span class="sd-chip" th:text="${account.product.type.name() == 'FIXED_DEPOSIT' ? '정기예금' : '정기적금'}">정기적금</span>
+                    <span class="sd-chip sd-chip-status"
+                          th:classappend="${account.status.name() == 'ACTIVE'} ? ' is-active' : ' is-closed'"
+                          th:text="${account.status.name() == 'ACTIVE' ? '이용 중' : account.status.name()}">이용 중</span>
+                </div>
+                <span class="sd-account-id" th:text="|계좌 ID #${account.id}|">계좌 ID #1</span>
+            </div>
+            <h2 th:text="${account.product.name}">ONBANK 첫걸음 적금</h2>
+            <div class="sd-balance-caption">현재 누적 납입 원금</div>
+            <div class="sd-balance">
+                <strong th:text="${#numbers.formatInteger(account.principal, 1, 'COMMA')}">1,200,000</strong><span>원</span>
+            </div>
+            <div class="sd-hero-stats">
+                <div><small>약정 연이율</small><strong th:text="|${account.contractRate}%|">3.50%</strong></div>
+                <div><small>가입일</small><strong th:text="${#temporals.format(account.openedOn, 'yyyy.MM.dd')}">2026.10.20</strong></div>
+                <div><small>만기일</small><strong th:text="${#temporals.format(account.maturityOn, 'yyyy.MM.dd')}">2027.10.20</strong></div>
+            </div>
+        </section>
+
+        <div class="sd-columns">
+            <section class="sd-panel" aria-labelledby="sd-contract-title">
+                <div class="sd-panel-heading"><div><span class="sd-panel-kicker">CONTRACT</span><h2 id="sd-contract-title">계약 정보</h2></div><span class="sd-panel-icon">▤</span></div>
+                <dl class="sd-details">
+                    <div><dt>상품명</dt><dd th:text="${account.product.name}">ONBANK 첫걸음 적금</dd></div>
+                    <div><dt>상품 유형</dt><dd th:text="${account.product.type.name() == 'FIXED_DEPOSIT' ? '정기예금' : '정기적금'}">정기적금</dd></div>
+                    <div><dt>누적 납입 원금</dt><dd th:text="|${#numbers.formatInteger(account.principal, 1, 'COMMA')}원|">0원</dd></div>
+                    <div><dt>약정 금리</dt><dd class="sd-emphasis" th:text="|연 ${account.contractRate}%|">연 3.50%</dd></div>
+                    <div><dt>가입일</dt><dd th:text="${#temporals.format(account.openedOn, 'yyyy.MM.dd')}">2026.10.20</dd></div>
+                    <div><dt>만기일</dt><dd th:text="${#temporals.format(account.maturityOn, 'yyyy.MM.dd')}">2027.10.20</dd></div>
+                    <div><dt>연결 입출금계좌 ID</dt><dd th:text="|#${account.sourceAccountId}|">#1</dd></div>
+                    <div><dt>계좌 상태</dt><dd th:text="${account.status.name() == 'ACTIVE' ? '이용 중' : account.status.name()}">이용 중</dd></div>
+                </dl>
+            </section>
+
+            <section class="sd-panel" aria-labelledby="sd-actions-title">
+                <div class="sd-panel-heading"><div><span class="sd-panel-kicker">BANKING</span><h2 id="sd-actions-title">이용하기</h2></div><span class="sd-panel-icon">↗</span></div>
+                <div class="sd-action-intro">적금 납입과 만기 해지를 간편하게 처리하세요.</div>
+
+                <div class="sd-action-box" th:if="${account.status.name() == 'ACTIVE' and account.product.type.name() == 'INSTALLMENT_SAVINGS'}">
+                    <div class="sd-action-label">매월 약정 납입액</div>
+                    <div class="sd-action-amount"><strong th:text="${#numbers.formatInteger(account.monthlyAmount, 1, 'COMMA')}">100,000</strong><span>원</span></div>
+                    <form th:action="@{/savings/{id}/pay(id=${account.id})}" method="post"
+                          onsubmit="return confirm('다음 회차 납입을 진행하시겠습니까?');">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="sd-primary-button" type="submit">다음 회차 납입하기 <span>→</span></button>
+                    </form>
+                    <p class="sd-help">납입은 연결된 입출금계좌에서 처리됩니다. 실제 납입 가능일과 잔액은 서버에서 확인합니다.</p>
+                </div>
+
+                <div class="sd-action-box" th:if="${account.product.type.name() == 'FIXED_DEPOSIT'}">
+                    <strong class="sd-action-label">정기예금 안내</strong>
+                    <p class="sd-help">정기예금은 가입 시 일시 예치하는 상품으로 매월 추가 납입 기능이 없습니다.</p>
+                </div>
+
+                <div class="sd-action-box sd-close-box" th:if="${account.status.name() == 'ACTIVE'}">
+                    <h3>만기 해지</h3>
+                    <p>만기일 이후 원리금을 연결된 입출금계좌로 지급받을 수 있습니다.</p>
+                    <form th:action="@{/savings/{id}/close(id=${account.id})}" method="post"
+                          onsubmit="return confirm('만기 해지하고 입출금계좌로 원리금을 지급하시겠습니까?');">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="sd-outline-button" type="submit">만기 해지 신청</button>
+                    </form>
+                </div>
+                <div class="sd-complete-note" th:unless="${account.status.name() == 'ACTIVE'}">현재 계좌는 이용 중 상태가 아니므로 추가 납입·만기 해지 버튼이 표시되지 않습니다.</div>
+            </section>
+        </div>
+
+
+        <!-- 정기이체 설정: 정기적금 + 활성 계좌에만 노출 -->
+        <section class="sd-panel sd-auto" th:if="${account.status.name() == 'ACTIVE' and account.product.type.name() == 'INSTALLMENT_SAVINGS'}">
+            <div class="sd-panel-heading">
+                <div><span class="sd-panel-kicker">RECURRING TRANSFER</span><h2>정기이체 설정</h2><p>매월 지정한 날 연결 입출금계좌에서 적금 납입을 시도합니다.</p></div>
+                <span class="sd-auto-status" th:classappend="${autoTransfer != null and autoTransfer.enabled} ? ' is-on' : ''"
+                      th:text="${autoTransfer != null and autoTransfer.enabled} ? '설정 중' : '미설정'">미설정</span>
+            </div>
+			    
+				<div class="auto-transfer-link-wrap">
+				    <a th:href="@{/savings/auto-transfers}"
+				       class="auto-transfer-status-link">
+				        <span class="auto-transfer-link-icon">↻</span>
+				        <span>정기이체 현황 보기</span>
+				        <span class="auto-transfer-link-arrow">→</span>
+				    </a>
+				</div>
+            <div class="sd-auto-info">
+                <div><small>출금 계좌 ID</small><strong th:text="|#${account.sourceAccountId}|">#1</strong></div>
+                <div><small>매월 납입액</small><strong th:text="|${#numbers.formatInteger(account.monthlyAmount,1,'COMMA')}원|">100,000원</strong></div>
+                <div><small>마지막 자동납입 성공</small><strong th:text="${autoTransfer != null and autoTransfer.lastSuccessOn != null ? autoTransfer.lastSuccessOn : '-'}">-</strong></div>
+            </div>
+            <form th:action="@{/savings/{id}/auto-transfer(id=${account.id})}" method="post" class="sd-auto-form"
+                  onsubmit="return confirm('적금 정기이체 설정을 저장하시겠습니까?');">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <label for="sd-auto-day">매월 출금 희망일</label>
+                <select id="sd-auto-day" name="transferDay" required>
+                    <option th:each="d : ${#numbers.sequence(1,28)}" th:value="${d}" th:text="|매월 ${d}일|"
+                            th:selected="${autoTransfer != null ? autoTransfer.transferDay == d : d == 20}">매월 20일</option>
+                </select>
+                <button type="submit" class="sd-primary-button">설정 저장 / 변경 <span>→</span></button>
+            </form>
+            <form th:if="${autoTransfer != null and autoTransfer.enabled}"
+                  th:action="@{/savings/{id}/auto-transfer/cancel(id=${account.id})}" method="post"
+                  onsubmit="return confirm('정기이체를 해지하시겠습니까? 기존 납입 내역은 유지됩니다.');">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="sd-auto-cancel">정기이체 해지</button>
+            </form>
+            <p class="sd-auto-error" th:if="${autoTransfer != null and autoTransfer.lastError != null}"
+               th:text="|최근 자동납입 실패: ${autoTransfer.lastError}|">최근 자동납입 실패</p>
+            <p class="sd-help">매일 오전 9시 확인하며 지정일 이후 아직 이번 달 자동납입 성공 기록이 없으면 재시도합니다. 납입 가능 회차·계좌 잔액·만기 조건은 서버에서 검증합니다. 이미 수동 납입한 회차에 대한 중복 출금은 금지됩니다.</p>
+        </section>
+
+        <section class="sd-panel sd-payments" aria-labelledby="sd-payment-title">
+            <div class="sd-panel-heading">
+                <div><span class="sd-panel-kicker">HISTORY</span><h2 id="sd-payment-title">납입 내역</h2><p>회차별 실제 납입일과 납입 금액입니다.</p></div>
+                <span class="sd-count" th:text="|총 ${#lists.size(payments)}건|">총 0건</span>
+            </div>
+            <div class="sd-table-scroll" th:unless="${#lists.isEmpty(payments)}">
+                <table class="sd-table">
+                    <thead><tr><th scope="col">납입 회차</th><th scope="col">납입일</th><th scope="col">납입 금액</th><th scope="col">처리 상태</th></tr></thead>
+                    <tbody>
+                    <tr th:each="p : ${payments}">
+                        <td><span class="sd-installment" th:text="|${p.installmentNo}회차|">1회차</span></td>
+                        <td th:text="${#temporals.format(p.paidOn, 'yyyy.MM.dd')}">2026.10.20</td>
+                        <td class="sd-table-amount" th:text="|${#numbers.formatInteger(p.amount, 1, 'COMMA')}원|">100,000원</td>
+                        <td><span class="sd-paid-tag">납입 완료</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="sd-empty" th:if="${#lists.isEmpty(payments)}">
+                <div class="sd-empty-icon">▦</div>
+                <strong>납입 내역이 없습니다</strong>
+                <p>납입이 처리되면 이곳에서 회차별 내역을 확인할 수 있습니다.</p>
+            </div>
+        </section>
+        <p class="sd-footnote">※ 실제 납입 가능 여부, 세금 및 만기 정산액은 계좌 계약 조건과 서버 처리 결과를 따릅니다.</p>
+    </div>
+</main>
 </body>
 </html>

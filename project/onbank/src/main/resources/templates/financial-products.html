@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>금융상품 | ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/financial-products.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+<main class="fp-page">
+    <div class="fp-container">
+        <nav class="fp-breadcrumb" aria-label="현재 위치">
+            <a th:href="@{/}">홈</a><span aria-hidden="true">›</span><strong>금융상품</strong>
+        </nav>
+        <section class="fp-hero" aria-labelledby="fp-title">
+            <div class="fp-hero-copy">
+                <span class="fp-eyebrow">ONBANK FINANCIAL PRODUCTS</span>
+                <h1 id="fp-title">내일을 준비하는 금융상품</h1>
+                <p>목돈을 모으는 예적금부터 필요한 자금을 위한 대출까지,<br class="fp-desktop"> ONBANK에서 나에게 맞는 금융상품을 찾아보세요.</p>
+            </div>
+            <div class="fp-hero-mark" aria-hidden="true"><span>O</span><span>N</span></div>
+        </section>
+        <div class="fp-section-heading"><div><span class="fp-section-kicker">PRODUCT CATEGORY</span><h2>어떤 금융상품을 찾으시나요?</h2><p>원하는 상품 종류를 선택하면 상품 목록으로 이동합니다.</p></div></div>
+        <section class="fp-card-grid" aria-label="금융상품 분류">
+            <article class="fp-card fp-card-savings">
+                <div class="fp-card-top"><span class="fp-tag">SAVINGS</span><span class="fp-card-icon" aria-hidden="true">↗</span></div>
+                <div class="fp-card-body"><div class="fp-symbol" aria-hidden="true">₩</div><h3>예적금</h3><p>차곡차곡 모으는 저축 습관.<br>정기예금과 정기적금 상품을 살펴보세요.</p>
+                    <div class="fp-chip-list" aria-hidden="true"><span>정기예금</span><span>정기적금</span><span>이자 계산</span></div>
+                </div>
+                <a class="fp-card-link" th:href="@{/savings/products}">예적금 상품 보러가기 <span aria-hidden="true">→</span></a>
+            </article>
+            <article class="fp-card fp-card-loan">
+                <div class="fp-card-top"><span class="fp-tag">LOAN</span><span class="fp-card-icon" aria-hidden="true">↗</span></div>
+                <div class="fp-card-body"><div class="fp-symbol" aria-hidden="true">▤</div><h3>대출</h3><p>계획에 맞는 자금 마련.<br>다양한 대출 상품의 조건을 비교해 보세요.</p>
+                    <div class="fp-chip-list" aria-hidden="true"><span>신용대출</span><span>담보대출</span><span>대출 계산</span></div>
+                </div>
+                <a class="fp-card-link" th:href="@{/loan}">대출 상품 보러가기 <span aria-hidden="true">→</span></a>
+            </article>
+        </section>
+        <section class="fp-shortcuts" aria-label="빠른 이동">
+            <div><h2>이미 이용 중인 상품이 있으신가요?</h2><p>가입한 상품 현황과 납입·상환 일정을 확인할 수 있습니다.</p></div>
+            <div class="fp-shortcut-links">
+                <a th:href="@{/savings/mine}">내 예적금 계좌 <span aria-hidden="true">→</span></a>
+                <a th:href="@{/loan/repayment}">대출금 상환 <span aria-hidden="true">→</span></a>
+            </div>
+        </section>
+    </div>
+</main>
+</body>
+</html>
