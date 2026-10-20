@@ -53,7 +53,6 @@
                 <tr><th>계좌번호</th><th>회원</th><th>종류</th><th>상태</th><th>잔액</th><th>최종 거래일</th><th>관리</th></tr>
                 </thead>
                 <tbody>
-                <!-- 이력 링크는 ACC-004 조각에서 관리 칸에 추가 -->
                 <tr th:each="a : ${accounts}">
                     <td th:text="${a.accountNumber}">1002-482-915307</td>
                     <td th:text="|${a.memberName} (${a.memberLoginId})|">이름 (member01)</td>
@@ -61,13 +60,14 @@
                     <td><span class="adm-badge" th:text="${a.accountStatus?.label ?: '–'}">정상</span></td>
                     <td th:text="${a.balance != null} ? |${#numbers.formatInteger(a.balance, 1, 'COMMA')}원| : '–'">0원</td>
                     <td th:text="${a.lastTransactionAt != null} ? ${#temporals.format(a.lastTransactionAt, 'yyyy-MM-dd HH:mm')} : '–'">YYYY-MM-DD HH:mm</td>
-                    <!-- 정상 → 거래정지 / 거래정지 → 해제. 개설대기·해지는 버튼 없음 (서버도 팀원2 메서드가 막는다) -->
+                    <!-- 정상 → 거래정지 / 거래정지 → 해제. 개설대기·해지는 버튼 없음 (서버도 팀원2 메서드가 막는다)
+                         이력은 모든 계좌에 (ACC-004) -->
                     <td th:with="st=${a.accountStatus?.name()}">
+                        <a class="adm-btn adm-btn-sm adm-btn-link" th:href="@{/admin/accounts/{id}/history(id=${a.accountId})}">이력</a>
                         <button type="button" class="adm-btn adm-btn-sm" th:if="${st == 'ACTIVE'}" data-account-action="freeze"
                                 th:attr="data-id=${a.accountId}, data-number=${a.accountNumber}, data-member=|${a.memberName} (${a.memberLoginId})|, data-status=${a.accountStatus.label}">거래정지</button>
                         <button type="button" class="adm-btn adm-btn-sm" th:if="${st == 'FROZEN'}" data-account-action="unfreeze"
                                 th:attr="data-id=${a.accountId}, data-number=${a.accountNumber}, data-member=|${a.memberName} (${a.memberLoginId})|, data-status=${a.accountStatus.label}">해제</button>
-                        <th:block th:if="${st != 'ACTIVE' and st != 'FROZEN'}">–</th:block>
                     </td>
                 </tr>
                 <tr th:if="${accounts.totalElements == 0}">

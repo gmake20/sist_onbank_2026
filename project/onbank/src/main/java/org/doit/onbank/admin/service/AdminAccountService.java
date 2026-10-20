@@ -6,6 +6,7 @@ import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.service.AccountManageService;
 import org.doit.onbank.admin.dto.AccountListRow;
+import org.doit.onbank.admin.dto.AdminLogRow;
 import org.doit.onbank.admin.repository.AccountSearchRepository;
 import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.common.security.BackOfficeUser;
@@ -14,10 +15,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-// ACC-001 계좌 목록·검색 (S-07), ACC-003 거래정지·해제 (M-01)
+// ACC-001 계좌 목록·검색 (S-07), ACC-003 거래정지·해제 (M-01), ACC-004 계좌 상태 이력
 // 상태·종류 한글 이름은 팀원2 enum 의 getLabel() 을 쓴다
 @Service
 @RequiredArgsConstructor
@@ -72,6 +77,23 @@ public class AdminAccountService {
         }
         adminLogService.record(me, actionType, "ACCOUNT", String.valueOf(accountId),
                 before.name(), account.getAccountStatus().name(), reason.trim(), requestIp);
+    }
+
+    // ---- ACC-004 계좌 상태 이력 ----
+    // admin_log 의 변경 전·후 값은 enum 이름(ACTIVE 등) 문자열 → 화면에서 한글로 바꿀 때 쓴다 (이름표는 팀원2 enum 것)
+    public static final Map<String, String> STATUS_LABELS = Arrays.stream(AccountStatus.values())
+            .collect(Collectors.toUnmodifiableMap(Enum::name, AccountStatus::getLabel));
+
+    // 없는 계좌면 BusinessException → 컨트롤러가 목록으로 돌려보내며 안내 (명세서 2.6)
+    public AccountListRow account(Long accountId) {
+        return accountSearchRepository.findRow(accountId)
+                .orElseThrow(() -> new BusinessException("없는 계좌입니다."));
+    }
+
+    // target_type=ACCOUNT, target_id=계좌 번호인 기록 = 관리자·직원이 이 계좌에 한 작업 (D-10). 작업 유형은 거르지 않음
+    // 활동 로그 조회를 그대로 써서 변경자 아이디·이름까지 나온다. 최신순 (log_id DESC)
+    public Page<AdminLogRow> history(Long accountId, LocalDate from, LocalDate to, int page) {
+        return adminLogService.search(null, null, null, "ACCOUNT", String.valueOf(accountId), from, to, page);
     }
 
     // 1002-482 / 1002482 둘 다 찾도록 하이픈만 뺀다. DB 쪽도 replace 로 하이픈을 빼고 비교

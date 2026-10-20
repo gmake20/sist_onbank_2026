@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>계좌 상태 이력</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 고객 · 계좌 / 계좌 관리 / 상태 이력</div>
+<h1 layout:fragment="page-title">계좌 상태 이력</h1>
+<main layout:fragment="content">
+
+    <a class="adm-btn adm-btn-link" th:href="@{/admin/accounts}">&lt; 계좌 목록으로</a>
+
+    <!-- ACC-004 : 이 계좌에 남은 admin_log (target_type=ACCOUNT). 활동 로그 화면과 같은 표 틀 -->
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>
+                <b th:text="${account.accountNumber}">1002-482-915307</b>
+                · <span th:text="|${account.memberName} (${account.memberLoginId})|">이름 (member01)</span>
+                · <span th:text="${account.accountType?.label ?: '–'}">입출금</span>
+            </span>
+            <span>현재 상태 <span class="adm-badge" th:text="${account.accountStatus?.label ?: '–'}">정상</span></span>
+        </div>
+    </section>
+
+    <form class="adm-search" method="get" th:action="@{/admin/accounts/{id}/history(id=${account.accountId})}">
+        <div class="adm-field">
+            <label for="from">시작일</label>
+            <input type="date" id="from" name="from" th:value="${from}">
+        </div>
+        <div class="adm-field">
+            <label for="to">종료일</label>
+            <input type="date" id="to" name="to" th:value="${to}">
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/accounts/{id}/history(id=${account.accountId})}">초기화</a>
+        </div>
+    </form>
+
+    <div class="adm-alert" role="alert" th:if="${periodError}" th:text="${periodError}"></div>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>총 <b th:text="${logs.totalElements}">0</b>건</span>
+            <span>최신순 · 20건씩 보기</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>일시</th><th>작업</th><th>변경 전</th><th>변경 후</th><th>변경자</th><th>사유</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${logs}">
+                    <td th:text="${#temporals.format(row.log.createdAt, 'yyyy-MM-dd HH:mm:ss')}">YYYY-MM-DD HH:mm:ss</td>
+                    <td th:switch="${row.log.actionType}">
+                        <th:block th:case="'ACCOUNT_FREEZE'">거래정지</th:block>
+                        <th:block th:case="'ACCOUNT_UNFREEZE'">거래정지 해제</th:block>
+                        <th:block th:case="*" th:text="${row.log.actionType}">ACCOUNT_XXX</th:block>
+                    </td>
+                    <!-- 값은 enum 이름(ACTIVE 등)으로 저장돼 있어 한글로 바꿔 보여 준다. 모르는 값은 그대로 -->
+                    <td th:text="${statusLabels.get(row.log.beforeValue) ?: row.log.beforeValue ?: '-'}">정상</td>
+                    <td th:text="${statusLabels.get(row.log.afterValue) ?: row.log.afterValue ?: '-'}">거래정지</td>
+                    <td>
+                        <span class="adm-badge" th:text="${row.log.actorType}">ADMIN</span>
+                        <!-- 계정을 못 찾으면 번호만 표시 (logs.html 과 같음) -->
+                        <span th:text="${row.actor != null} ? |${row.actor.loginId} (${row.actor.name})| : |#${row.log.actorId}|">admin01 (이름)</span>
+                    </td>
+                    <td class="adm-cell-long" th:text="${row.log.reason} ?: '-'" th:title="${row.log.reason}">입력한 사유</td>
+                </tr>
+                <tr th:if="${logs.totalElements == 0}">
+                    <td colspan="6" class="adm-empty">변경 이력이 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : logs.html과 같은 방식. 링크마다 기간을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${logs.totalPages > 1}"
+             th:with="start=${logs.number > 4 ? logs.number - 4 : 0},
+                      end=${start + 9 < logs.totalPages - 1 ? start + 9 : logs.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${logs.hasPrevious()}"
+               th:href="@{/admin/accounts/{id}/history(id=${account.accountId}, from=${from}, to=${to}, page=${logs.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == logs.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == logs.number}" th:text="${p + 1}"
+                   th:href="@{/admin/accounts/{id}/history(id=${account.accountId}, from=${from}, to=${to}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${logs.hasNext()}"
+               th:href="@{/admin/accounts/{id}/history(id=${account.accountId}, from=${from}, to=${to}, page=${logs.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">관리자·직원이 이 화면들에서 바꾼 기록만 나옵니다 (활동 로그 기준). 고객 해지·개설 승인처럼 다른 곳에서 바뀐 상태는 나오지 않습니다. 기간을 안 고르면 최근 30일.</p>
+</main>
+</body>
+</html>
