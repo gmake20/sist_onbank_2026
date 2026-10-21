@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.doit.onbank.member.security.LoginMember;
 import org.doit.onbank.savings.entity.SavingsAccount;
+import org.doit.onbank.savings.entity.SavingsType;
 import org.doit.onbank.savings.repository.SavingsAccountRepository;
 import org.doit.onbank.savings.service.SavingsAutoTransferService;
 import org.doit.onbank.savings.service.SavingsScheduleViewService;
@@ -35,8 +36,9 @@ public class SavingsController {
 	private final SavingsService savings;
 	private final SavingsScheduleViewService scheduleViewService;
 	private final SavingsAccountRepository savingsAccountRepository;
-	
+
 	private final SavingsAutoTransferService autoTransferService;
+	
 
 	@GetMapping("/products")
 	public String products(@AuthenticationPrincipal LoginMember me,Model model){
@@ -174,14 +176,14 @@ public class SavingsController {
 		model.addAttribute("scheduleRows", scheduleRows);
 		model.addAttribute("currentSchedulePage", currentSchedulePage);
 		model.addAttribute("scheduleTotalPages", scheduleTotalPages);
-		
-		boolean ajax = "XMLHttpRequest".equals(
-	            request.getHeader("X-Requested-With")
-	    );
 
-	    if (ajax) {
-	        return "savings/mine :: ajaxContent";
-	    }
+		boolean ajax = "XMLHttpRequest".equals(
+				request.getHeader("X-Requested-With")
+				);
+
+		if (ajax) {
+			return "savings/mine :: ajaxContent";
+		}
 
 		return "savings/mine";
 	}
@@ -250,4 +252,60 @@ public class SavingsController {
 	public String savingsHome() {
 		return "savings/index";
 	}
+
+
+
+	@GetMapping("/{id}/installment-early-close")
+	public String installmentEarlyClosePage(
+	        @PathVariable Long id,
+	        @AuthenticationPrincipal LoginMember member,
+	        Model model) {
+
+	    if (member == null) {
+	        return "redirect:/login";
+	    }
+
+	    SavingsAccount account =
+	            savings.detail(id, member.getMemberId());
+
+	    if (account.getProduct().getType()
+	            != SavingsType.INSTALLMENT_SAVINGS) {
+	        throw new IllegalStateException("적금 계좌가 아닙니다.");
+	    }
+
+	    model.addAttribute("account", account);
+
+	    return "savings/installment-early-close";
+	}
+	
+	@PostMapping("/{id}/installment-early-close")
+	public String installmentEarlyClose(
+	        @PathVariable Long id,
+	        @AuthenticationPrincipal LoginMember member,
+	        RedirectAttributes redirectAttributes) {
+
+	    if (member == null) {
+	        return "redirect:/login";
+	    }
+
+	    SavingsAccount account =
+	            savings.detail(id, member.getMemberId());
+
+	    if (account.getProduct().getType()
+	            != SavingsType.INSTALLMENT_SAVINGS) {
+	        throw new IllegalStateException("적금 계좌가 아닙니다.");
+	    }
+
+	    long payout = savings.closeEarly(
+	            id, member.getMemberId()
+	    );
+
+	    redirectAttributes.addFlashAttribute(
+	            "message",
+	            String.format("적금 중도해지가 완료되었습니다. %,d원이 입금되었습니다.", payout)
+	    );
+
+	    return "redirect:/savings/" + id;
+	}
+
 }

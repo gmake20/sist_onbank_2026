@@ -125,4 +125,16 @@ public class SavingsAccount {
         status = SavingsStatus.CLOSED;
         closedOn = date;
     }
+    
+    public void closeEarly(LocalDate date) {
+        if (status != SavingsStatus.ACTIVE
+                || date == null
+                || date.isBefore(openedOn)
+                || !date.isBefore(maturityOn)) {
+            throw new IllegalStateException("중도해지가 불가능합니다.");
+        }
+
+        status = SavingsStatus.CLOSED;
+        closedOn = date;
+    }
 }
