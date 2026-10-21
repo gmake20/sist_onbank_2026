@@ -514,6 +514,28 @@ class TransferPageControllerTests {
 		verify(accountTransferService, never()).transfer(anyLong(), anyLong(), any(), any(), any(), anyLong(), any(), any());
 	}
 
+	// 정기이체 등록 : 입력한 통장 표시내용 2개가 그대로 Service 에 넘어간다
+	@Test
+	void recurringTransferPassesMemos() throws Exception {
+		given(scheduledTransferService.subscribe(anyLong(), anyLong(), any(), any(), any(), anyLong(), any(), any(),
+				any(), any(), any()))
+				.willReturn(ScheduledTransfer.subscribe(MEMBER_ID, 1L, "TEST-9999", 50_000L, "용돈", "아빠가",
+						25, LocalDateTime.of(2026, 10, 25, 9, 0), null, LocalDateTime.now()));
+
+		mockMvc.perform(post("/mybank/transfer").with(user(me)).with(csrf())
+						.param("fromAccountId", "1")
+						.param("password", "1234")
+						.param("amount", "50000")
+						.param("toAccountNumber", "TEST-9999")
+						.param("senderMemo", "용돈")
+						.param("receiverMemo", "아빠가")
+						.param("transferDay", "25")
+						.param("recurringTime", "09:00"))
+				.andExpect(redirectedUrl("/mybank/transfer/scheduled"));
+		verify(scheduledTransferService).subscribe(MEMBER_ID, 1L, "1234", null, "TEST-9999", 50_000L, "용돈", "아빠가",
+				25, LocalTime.of(9, 0), null);
+	}
+
 	// 등록 실패 : 문구를 보여 주고, 입력했던 정기 시각·종료일은 남겨 다시 정기 모드로 열리게 한다
 	@Test
 	void recurringTransferFailureKeepsInput() throws Exception {

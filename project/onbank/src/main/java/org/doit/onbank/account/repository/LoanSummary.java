@@ -8,6 +8,8 @@ public interface LoanSummary {
 
 	Long getLoanAccountId();
 
+	String getLoanAccountNumber();		// 대출 계좌번호 (전계좌조회 표시용)
+
 	String getProductName();
 
 	Long getPrincipalAmount();			// 실행된 대출 원금

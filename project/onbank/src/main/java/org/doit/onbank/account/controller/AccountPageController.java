@@ -1,6 +1,8 @@
 package org.doit.onbank.account.controller;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -13,9 +15,17 @@ import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionType;
+import org.doit.onbank.account.repository.AssetReportRepository;
+import org.doit.onbank.account.repository.LoanSummary;
+import org.doit.onbank.account.repository.SavingsLastPaid;
 import org.doit.onbank.account.service.AccountFavoriteService;
 import org.doit.onbank.account.service.AccountService;
 import org.doit.onbank.member.security.LoginMember;
+import org.doit.onbank.savings.entity.SavingsAccount;
+import org.doit.onbank.savings.entity.SavingsStatus;
+import org.doit.onbank.savings.entity.SavingsType;
+import org.doit.onbank.savings.repository.SavingsAccountRepository;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -40,6 +50,8 @@ public class AccountPageController {
 
 	private final AccountService accountService;
 	private final AccountFavoriteService accountFavoriteService;
+	private final SavingsAccountRepository savingsAccountRepository;	// 팀3 예적금 (조회만)
+	private final AssetReportRepository assetReportRepository;		// 팀3 대출 조회 (자산 리포트와 같은 SQL)
 
 	// 거래 유형의 한글 이름 (DB에는 영문 값 저장). 계좌 상태 이름은 AccountStatus.label 을 쓴다
 	@ModelAttribute("typeNames")
@@ -53,7 +65,8 @@ public class AccountPageController {
 
 	// ---------- 계좌 목록 ----------
 
-	// 전계좌조회 : 입출금 / 예금 / 적금 영역으로 나눠서 보여 준다
+	// 전계좌조회 : 입출금 / 예금 / 적금 / 대출 영역으로 나눠서 보여 준다
+	// 입출금은 팀2 account, 예금·적금은 팀3 savings_account, 대출은 팀3 loan_account 에서 읽는다 (10-21)
 	@GetMapping
 	public String list(@AuthenticationPrincipal LoginMember me, Model model) {
 		List<Account> accounts = accountService.getMyAccounts(me.getMemberId());
@@ -62,23 +75,67 @@ public class AccountPageController {
 				.filter(account -> account.getAccountType() == null
 						|| account.getAccountType() == AccountType.CHECKING)
 				.toList();
-		List<Account> deposits = ofType(accounts, AccountType.DEPOSIT);
-		List<Account> savings = ofType(accounts, AccountType.SAVINGS);
+
+		// 팀3 예적금 (savings_account) : 진행 중인 것만, 예금·적금으로 나눈다
+		List<SavingsAccount> mySavings = savingsAccountRepository.findByMemberIdOrderByIdDesc(me.getMemberId());
+		List<SavingsAccount> depositProducts = new ArrayList<>();	// 예금
+		List<SavingsAccount> savingsProducts = new ArrayList<>();	// 적금
+		long depositSum = 0;
+		long savingsSum = 0;
+
+		for (SavingsAccount item : mySavings) {
+			if (item.getStatus() != SavingsStatus.ACTIVE) {		// 진행 중이 아니면 (만기·중도 해지)
+				continue;										// 건너뛰고 다음 것으로
+			}
+			if (item.getProduct().getType() == SavingsType.FIXED_DEPOSIT) {	// 예금이면
+				depositProducts.add(item);
+				depositSum += item.getPrincipal();				// 원금을 더한다
+			} else {											// 아니면 적금
+				savingsProducts.add(item);
+				savingsSum += item.getPrincipal();				// 지금까지 넣은 금액을 더한다
+			}
+		}
+
+		// 예적금 표시용 : 연결계좌 번호 (가입·납입 때 출금되고 만기에 입금되는 내 입출금 계좌), 최종거래일
+		Map<Long, String> accountNumbers = new HashMap<>();
+		for (Account account : accounts) {
+			accountNumbers.put(account.getAccountId(), account.getAccountNumber());
+		}
+		Map<Long, String> lastPaidOn = new HashMap<>();
+		try {
+			for (SavingsLastPaid row : assetReportRepository.findSavingsLastPaidOn(me.getMemberId())) {
+				lastPaidOn.put(row.getSavingsAccountId(), row.getLastPaidOn());
+			}
+		} catch (DataAccessException e) {
+			// 납입 기록을 못 읽으면 최종거래일만 가입일로 보여 준다
+		}
+
+		// 팀3 대출 (loan_account) : 완납(CLOSED)을 뺀 대출. 팀3 테이블이 바뀌어 조회가 실패해도 화면은 연다
+		List<LoanSummary> loans;
+		try {
+			loans = assetReportRepository.findActiveLoans(me.getMemberId());
+		} catch (DataAccessException e) {
+			loans = List.of();
+			model.addAttribute("loanError", "대출 정보를 불러오지 못했습니다.");
+		}
+		long loanSum = loans.stream()
+				.mapToLong(loan -> loan.getRemainingBalance() == null ? 0L : loan.getRemainingBalance())
+				.sum();
 
 		model.addAttribute("checkingAccounts", checking);
-		model.addAttribute("depositAccounts", deposits);
-		model.addAttribute("savingsAccounts", savings);
+		model.addAttribute("depositProducts", depositProducts);	// 예금 목록
+		model.addAttribute("savingsProducts", savingsProducts);	// 적금 목록
+		model.addAttribute("loans", loans);						// 대출 목록
+		model.addAttribute("accountNumbers", accountNumbers);	// 계좌 ID → 계좌번호 (예적금 연결계좌)
+		model.addAttribute("lastPaidOn", lastPaidOn);			// 예적금 ID → 최종거래일
 		model.addAttribute("checkingTotal", totalBalance(checking));
-		model.addAttribute("depositTotal", totalBalance(deposits));
-		model.addAttribute("savingsTotal", totalBalance(savings));
+		model.addAttribute("depositTotal", depositSum);
+		model.addAttribute("savingsTotal", savingsSum);
+		model.addAttribute("loanTotal", loanSum);				// 대출 잔액 합계
 		model.addAttribute("now", LocalDateTime.now());
 		// 예금명 옆 ☆/★ : 계좌번호 → 즐겨찾기 ID
 		model.addAttribute("favoriteIds", accountFavoriteService.getMyFavoriteIdsByNumber(me.getMemberId()));
 		return "account/list";
-	}
-
-	private List<Account> ofType(List<Account> accounts, AccountType accountType) {
-		return accounts.stream().filter(account -> account.getAccountType() == accountType).toList();
 	}
 
 	// 해지 계좌는 합계에서 제외

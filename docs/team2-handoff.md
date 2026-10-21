@@ -1,4 +1,4 @@
-# 팀원2 작업 인수인계 (2026-10-21 정리)
+# 팀원2 작업 인수인계 (2026-10-21 오후 정리)
 
 > 새 세션에서 Claude에게 이렇게 요청하세요.
 > **"docs/team2-handoff.md 와 docs/team2-progress.md 읽고 이어서 작업하자"**
@@ -15,6 +15,8 @@
 1. **브랜치 상태 (10-21)**
    - **main에 머지된 팀2 PR**: #33(10-16), #36(10-17), #53(10-19 이체 OTP·자산 리포트), #60(10-20 `f3bdcf2` 자산 리포트 대출 수정·enum 전환·이체 편의 기능), **#64(`9c7aead` 예약이체 + `3e4de02` merge 후 팀3 enum 비교·스케줄링 정리·문서)** → 아래 10-20 "푸시 전" 항목은 #64로 모두 main에 들어감
    - **10-21 정기이체(5.5) 커밋 → `origin/account` 푸시 완료** (사용자 지시). main PR은 아직 (사용자가 GitHub에서)
+   - **(10-21 오후)** `git pull origin main`(952903c, #78까지) 후 전계좌조회·자산 리포트 예적금·대출 연동 커밋 → `origin/account` 푸시 (사용자 지시). main PR은 사용자가 GitHub에서. 그사이 `origin/main`이 d099dd2(#86)로 더 나아감 (다른 팀이 팀2 `AccountTransferService`, `TransactionHistoryService/Repository`를 수정함 → 다음 작업 전 `git pull origin main` 후 변경 내용 확인)
+   - `git stash` 1개: `application-local.properties.example` 로컬 수정(OTP 안내 2줄 삭제)을 pull 전에 보관 (10-21). 필요 없으면 `git stash drop`
    - **10-20 로컬 `account`에만 있는 커밋 (푸시 전)**
      - `9c7aead` 예약이체 등록·조회·취소·자동 실행 (기획서 5.4)
      - merge 커밋: `origin/main`(#62까지)을 `account`에 합침 → 팀1 `MemberStatus.LOCKED`·`EmployeeStatus.LOCKED`, 팀3 예적금·자동납입·대출 상환 코드가 들어옴
@@ -95,6 +97,31 @@
 | **(10-21) 밀린 회차** | 서버가 몇 달 꺼져 있었으면 켜진 뒤 1회만 실행하고 지금 이후 회차로 넘어간다 (밀린 달을 몰아서 이체하지 않음, 판단해서 정함) |
 
 ## 2. 작업 요약
+
+### 2-000000. 2026-10-21 오후 : 전계좌조회·자산 리포트에 팀3 예적금·대출 연동
+
+**확인한 사실**: 팀3은 예적금을 `account`(DEPOSIT/SAVINGS)가 아니라 **`savings_account` + `savings_product`**에 저장한다 (공용 DB `account`에 예금·적금 계좌 0건, `product_subscription` 0건). 그래서 전계좌조회 예금/적금 영역과 자산 리포트 예적금이 항상 비어 있었다. 대출은 `loan_account`
+
+| 파일 | 내용 |
+|---|---|
+| `AccountPageController` | 예적금: `SavingsAccountRepository.findByMemberIdOrderByIdDesc` → 진행 중(ACTIVE)만, 상품 유형으로 예금/적금 분리, 원금 합계 (**for문·합계는 사용자가 직접 작성**). 대출: `AssetReportRepository.findActiveLoans` 재사용 (실패하면 `loanError` 안내, 화면은 열림). 연결계좌 번호(`accounts`로 만든 ID→번호 Map), 최종거래일(`findSavingsLastPaidOn`). `depositAccounts`/`savingsAccounts`/`ofType()` 삭제 (account 에 예적금이 생기지 않으므로) |
+| `list.html` | 예금/적금 영역을 팀3 데이터로: 예금명(상품명 + 금리·만기, 적금은 월 납입액) / 계좌번호 칸 = **연결계좌 번호 + "연결계좌"** / 최종거래일 = `savings_payment` 마지막 납입일(없으면 가입일) / 잔액 = 원금(적금은 넣은 금액) / [조회] `/savings/{id}`. 빈 목록 [가입하기] → `/savings/products`. **대출 영역 추가** (대출명·금리 / 대출 계좌번호 / 만기일 / 대출잔액 / [상환] `/loan/repayment?accountId=`, 빈 목록 [대출 알아보기] `/loan`). 표 칸 5개 구성은 유지 |
+| `AssetReportRepository` | `findActiveSubscriptions` : `product_subscription` → `savings_account`+`savings_product` (ACTIVE, 예상 이자 NULL). `findActiveLoans`에 `LOAN_ACCOUNT_NUMBER` 추가. `findSavingsLastPaidOn` 새로 (예적금별 `MAX(paid_on)`) |
+| `AssetReportService` | 자산 구성(도넛)·총자산에 예적금 원금 포함 (가입 때 입출금 계좌에서 빠져나가므로 안 더하면 총자산이 줄어 보임, user1 약 1,015만 원). 유형 라벨 `FIXED_DEPOSIT`/`INSTALLMENT_SAVINGS`, 적금 금액 라벨 "납입 금액" |
+| `LoanSummary`, `SubscriptionSummary`, 새 `SavingsLastPaid` | 조회 결과 인터페이스 |
+| 테스트 | 전계좌조회 예적금·대출 표시, 대출 조회 실패 시에도 열림, 자산 구성에 예적금 포함, 정기이체 통장 표시내용 전달. **팀2 233개 통과** |
+
+- `assets.html`은 예적금·대출 영역이 이미 있어 고치지 않음. `git status`의 `assets.html` 변경은 IDE 자동 정렬(기능 변화 없음) → **커밋에서 뺌**
+- 팀3 파일은 수정하지 않음 (Repository·SQL 조회만)
+
+#### 2-000000-1. 같은 날 확인·답변한 것
+
+| 항목 | 결과 |
+|---|---|
+| 이체한도 | 회원별로 `members` 두 컬럼을 이미 읽고 있다 (NULL일 때만 상수 기본값). 공용 DB 회원 5명 모두 NULL이라 모두 같은 한도로 보였던 것. 회원별 UPDATE SQL은 사용자에게 제공(실행 여부는 사용자). 실제 은행 기준(보안매체 등급, 한도제한계좌, 고객 신청)과 "OTP 등록 여부로 기본 한도 나누기", 13.5 한도 변경 신청 흐름은 **제안만 하고 구현 안 함** (사용자 결정 대기) |
+| 이메일 인증 오류 | `Name for argument of type [java.lang.String] not specified` : 이클립스가 `-parameters` 없이 컴파일 (Gradle은 자동). `project/onbank/.settings/org.eclipse.jdt.core.prefs`에 `codegen.methodParameters=generate` 추가 (Git 제외 파일) → Project Clean + 서버 재시작 필요. 팀원 중 이클립스 사용자도 같은 설정 필요 (7장) |
+| 정기이체 통장 표시내용 | 브라우저(헤드리스 크롬, 즉시/예약/정기)와 서버(테스트)에서 **정상 전송·저장 확인, 재현 안 됨**. 16:50 예약 1건은 표시내용이 NULL로 저장됐고, 비어 있으면 설계대로 예금주명이 찍힌다 (내 통장 = 받는 분 이름, 받는 분 통장 = 내 이름). 사용자가 다시 재현하면 누른 순서 받기 |
+| 예적금 연결계좌 문제점 | 연결계좌 해지(팀2 `close()`는 잔액만 검사) / 동결(팀3 `OnbankAccountMoneyAdapter`는 ACTIVE만 허용) 시 납입·만기 지급 불가. 대안 A(해지 전 검사) / B(예적금 고유 번호) / C(account 에 계좌 생성) 비교 → **A 필수, 여유 있으면 B 제안**. 팀3 전달 문구 작성 (10장) |
 
 ### 2-00000. 2026-10-21 한 일 : 정기이체 (기획서 5.5)
 
@@ -249,7 +276,9 @@
 
 ### 2-3. 다음에 할 일 (순서대로, 10-20 기준)
 
-0. **(10-22 시작할 때) 정기이체 코드 이해하기 (사용자 요청)**: 10-21 사용자가 "코드를 Claude가 다 써서 내가 이해해야 한다"고 함. Claude가 설명을 길게 하지 말고 **질문 → 사용자가 답 → 맞은 점·빠진 점만 짚기** 방식으로 진행 (방식은 시작할 때 사용자에게 다시 확인). 대상: `ScheduledTransfer.java`(회차 계산·성공/실패 처리) → `ScheduledTransferService.java`(등록 순서·`recordFailure`의 `isDue`) → `ScheduledTransferRunner.java`(트랜잭션을 따로 여는 이유). 질문 예시는 `docs/private/team2-portfolio-log.md` 10-21 항목 "직접 설명할 수 있어야 하는 것". 이후 작은 수정(기본 시각 09:00 → 10:00 등)을 사용자가 직접 해 보도록 제안
+00. **(10-22) 브라우저 확인 (10-21 오후 작업)**: 서버 재시작 후 user1 전계좌조회 → 예금 10,000,000 / 적금 150,000 / 대출 4건 잔액 합계 56,084,850, 해지 예적금 2건 안 보임, 연결계좌 `1002-376-992742`, [조회]·[상환] 이동. 자산관리 → 도넛에 예금·적금 조각, 총자산 +10,150,000, 예적금 현황 2건
+000. **팀3 답 받은 뒤**: 연결계좌 해지 막기(대안 A) 구현 여부 결정. 이체한도 기본값 규칙(OTP 등록 여부)·13.5 한도 변경 신청 진행 여부 사용자 결정
+0. **(10-22 시작할 때) 정기이체 코드 이해하기 (사용자 요청)**: 10-21에 문답 시작 → 질문 1(`nextOccurrence` 결과 2개) 답 받기 전에 다른 작업으로 넘어감. 이어서 할 때 질문 1부터. 같은 날 전계좌조회 예적금 for문을 사용자가 직접 써 봄 (enum 이름·import·`model.addAttribute` 같은 이름 덮어쓰기에서 막힘 → 기초 문법은 빈칸 채우기 방식이 맞았음). 10-21 사용자가 "코드를 Claude가 다 써서 내가 이해해야 한다"고 함. Claude가 설명을 길게 하지 말고 **질문 → 사용자가 답 → 맞은 점·빠진 점만 짚기** 방식으로 진행 (방식은 시작할 때 사용자에게 다시 확인). 대상: `ScheduledTransfer.java`(회차 계산·성공/실패 처리) → `ScheduledTransferService.java`(등록 순서·`recordFailure`의 `isDue`) → `ScheduledTransferRunner.java`(트랜잭션을 따로 여는 이유). 질문 예시는 `docs/private/team2-portfolio-log.md` 10-21 항목 "직접 설명할 수 있어야 하는 것". 이후 작은 수정(기본 시각 09:00 → 10:00 등)을 사용자가 직접 해 보도록 제안
 1. **브라우저 확인 (사용자)**: 정기이체 2-00000-1, 예약이체 2-0000-2, 이체 OTP 2-00, 자산 리포트 2-000, 계좌 개설 4-1
 2. 확인 결과 문제가 있으면 수정 → **사용자가 지시하면** 커밋 → 푸시. main PR은 사용자가 GitHub에서
 3. ~~정기이체 (5.5)~~ → **10-21 구현 완료** (2-00000, 결정은 1-1 "(10-21)" 행)
@@ -271,7 +300,8 @@
 | 입출금 (엔티티·Service·화면) | 완료, 브라우저 확인 완료 |
 | **이체 (당행 즉시이체)** | **완료, 브라우저 확인 완료 (10-16)** |
 | **전계좌조회 화면 (`list.html` 원본 구성)** | **완료, 브라우저 확인 완료 (10-16)** |
-| 테스트 | **전체 354개 통과** (10-21 정기이체 추가 후, `OnbankApplicationTests` 포함. 팀2 230개) |
+| 테스트 | **전체 369개 통과, 1개 skip** (10-21 오후, `OnbankApplicationTests` 포함. 팀2 233개) |
+| **전계좌조회·자산 리포트 예적금·대출 (팀3 연동)** | 완료 (10-21 오후, `account` 푸시). **브라우저 확인 전** (2-3장 00번) |
 | **이체 OTP 연결 (10만 원 초과)** | 완료, main 머지됨 (#53). OTP 키 입력함 (10-20). **브라우저 확인 전** (2-00) |
 | **자산 리포트 (`/mybank/assets`)** | 완료, main 머지됨 (#53, #60). 10-20 대출·지난달 저장 수정. **브라우저 확인 전** (2-000) |
 | **enum 전환·하이픈·OTP 복귀·입력값 복원** | 완료, main 머지됨 (#60, 10-20). **브라우저 확인 전** |
@@ -463,6 +493,9 @@
 - **(10-20) `<input type="time">` 값은 `09:30`.** `@DateTimeFormat(iso = ISO.TIME)`은 다시 그릴 때 초·시간대까지 붙여 입력칸이 비므로 `pattern = "HH:mm"`
 - **(10-20) 테스트에 한도 같은 설정값을 숫자로 쓰지 않는다.** 사용자가 기본 한도를 바꾸자 테스트 2개가 깨졌다 → `DEFAULT_ONCE_LIMIT + 1`처럼 상수로 계산
 - **(10-20) 화면에 확인 창이 필요한 폼은 `data-confirm="문구"`만 붙이면 된다** (`account.js`). 중복 제출 방지보다 먼저 등록돼 있어 [취소]를 눌러도 버튼이 잠기지 않는다
+- **(10-21) 팀3 예적금은 `account`가 아니라 `savings_account`** (상태 `SavingsStatus`, 원금 `principal`, 납입 `savings_payment`). 돈은 연결계좌(`source_account_id` = 팀2 입출금 계좌)에서 빠지고 만기에 그 계좌로 들어온다 (`OnbankAccountMoneyAdapter`, ACTIVE 계좌만 허용). `account` 기준 합계·목록에는 예적금이 안 잡히므로 따로 더해야 한다
+- **(10-21) 이클립스로 서버를 띄우면 `@RequestParam String email`처럼 이름 없는 파라미터가 실패할 수 있다** (`Name for argument ... -parameters`). Project → Properties → Java Compiler → "Store information about method parameters" 체크 (= `.settings/org.eclipse.jdt.core.prefs`의 `codegen.methodParameters=generate`) → Project Clean. 팀2 새 코드는 `@PathVariable("accountId")`처럼 이름을 적는다
+- **(10-21) 컨트롤러가 새 Bean(Repository 등)을 주입받으면 그 컨트롤러의 `@WebMvcTest`가 전부 실패한다** (`No qualifying bean`). 테스트에 `@MockitoBean`을 추가 (예: `AccountPageControllerTests`의 `SavingsAccountRepository`, `AssetReportRepository`)
 
 ## 8. 공용 DB 현재 데이터 (10-16 조회 기준)
 
@@ -475,13 +508,14 @@
 - 자산 리포트 화면을 열면 `asset_report`에 회원당 최근 6개월 행이 생긴다 (정리: `DELETE FROM asset_report WHERE account_id = 회원ID`)
 - **(10-20 조회)** user1: 입출금 `CHECKING` 1002-376-992742 잔액 36,914,850 (대출금 3,700만 입금 − 상환 85,150) + 테스트 계좌. 팀3 `loan_account` 3건(잔액 합 36,918,183), `account_loan_transaction` 지급 3·상환 1. `asset_report` user1 202605~202609에 **사용자가 넣은 시연 데이터(id 22~26)** 와 앱이 만든 0원 행(id 1~5)이 같은 달에 함께 있음 → 화면은 id 큰 행 사용, 0원 행은 사용자가 지울 예정
 - **(10-20)** `members` LOCKED 2명, `employee` LOCKED 1명 (팀1 로그인 잠금 기능 결과. 고치지 않음). `scheduled_transfer` 테이블 생성 (0건)
+- **(10-21 조회)** `members` 회원 5명(member_id 1, 2, 3, 42, 278) 모두 `daily_transfer_limit`·`once_transfer_limit` NULL → 기본 한도. user1 팀3 `savings_account` 4건(진행 중: 프리미엄 예금 10,000,000 / 장기적금 150,000, 나머지 2건 CLOSED), 연결계좌 모두 `1002-376-992742`. `loan_account` 4건(ACTIVE, 잔액 합 56,084,850). `scheduled_transfer` 3건 (id 2 user1 정기 "용돈" 진행 중 → 확인 후 [해지] 필요)
 
 ## 9. 자주 쓰는 명령 (`project/onbank` 폴더에서)
 
 ```
 ./gradlew compileJava                                   # 컴파일
 ./gradlew test --tests "org.doit.onbank.account.*"      # 팀2 테스트 (DB 불필요)
-./gradlew test                                          # 전체 354개 (10-21, 공용 DB 연결 테스트 포함)
+./gradlew test                                          # 전체 369개 (10-21 오후, 공용 DB 연결 테스트 포함)
 ./gradlew test --tests "org.doit.onbank.OnbankApplicationTests"   # 서버가 뜨는지 (공용 DB 연결, 읽기만)
 ./gradlew bootRun                                       # 서버 실행 (포트 80), PowerShell 은 .\gradlew.bat bootRun
 ```
@@ -506,7 +540,8 @@
 | 팀3 | **(10-20) `config/SchedulingConfig`(`@EnableScheduling`)를 팀2 예약이체 스케줄러도 같이 쓴다.** 지우면 예약이체 자동 실행이 멈춘다 | 남음 (팀3에 알리기) |
 | 팀3 | **(10-20) 화면 이름 "정기이체" 겹침**: 팀3 `/savings/auto-transfers` 제목이 "정기이체 현황"(적금 자동납입). 팀2 정기이체(5.5, 다른 계좌로 매월 이체)를 만들 때 이름을 어떻게 나눌지 | **10-21 사용자 결정: 따로 작업하므로 둘 다 "정기이체" 그대로** (알릴 필요 없음) |
 | ~~팀3~~ | ~~예약·정기이체가 호출할 이체 메서드 시그니처~~ → **10-20 예약·정기이체를 팀2가 직접 맡기로 함** (기획서 원래 배정). 팀3에 "예약·정기이체는 팀2가 한다"고 알리기 | 남음 (알리기만) |
-| 팀3 | 자산 리포트가 팀3 테이블 5개를 SQL로 읽는다 (`AssetReportRepository`). 컬럼 이름이 바뀌면 알려 달라고 요청 | 남음 |
+| 팀3 | 자산 리포트가 팀3 테이블 5개를 SQL로 읽는다 (`AssetReportRepository`). 컬럼 이름이 바뀌면 알려 달라고 요청 | 남음 → 10-21 문구에 포함 |
+| 팀3 | **(10-21) 예적금·대출 연동 공유 + 연결계좌 해지·동결 문제 확인 요청**: 전계좌조회·자산관리가 `savings_account`, `savings_product`, `savings_payment`, `loan_account` 등을 조회함 / 연결계좌 해지(팀2가 진행 중 예적금 있으면 막는 안 제안)·동결(만기 `credit`은 동결 계좌도 허용 검토 요청) / 예적금 고유 번호(선택). 팀3 답: "예적금 상태·테이블은 따로 관리" → 돈 이동은 팀2 `account` 연결계좌를 쓰므로 문제는 그대로라고 문구 보완. 문구는 대화에서 사용자에게 제공 | 사용자가 전달, 답 대기 |
 | 팀3 | ~~예금·적금 가입 시 계좌 생성 규칙 문서 전달~~ | 10-20 사용자가 문서 삭제 (팀3 예적금이 main에 들어옴) |
 | 팀3 | ~~대출금 입금(`AccountService.deposit()`)~~ | 해결: 팀3가 `AccountTransferService.disburseLoan()`으로 구현 (`account_loan_transaction`에 기록, `transaction_history`에는 안 남김) |
 | 팀4 | 동결·해제·잠금 해제 화면에서 호출할 메서드 | **만듦 (10-16)**: `AccountManageService.freeze/unfreeze/close/unlockPassword/activatePending/rejectPending(accountId)`. 커밋 후 팀4에 전달 |

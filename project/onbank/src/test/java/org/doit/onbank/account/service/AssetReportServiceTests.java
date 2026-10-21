@@ -17,6 +17,7 @@ import java.util.List;
 import org.doit.onbank.account.dto.AssetReportView;
 import org.doit.onbank.account.dto.AssetReportView.ItemBar;
 import org.doit.onbank.account.dto.AssetReportView.Slice;
+import org.doit.onbank.account.dto.AssetReportView.SubscriptionRow;
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountType;
@@ -25,6 +26,7 @@ import org.doit.onbank.account.repository.AssetReportRepository;
 import org.doit.onbank.account.repository.LoanSummary;
 import org.doit.onbank.account.repository.MonthlyAmount;
 import org.doit.onbank.account.repository.MonthlyCashFlow;
+import org.doit.onbank.account.repository.SubscriptionSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -93,6 +95,7 @@ class AssetReportServiceTests {
 	private LoanSummary loan(long principal, long remaining, String rate) {
 		return new LoanSummary() {
 			public Long getLoanAccountId() { return 8L; }
+			public String getLoanAccountNumber() { return "4002-000-000008"; }
 			public String getProductName() { return "직장인 신용대출"; }
 			public Long getPrincipalAmount() { return principal; }
 			public Long getRemainingBalance() { return remaining; }
@@ -121,6 +124,34 @@ class AssetReportServiceTests {
 		assertThat(view.composition().get(0).percent()).isEqualTo(75.0);
 		assertThat(view.composition().get(1).dashArray()).isEmpty();		// 0원은 도넛 조각 없음
 		assertThat(view.composition().get(2).dashOffset()).isEqualTo("-75.00");	// 입출금 다음부터 시작
+	}
+
+	// (10-21) 팀3 예적금(savings_account) 원금도 자산 구성의 예금·적금에 더한다
+	@Test
+	void compositionIncludesSavingsAccountPrincipal() {
+		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account(null, AccountStatus.ACTIVE, 100_000L)));
+		given(assetReportRepository.findActiveSubscriptions(MEMBER_ID)).willReturn(List.of(
+				subscription("ONBANK 프리미엄 예금", "FIXED_DEPOSIT", 10_000_000L, 0L),
+				subscription("ONBANK 미래설계 장기적금", "INSTALLMENT_SAVINGS", 150_000L, 150_000L)));
+
+		AssetReportView view = service.getReport(MEMBER_ID, thisMonth);
+
+		assertThat(view.composition()).extracting(Slice::amount).containsExactly(100_000L, 10_000_000L, 150_000L);
+		assertThat(view.totalAssets()).isEqualTo(10_250_000L);
+		assertThat(view.subscriptions()).extracting(SubscriptionRow::typeLabel).containsExactly("예금", "적금");
+		assertThat(view.subscriptions()).extracting(SubscriptionRow::amountLabel).containsExactly("원금", "납입 금액");
+	}
+
+	private SubscriptionSummary subscription(String name, String type, long principal, long monthly) {
+		return new SubscriptionSummary() {
+			public String getProductName() { return name; }
+			public String getProductType() { return type; }
+			public Long getPrincipalAmount() { return principal; }
+			public Long getMonthlyPayment() { return monthly; }
+			public String getSubscribedAt() { return "2026-10-20"; }
+			public String getMaturityDate() { return "2029-10-20"; }
+			public Long getExpectedInterest() { return null; }
+		};
 	}
 
 	@Test
