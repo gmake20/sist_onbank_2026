@@ -1,0 +1,73 @@
+name: Deploy to Ubuntu Server
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때 트리거
+
+env:
+  SERVER_IP: 3.107.31.238
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: project/onbank   
+        
+    steps:
+    # 코드 체크아웃(가져오기)
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # JDK 21 설정
+    - name: Set up JDK 21
+      uses: actions/setup-java@v1
+      with:
+        java-version: '21'
+
+    # gradlew 권한 설정
+    - name: Set gradlew permissions
+      run: |
+        chmod +x ./gradlew
+
+    - name: Create application-local.properties
+      run: |
+        echo "${{ secrets.APPLICATION_LOCAL_PROPERTIES }}" > src/main/resources/application-local.properties
+
+
+    # gradle 빌드
+    - name: Build with Gradle
+      run: ./gradlew build
+
+    - name: Set SSH key permissions
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+
+    - name: Add SSH key
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+
+    - name: Add known_hosts
+      run: |
+        ssh-keyscan -t ed25519 "$SERVER_IP" >> ~/.ssh/known_hosts
+
+    #- name: 기존프로세스 종료
+    #  run: |
+    #    kill -9 $(ps -ef | grep devops | grep -v grep | head -n 1 | awk '{print $2}') || true
+
+    - name: Deploy to Server with rsync
+      run: | 
+         rsync -avz -e "ssh -o StrictHostKeyChecking=no" build/libs/*.jar ubuntu@$SERVER_IP:~/onbank
+
+
+    - name: Run SSH commands
+      run: |
+        ssh -i ~/.ssh/id_ed25519 ubuntu@$SERVER_IP << 'EOF'
+          pkill -f 'java -jar' || true
+          nohup java -jar ~/onbank/onbank-0.0.1-SNAPSHOT.jar > log.txt 2>&1 &
+        EOF
