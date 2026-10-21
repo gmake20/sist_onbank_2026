@@ -13,6 +13,10 @@
 			languageVersion = JavaLanguageVersion.of(21)
 		}
 	}
+	
+	jar { 
+		enabled = false 
+	}
 
 	repositories {
 		mavenCentral()
