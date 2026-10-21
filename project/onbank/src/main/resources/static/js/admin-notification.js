@@ -1,5 +1,5 @@
 // MON-001 탐지 실시간 알림 (D-71 폴링) : 관리자 공통 레이아웃에서 3초마다 내 새 알림을 조회
-// 종 아이콘 배지 = 미확인 개수, 새 알림 = 오른쪽 위 토스트 (최대 3개, 닫기만 — 링크는 탐지 화면 생기면)
+// 종 아이콘 배지 = 미확인 개수, 새 알림 = 오른쪽 위 토스트 (최대 3개). 탐지 알림 토스트를 누르면 탐지 상세(S-16)로
 // 마지막으로 본 알림 번호와 안 닫은 토스트는 탭(sessionStorage)에 관리자별로 둔다 → 메뉴를 옮겨도 빠지거나 사라지지 않음
 // 로그인이 끊기면(401) 멈춘다. 그 밖의 오류는 다음 3초에 다시 시도
 
@@ -67,8 +67,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const toast = document.createElement('div');
         toast.className = 'adm-toast';
 
-        const body = document.createElement('div');
+        // 탐지 알림(targetId = 탐지 번호)이면 본문 전체를 상세 링크로. 그 밖의 알림은 지금처럼 글자만
+        const link = item.type === 'FDS_DETECTED' && item.targetId != null;
+        const body = document.createElement(link ? 'a' : 'div');
         body.className = 'adm-toast-body';
+        if (link) {
+            body.href = `${box.dataset.fdsUrl}/${item.targetId}`;
+            body.addEventListener('click', () => forget(item));   // 누르고 간 토스트는 다시 그리지 않음
+        }
         const head = document.createElement('div');
         head.className = 'adm-toast-head';
         const kind = document.createElement('span');
@@ -90,12 +96,17 @@ document.addEventListener('DOMContentLoaded', () => {
         close.textContent = '×';
         close.addEventListener('click', () => {
             toast.remove();
-            openToasts = openToasts.filter(t => t.notificationId !== item.notificationId);
-            saveToasts();
+            forget(item);
         });
 
         toast.append(body, close);
         box.append(toast);
+    }
+
+    // 저장 목록에서 빼기 : 닫았을 때, 눌러서 상세로 갔을 때
+    function forget(item) {
+        openToasts = openToasts.filter(t => t.notificationId !== item.notificationId);
+        saveToasts();
     }
 
     // 새 알림 : 목록에 넣고 그린다. 3개가 넘으면 가장 오래된 것부터 뺀다 (화면·저장 둘 다)

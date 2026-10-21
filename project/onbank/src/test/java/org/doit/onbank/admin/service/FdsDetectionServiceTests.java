@@ -25,9 +25,12 @@ import org.doit.onbank.admin.entity.AdminRole;
 import org.doit.onbank.admin.entity.AdminStatus;
 import org.doit.onbank.admin.entity.FdsDetection;
 import org.doit.onbank.admin.entity.FdsRule;
+import org.doit.onbank.admin.entity.FdsHandlingHistory;
+import org.doit.onbank.admin.entity.FdsStatus;
 import org.doit.onbank.admin.repository.AdminNotificationRepository;
 import org.doit.onbank.admin.repository.AdminSearchRepository;
 import org.doit.onbank.admin.repository.FdsDetectionRepository;
+import org.doit.onbank.admin.repository.FdsHandlingHistoryRepository;
 import org.doit.onbank.admin.repository.FdsSearchRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 // FdsDetectionService 단위 테스트 : DB 대신 가짜(Mock) Repository, 판정기도 가짜 (판정은 FdsRuleEvaluatorTests 에서 확인)
-// 확인하는 것 : 판정 안 하는 경우, 60점 경계, 저장 값, 알림 받는 사람·문구 (D-66 포함), 조회 기간
+// 확인하는 것 : 판정 안 하는 경우, 60점 경계, 저장 값, 알림 받는 사람·문구 (D-66 포함), 추가 거래 자동 배정, 조회 기간
 // 확인하지 못하는 것 : 쿼리가 실제 데이터를 맞게 거르는지, Aspect·트랜잭션 순서 → 앱에서 실제 이체로 확인
 @ExtendWith(MockitoExtension.class)
 class FdsDetectionServiceTests {
@@ -65,6 +68,9 @@ class FdsDetectionServiceTests {
 
     @Mock
     private FdsDetectionRepository fdsDetectionRepository;
+
+    @Mock
+    private FdsHandlingHistoryRepository fdsHandlingHistoryRepository;
 
     @Mock
     private AdminNotificationRepository adminNotificationRepository;
@@ -202,6 +208,46 @@ class FdsDetectionServiceTests {
 
         verify(adminNotificationRepository).saveAll(notifications.capture());
         assertThat(notifications.getValue()).extracting(AdminNotification::getRecipientId).containsExactly(1L, 2L);
+    }
+
+    // 담당자가 있는 사건의 추가 거래 → 새 건도 같은 담당자에게 자동 배정 + 처리 이력 1줄
+    @Test
+    void additionalTransactionIsAutoAssignedToSameAssignee() {
+        given(evaluator.evaluate(any())).willReturn(List.of(hit(FdsRule.IN_THEN_OUT, 60, "입금 1,500만")));
+        FdsDetection open = FdsDetection.builder().accountId(ACCOUNT_ID).build();
+        ReflectionTestUtils.setField(open, "detectionId", 400L);
+        ReflectionTestUtils.setField(open, "assignedAdminId", 2L);
+        given(fdsDetectionRepository.findFirstByAccountIdAndStatusInOrderByDetectionIdAsc(eq(ACCOUNT_ID), any()))
+                .willReturn(Optional.of(open));
+
+        service.onTransfer(MEMBER_ID, receipt());
+
+        ArgumentCaptor<FdsDetection> saved = ArgumentCaptor.forClass(FdsDetection.class);
+        verify(fdsDetectionRepository).save(saved.capture());
+        assertThat(saved.getValue().getStatus()).isEqualTo(FdsStatus.ASSIGNED);
+        assertThat(saved.getValue().getAssignedAdminId()).isEqualTo(2L);
+
+        ArgumentCaptor<FdsHandlingHistory> history = ArgumentCaptor.forClass(FdsHandlingHistory.class);
+        verify(fdsHandlingHistoryRepository).save(history.capture());
+        assertThat(history.getValue().getDetectionId()).isEqualTo(DETECTION_ID);
+        assertThat(history.getValue().getAdminId()).isEqualTo(2L);
+        assertThat(history.getValue().getStage()).isEqualTo(FdsStatus.ASSIGNED);
+        assertThat(history.getValue().getMemo()).isEqualTo("추가 거래 자동 배정 (같은 계좌 #400 담당자)");
+    }
+
+    // 미배정 사건의 추가 거래 → 미확인 그대로, 처리 이력 없음 (누가 맡을 때 묶음 배정으로 함께 넘어감)
+    @Test
+    void additionalTransactionWithoutAssigneeStaysUnchecked() {
+        given(evaluator.evaluate(any())).willReturn(List.of(hit(FdsRule.IN_THEN_OUT, 60, "입금 1,500만")));
+        given(fdsDetectionRepository.findFirstByAccountIdAndStatusInOrderByDetectionIdAsc(eq(ACCOUNT_ID), any()))
+                .willReturn(Optional.of(FdsDetection.builder().accountId(ACCOUNT_ID).build()));
+
+        service.onTransfer(MEMBER_ID, receipt());
+
+        ArgumentCaptor<FdsDetection> saved = ArgumentCaptor.forClass(FdsDetection.class);
+        verify(fdsDetectionRepository).save(saved.capture());
+        assertThat(saved.getValue().getStatus()).isEqualTo(FdsStatus.UNCHECKED);
+        verify(fdsHandlingHistoryRepository, never()).save(any());
     }
 
     // 조회 기간이 설정값대로 잘리는지 + 처음 보내는 계좌 판정

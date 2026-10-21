@@ -12,11 +12,13 @@ import org.doit.onbank.admin.entity.AdminNotification;
 import org.doit.onbank.admin.entity.AdminRole;
 import org.doit.onbank.admin.entity.AdminStatus;
 import org.doit.onbank.admin.entity.FdsDetection;
+import org.doit.onbank.admin.entity.FdsHandlingHistory;
 import org.doit.onbank.admin.entity.FdsRule;
 import org.doit.onbank.admin.entity.FdsStatus;
 import org.doit.onbank.admin.repository.AdminNotificationRepository;
 import org.doit.onbank.admin.repository.AdminSearchRepository;
 import org.doit.onbank.admin.repository.FdsDetectionRepository;
+import org.doit.onbank.admin.repository.FdsHandlingHistoryRepository;
 import org.doit.onbank.admin.repository.FdsSearchRepository;
 import org.doit.onbank.common.security.ActorType;
 import org.doit.onbank.otp.entity.OtpStatus;
@@ -46,6 +48,7 @@ public class FdsDetectionService {
     private final FdsRuleEvaluator evaluator;
     private final FdsRuleSettings settings;
     private final FdsDetectionRepository fdsDetectionRepository;
+    private final FdsHandlingHistoryRepository fdsHandlingHistoryRepository;
     private final AdminNotificationRepository adminNotificationRepository;
     private final AdminSearchRepository adminSearchRepository;
 
@@ -126,6 +129,18 @@ public class FdsDetectionService {
         }
         // D-66 : 처리 중 탐지가 있는 계좌. 담당자가 있으면 그 사람만, 미배정이면 전체
         Long assigned = open.get().getAssignedAdminId();
+        if (assigned != null) {
+            // 이미 누가 맡은 사건의 추가 거래 → 새 건도 같은 담당자에게 (다른 관리자가 따로 맡아 사건이 갈라지지 않게)
+            // saved 는 이 트랜잭션 안의 엔티티라 assign() 만 하면 끝날 때 UPDATE 된다
+            saved.assign(assigned, LocalDateTime.now());
+            fdsHandlingHistoryRepository.save(FdsHandlingHistory.builder()
+                    .detectionId(saved.getDetectionId())
+                    .adminId(assigned)
+                    .stage(FdsStatus.ASSIGNED)
+                    .memo("추가 거래 자동 배정 (같은 계좌 #" + open.get().getDetectionId() + " 담당자)")
+                    .build());
+            log.info("FDS 추가 거래 자동 배정 detection={} admin={}", saved.getDetectionId(), assigned);
+        }
         send(assigned != null ? List.of(assigned) : allAdmins(), saved,
                 "[추가 거래] 처리 중인 탐지에 추가 거래: " + (openCount + 1) + "번째 · " + summary);
     }

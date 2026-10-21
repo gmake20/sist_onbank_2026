@@ -910,6 +910,16 @@ a {
     min-width: 0;
 }
 
+/* 탐지 알림 토스트는 본문이 상세 링크 (MON-001 → S-16). 글자색은 그대로, 누를 수 있다는 것만 표시 */
+a.adm-toast-body {
+    color: inherit;
+    text-decoration: none;
+}
+
+a.adm-toast-body:hover .adm-toast-msg {
+    text-decoration: underline;
+}
+
 .adm-toast-head {
     display: flex;
     align-items: baseline;
@@ -954,5 +964,416 @@ a {
 @media (max-width: 640px) {
     .adm-toasts {
         right: 16px;
+    }
+}
+
+/* ── S-16 이상거래 탐지 상세 (2026-10-22 v2). 강조는 점수 막대 하나, 빨강은 미확인 배지에만 ── */
+/* 규칙 점수 막대 색 : 파랑(#1f4fb8) 명도 단계. 점수 큰 순서대로 진한 색 */
+:root {
+    --det-s1: #1f4fb8;
+    --det-s2: #4a6fc6;
+    --det-s3: #7591d4;
+    --det-s4: #a3b5e2;
+    --det-s5: #c5d1ee;
+}
+
+.det-num {
+    font-variant-numeric: tabular-nums;
+}
+
+/* 목록으로 : 테두리 박스 대신 글자 링크 */
+.det-back {
+    align-self: flex-start;
+    padding: 4px 0;
+    font-size: 14px;
+    color: var(--adm-sub);
+    text-decoration: none;
+}
+
+.det-back:hover {
+    color: var(--adm-text);
+    text-decoration: underline;
+}
+
+/* 머리 카드 */
+.det-head {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px 32px;
+}
+
+.det-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.det-title h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.det-title time {
+    margin-left: auto;
+    font-size: 14px;
+    color: var(--adm-sub);
+}
+
+.det-score {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 20px;
+}
+
+.det-score-num {
+    font-size: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.det-score-num small {
+    margin-left: 2px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--adm-sub);
+}
+
+.det-bar-wrap {
+    position: relative;
+    padding: 0 0 20px;
+}
+
+.det-bar {
+    display: flex;
+    height: 16px;
+    background: var(--adm-bg);
+    border: 1px solid var(--adm-line);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.det-bar i {
+    display: block;
+    height: 100%;
+    border-right: 2px solid #fff;
+}
+
+.det-tick {
+    position: absolute;
+    top: -4px;
+    height: 24px;
+    border-left: 1px dashed var(--adm-text);
+}
+
+.det-tick span {
+    position: absolute;
+    top: 26px;
+    left: 0;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--adm-sub);
+    white-space: nowrap;
+}
+
+/* 처리 단계 : 지금 단계만 진하게 */
+.det-steps {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--adm-line);
+    list-style: none;
+    font-size: 14px;
+    color: var(--adm-sub);
+}
+
+.det-steps li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.det-steps li + li::before {
+    content: "";
+    width: 24px;
+    border-top: 1px solid var(--adm-line);
+}
+
+.det-steps .now {
+    color: var(--adm-text);
+    font-weight: 700;
+}
+
+.det-steps .now::after {
+    content: "현재";
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: var(--adm-active);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* 본문 2칸 */
+.det-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.det-sec {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 32px;
+}
+
+.det-sec h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.det-sec h3 small {
+    margin-left: 6px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--adm-sub);
+}
+
+.det-sec a {
+    color: var(--adm-blue);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* 걸린 규칙 : 막대와 같은 색 네모로 짝을 지음 */
+.det-rules {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.det-rules li {
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    column-gap: 12px;
+    align-items: baseline;
+    padding: 12px 0;
+    border-top: 1px solid var(--adm-bg);
+}
+
+.det-rules li:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.det-rules .sw {
+    align-self: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.det-rules .name {
+    font-size: 14px;
+}
+
+.det-rules .basis {
+    grid-column: 2;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--adm-sub);
+}
+
+.det-rules .pt {
+    grid-row: 1;
+    grid-column: 3;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.det-sum {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--adm-text);
+    font-size: 14px;
+}
+
+.det-sum b {
+    font-size: 16px;
+}
+
+/* 거래 · 계좌 : 금액을 먼저, 나머지는 이름표-값 */
+.det-amount {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.det-amount small {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--adm-sub);
+}
+
+.det-dl {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px 16px;
+    margin: 0;
+    font-size: 14px;
+}
+
+.det-dl dt {
+    color: var(--adm-sub);
+}
+
+.det-dl dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.det-split {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--adm-line);
+}
+
+.det-warn {
+    font-weight: 700;
+}
+
+/* 상세 머리 카드 아래 처리 버튼 줄 (FDS-004~) */
+.det-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--adm-sub);
+}
+
+/* 고객 연락 결과 입력 (FDS-006) : 일시·방법 한 줄, 판단 결과 한 줄, 통화 내용 한 줄 */
+.det-contact {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.det-contact .wide {
+    grid-column: 1 / -1;
+}
+
+.det-contact .adm-field input,
+.det-contact .adm-field select,
+.det-contact textarea {
+    width: 100%;
+}
+
+.det-contact textarea {
+    min-height: 88px;
+    padding: 10px;
+    border: 1px solid #8a94a6;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+.det-hint {
+    font-size: 12px;
+    color: var(--adm-sub);
+}
+
+/* 판단 결과 : 보이는 선택지 3개. 고른 것만 파랑 테두리 */
+.det-radios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.det-radios legend {
+    margin-bottom: 6px;
+    padding: 0;
+    font-size: 14px;
+}
+
+.det-radios label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--adm-line);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.det-radios label:has(input:checked) {
+    border-color: var(--adm-blue);
+    background: var(--adm-active);
+    font-weight: 500;
+}
+
+.det-radios .adm-error {
+    flex-basis: 100%;
+}
+
+.det-form-btns {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* 빈 상태 안내 (처리 이력 없음, 규칙 정보 없음) */
+.det-empty {
+    margin: 0;
+    padding: 20px;
+    border-radius: 6px;
+    background: var(--adm-bg);
+    font-size: 14px;
+    text-align: center;
+    color: var(--adm-sub);
+}
+
+@media (max-width: 960px) {
+    .det-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .det-head,
+    .det-sec {
+        padding: 20px 16px;
+    }
+
+    .det-score {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .det-title time {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .det-contact {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

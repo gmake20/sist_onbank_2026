@@ -54,10 +54,11 @@
         </main>
     </div>
 </div>
-<!-- MON-001 새 알림 토스트 자리 (A안). 3초 폴링 API 주소는 data-url, 탭 저장 구분용 관리자 번호는 data-admin-id -->
+<!-- MON-001 새 알림 토스트 자리 (A안). 3초 폴링 API 주소는 data-url, 탭 저장 구분용 관리자 번호는 data-admin-id, 토스트를 누르면 갈 탐지 상세 앞주소는 data-fds-url -->
 <div class="adm-toasts" id="admToasts" aria-live="polite"
      th:data-url="@{/admin/api/notifications}"
-     th:data-admin-id="${#authentication.principal.adminId}"></div>
+     th:data-admin-id="${#authentication.principal.adminId}"
+     th:data-fds-url="@{/admin/fds}"></div>
 <script th:src="@{/js/admin-notification.js}"></script>
 </body>
 </html>

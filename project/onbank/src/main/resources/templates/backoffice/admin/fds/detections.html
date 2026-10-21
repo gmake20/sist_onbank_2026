@@ -44,6 +44,7 @@
     </form>
 
     <div class="adm-alert" role="alert" th:if="${searchError}" th:text="${searchError}"></div>
+    <div class="adm-alert" role="alert" th:if="${error != null}" th:text="${error}"></div>
 
     <section class="adm-card">
         <div class="adm-card-head">
@@ -78,7 +79,9 @@
                               th:text="${statusLabels[d.status] ?: d.status}">미확인</span></td>
                     <td th:text="${d.assignedAdminName ?: '미배정'}">미배정</td>
                     <!-- 상세(S-16)는 다음 작업. 그 전까지 누르면 페이지 없음 -->
-                    <td><a class="adm-btn adm-btn-sm adm-btn-link" th:href="@{/admin/fds/{id}(id=${d.detectionId})}">상세</a></td>
+                    <!-- 지금 검색 조건을 같이 넘겨서 상세의 "탐지 목록"이 같은 목록으로 돌아오게 -->
+                    <td><a class="adm-btn adm-btn-sm adm-btn-link"
+                           th:href="@{/admin/fds/{id}(id=${d.detectionId}, status=${status}, from=${from}, to=${to}, accountNumber=${accountNumber}, mine=${mine}, page=${detections.number})}">상세</a></td>
                 </tr>
                 <tr th:if="${detections.totalElements == 0}">
                     <td colspan="8" class="adm-empty">검색 결과가 없습니다.</td>
