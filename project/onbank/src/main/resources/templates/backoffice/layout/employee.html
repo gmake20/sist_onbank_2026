@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!-- 직원 화면 공통 틀. 관리자 틀(backoffice/layout/admin.html)과 같은 모양, 사이드바·로그아웃만 직원용 -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title layout:title-pattern="$CONTENT_TITLE - ONBANK 직원">ONBANK 직원</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+    <link rel="stylesheet" th:href="@{/css/backoffice/admin.css}">
+</head>
+<body>
+<div class="adm-wrap">
+    <nav th:replace="~{backoffice/fragments/employee-sidebar :: sidebar}"></nav>
+
+    <div class="adm-body">
+        <header class="adm-header">
+            <div>
+                <div class="adm-breadcrumb" layout:fragment="breadcrumb">직원 콘솔</div>
+                <h1 class="adm-page-title" layout:fragment="page-title">페이지 제목</h1>
+            </div>
+            <div class="adm-header-right">
+                <div class="adm-user">
+                    <!-- 이름 첫 글자 (principal = 팀원1 EmployeePrincipal) -->
+                    <div class="adm-avatar" aria-hidden="true"
+                         th:text="${#strings.substring(#authentication.principal.name, 0, 1)}">이</div>
+                    <div>
+                        <div class="adm-user-name" sec:authentication="principal.name">이름</div>
+                        <div class="adm-user-role" sec:authentication="principal.role">역할</div>
+                    </div>
+                </div>
+                <!-- 로그아웃은 POST (CSRF 토큰은 th:action이 자동으로 넣음) -->
+                <form th:action="@{/employee/logout}" method="post">
+                    <button type="submit" class="adm-btn">로그아웃</button>
+                </form>
+            </div>
+        </header>
+
+        <main class="adm-main" layout:fragment="content">
+            본문 자리
+        </main>
+    </div>
+</div>
+</body>
+</html>

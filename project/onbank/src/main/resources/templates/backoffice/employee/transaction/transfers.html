@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/employee}">
+<head>
+    <title>거래 조회</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">직원 콘솔 / 고객 · 계좌 / 거래 조회</div>
+<h1 layout:fragment="page-title">거래 조회</h1>
+<main layout:fragment="content">
+
+    <!-- 관리자 이체내역(backoffice/admin/transaction/transfers.html) 복사본. 계좌번호 정확히 입력(필수)만 다르다
+         탭은 주소가 다른 링크. 넣어 둔 계좌번호는 탭을 옮겨도 그대로 붙여 준다 -->
+    <nav class="adm-tabs" aria-label="거래 종류">
+        <a class="adm-tab" th:href="@{/employee/transactions(accountNumber=${accountNumber})}">전체 거래</a>
+        <a class="adm-tab active" aria-current="page" th:href="@{/employee/transactions/transfers(accountNumber=${accountNumber})}">이체내역</a>
+    </nav>
+
+    <form class="adm-search" method="get" th:action="@{/employee/transactions/transfers}">
+        <div class="adm-field">
+            <label for="from">기간</label>
+            <div class="adm-range">
+                <input type="date" id="from" name="from" th:value="${from}" required aria-label="시작일">
+                <span aria-hidden="true">~</span>
+                <input type="date" id="to" name="to" th:value="${to}" required aria-label="종료일">
+            </div>
+        </div>
+        <div class="adm-field">
+            <label for="accountNumber">계좌번호</label>
+            <input type="text" class="adm-input-sm" id="accountNumber" name="accountNumber" th:value="${accountNumber}" placeholder="계좌번호 전체 (필수)" required>
+        </div>
+        <div class="adm-field">
+            <label for="min">금액 범위 (원)</label>
+            <div class="adm-range adm-range-sm">
+                <input type="number" id="min" name="min" th:value="${min}" min="0" step="1" placeholder="최소" aria-label="최소 금액">
+                <span aria-hidden="true">~</span>
+                <input type="number" id="max" name="max" th:value="${max}" min="0" step="1" placeholder="최대" aria-label="최대 금액">
+            </div>
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/employee/transactions/transfers}">초기화</a>
+        </div>
+    </form>
+
+    <div class="adm-alert" role="alert" th:if="${searchError}" th:text="${searchError}"></div>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>전체 <b th:text="${transfers.totalElements}">0</b>건</span>
+            <span>최신순 · 20건씩 보기</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>이체일시</th><th>이체번호</th><th>유형</th><th>출금 계좌</th><th>입금 계좌</th><th>금액</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${transfers}">
+                    <td th:text="${#temporals.format(r.transferAt, 'yyyy-MM-dd HH:mm')}">YYYY-MM-DD HH:mm</td>
+                    <td th:text="${r.transferId}">1</td>
+                    <td th:text="${typeLabels.get(r.transferType) ?: (r.transferType ?: '–')}">즉시</td>
+                    <td th:text="|${r.withdrawalAccountNumber} (${r.withdrawalMemberName})|">1002-111 (이름)</td>
+                    <!-- 입금 계좌 회원은 타행이면 없다 (지금은 당행 이체만 있음) -->
+                    <td th:text="${r.depositMemberName != null} ? |${r.depositAccountNumber} (${r.depositMemberName})| : ${r.depositAccountNumber}">1002-222 (이름)</td>
+                    <td th:text="|${#numbers.formatInteger(r.amount, 1, 'COMMA')}원|">0원</td>
+                </tr>
+                <tr th:if="${transfers.totalElements == 0}">
+                    <td colspan="6" class="adm-empty">검색 결과가 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : transactions.html 과 같은 방식 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${transfers.totalPages > 1}"
+             th:with="start=${transfers.number > 4 ? transfers.number - 4 : 0},
+                      end=${start + 9 < transfers.totalPages - 1 ? start + 9 : transfers.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${transfers.hasPrevious()}"
+               th:href="@{/employee/transactions/transfers(from=${from}, to=${to}, accountNumber=${accountNumber}, min=${min}, max=${max}, page=${transfers.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == transfers.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == transfers.number}" th:text="${p + 1}"
+                   th:href="@{/employee/transactions/transfers(from=${from}, to=${to}, accountNumber=${accountNumber}, min=${min}, max=${max}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${transfers.hasNext()}"
+               th:href="@{/employee/transactions/transfers(from=${from}, to=${to}, accountNumber=${accountNumber}, min=${min}, max=${max}, page=${transfers.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">계좌번호 전체를 정확히 넣어야 조회합니다 (하이픈은 없어도 됨). 보낸 계좌·받은 계좌 어느 쪽이든 찾습니다. 이체 1건이 1줄입니다 (전체 거래 탭에서는 보낸 쪽·받은 쪽 2줄). 실패한 이체는 기록이 남지 않아 상태 칸이 없습니다. 유형: 즉시 = 고객이 바로 보낸 이체, 예약·정기 = 정해 둔 날 자동 실행.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{backoffice/layout/employee}">
+<head>
+    <title>홈</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">직원 콘솔 / 홈</div>
+<h1 layout:fragment="page-title">홈</h1>
+<main layout:fragment="content">
+
+    <!-- 업무 바로가기. 회원·계좌·거래 조회는 만들면서 추가 -->
+    <section class="adm-kpis" aria-label="업무 바로가기">
+        <a class="adm-kpi" th:href="@{/employee/members}">
+            <span class="adm-kpi-label">회원 조회</span>
+            <span class="adm-kpi-go">회원 조회로 이동</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/employee/accounts}">
+            <span class="adm-kpi-label">계좌 조회</span>
+            <span class="adm-kpi-go">계좌 조회로 이동</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/employee/transactions}">
+            <span class="adm-kpi-label">거래 조회</span>
+            <span class="adm-kpi-go">거래 조회로 이동</span>
+        </a>
+        <a class="adm-kpi" th:href="@{/employee/loans/review}">
+            <span class="adm-kpi-label">대출 심사</span>
+            <span class="adm-kpi-go">대출 심사로 이동</span>
+        </a>
+        <a class="adm-kpi" sec:authorize="hasRole('MANAGER')" th:href="@{/employee/loan/products/register}">
+            <span class="adm-kpi-label">대출 상품 등록</span>
+            <span class="adm-kpi-go">대출 상품 등록으로 이동</span>
+        </a>
+    </section>
+
+</main>
+</body>
+</html>

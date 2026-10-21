@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!-- 직원 사이드바. 역할별 메뉴는 04-화면목록 5장 기준 -->
+<!-- 홈은 andy EmployeeHomeController 가 그려서 currentUri(AdminLayoutAdvice)가 안 들어온다 → 빈 문자열로 처리 -->
+<body>
+<nav class="adm-side" th:fragment="sidebar" aria-label="직원 메뉴" th:with="uri=${currentUri ?: ''}">
+
+    <div class="adm-logo"><span class="adm-logo-mark">ON</span>ONBANK 직원</div>
+
+    <div class="adm-group">홈</div>
+    <a class="adm-menu" th:href="@{/employee}" th:classappend="${uri == '' or uri == '/employee'} ? 'active'">
+        <span class="adm-ico"></span>홈</a>
+
+    <div class="adm-group">고객 · 계좌</div>
+    <a class="adm-menu" th:href="@{/employee/members}" th:classappend="${#strings.startsWith(uri, '/employee/members')} ? 'active'">
+        <span class="adm-ico"></span>회원 조회</a>
+    <a class="adm-menu" th:href="@{/employee/accounts}" th:classappend="${#strings.startsWith(uri, '/employee/accounts')} ? 'active'">
+        <span class="adm-ico"></span>계좌 조회</a>
+    <a class="adm-menu" th:href="@{/employee/transactions}" th:classappend="${#strings.startsWith(uri, '/employee/transactions')} ? 'active'">
+        <span class="adm-ico"></span>거래 조회</a>
+
+    <!-- 대출 화면은 팀원3 작성 -->
+    <div class="adm-group">대출</div>
+    <a class="adm-menu" th:href="@{/employee/loans/review}">
+        <span class="adm-ico"></span>대출 심사</a>
+    <a class="adm-menu" sec:authorize="hasRole('MANAGER')" th:href="@{/employee/loan/products/register}">
+        <span class="adm-ico"></span>대출 상품 등록</a>
+</nav>
+</body>
+</html>

@@ -44,7 +44,8 @@ public class EmployeeHomeController {
 		model.addAttribute("me", me);
 		model.addAttribute("roleName", me.getRole().name());
 		model.addAttribute("logoutUrl", "/employee/logout");
-		return "backoffice/home";
+		// return "backoffice/home";
+		return "backoffice/employee/home";
 	}
 
 	// 비밀번호 변경 화면 (직원·관리자 공용 화면). 임시 비밀번호면 로그인 직후 이 화면으로 온다
