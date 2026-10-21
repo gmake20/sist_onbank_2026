@@ -84,11 +84,14 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         STATUS: ${{ job.status }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        COMMITS: ${{ toJSON(github.event.commits) }}
       run: |
         if [ -z "$SLACK_WEBHOOK_URL" ]; then
           echo "SLACK_WEBHOOK_URL 이 없어 알림을 건너뜁니다."
           exit 0
         fi
         if [ "$STATUS" = "success" ]; then ICON=":white_check_mark:"; else ICON=":x:"; fi
-        TEXT="$ICON onbank 배포 $STATUS (${GITHUB_SHA::7}, $GITHUB_ACTOR) $RUN_URL"
+        # 이번 push에 포함된 커밋 목록 (커밋 메시지 첫 줄, 최대 10개)
+        CHANGES=$(echo "$COMMITS" | jq -r '.[-10:][] | "• <\(.url)|\(.id[0:7])> \(.message | split("\n")[0]) - \(.author.name)"')
+        TEXT="$ICON onbank 배포 $STATUS ($GITHUB_ACTOR) <$RUN_URL|실행 로그>"$'\n'"$CHANGES"
         jq -n --arg text "$TEXT" '{text: $text}' | curl -sS -X POST -H 'Content-Type: application/json' -d @- "$SLACK_WEBHOOK_URL"
