@@ -75,4 +75,36 @@ public class SavingsProduct {
         this.maxAmount = maxAmount;
         this.active = true;
     }
+
+    // ---- 관리자 상품 관리용 (팀원4 추가, 2026-10-21) ----
+    // 유형·가입기간은 바꾸지 않는다 : 계좌가 termMonths 를 계속 읽어서(SavingsService 납입 회차) 기존 가입자에게 영향
+    // 검사는 생성자와 같은 규칙
+    public void changeTerms(String name, BigDecimal annualRate, long minAmount, long maxAmount) {
+        if (name == null
+                || name.isBlank()
+                || annualRate == null
+                || annualRate.signum() < 0
+                || annualRate.compareTo(new BigDecimal("100")) > 0
+                || minAmount < 1
+                || maxAmount < minAmount) {
+
+            throw new IllegalArgumentException(
+                "상품 정보가 올바르지 않습니다."
+            );
+        }
+
+        this.name = name;
+        this.annualRate = annualRate;
+        this.minAmount = minAmount;
+        this.maxAmount = maxAmount;
+    }
+
+    // 판매중지 = active false → 고객 상품 목록·상세·가입에서 빠진다. 이미 가입한 계좌는 그대로
+    public void stopSale() {
+        this.active = false;
+    }
+
+    public void resumeSale() {
+        this.active = true;
+    }
 }

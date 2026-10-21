@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>상품 관리</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 상품 · 대출 / 상품 관리</div>
+<h1 layout:fragment="page-title">상품 관리</h1>
+<main layout:fragment="content">
+
+    <form class="adm-search" method="get" th:action="@{/admin/products}">
+        <div class="adm-field">
+            <label for="name">상품명</label>
+            <input type="text" id="name" name="name" th:value="${name}" placeholder="일부만 입력 가능">
+        </div>
+        <div class="adm-field">
+            <label for="type">유형</label>
+            <select id="type" name="type">
+                <option value="">전체</option>
+                <option th:each="t : ${types}" th:value="${t}" th:text="${typeLabels[t.name()] ?: t}" th:selected="${t == type}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="active">판매 상태</label>
+            <select id="active" name="active">
+                <option value="">전체</option>
+                <option value="true" th:selected="${active == true}">판매중</option>
+                <option value="false" th:selected="${active == false}">판매중지</option>
+            </select>
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/products}">초기화</a>
+        </div>
+    </form>
+
+    <div class="adm-alert" role="alert" th:if="${error != null}" th:text="${error}"></div>
+    <p class="adm-note" role="status" th:if="${message != null}" th:text="${message}"></p>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>전체 <b th:text="${products.totalElements}">0</b>건 · 최근 등록 순 · 20건씩 보기</span>
+            <!-- S-11 상품 등록 -->
+            <a class="adm-btn-primary" th:href="@{/admin/products/new}">+ 상품 등록</a>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>상품 ID</th><th>상품명</th><th>유형</th><th>연이율</th><th>가입 기간</th><th>금액 범위</th><th>판매 상태</th><th>관리</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${products}">
+                    <td th:text="${p.id}">12</td>
+                    <td th:text="${p.name}">든든 정기예금</td>
+                    <td th:text="${typeLabels[p.type.name()] ?: p.type}">정기예금</td>
+                    <td th:text="|${p.annualRate}%|">3.5000%</td>
+                    <td th:text="|${p.termMonths}개월|">12개월</td>
+                    <!-- 정기예금 = 처음 맡기는 금액, 정기적금 = 매달 넣는 금액 -->
+                    <td th:text="|${p.type.name() == 'INSTALLMENT_SAVINGS' ? '월 ' : ''}${#numbers.formatInteger(p.minAmount, 1, 'COMMA')} ~ ${#numbers.formatInteger(p.maxAmount, 1, 'COMMA')}원|">100,000 ~ 10,000,000원</td>
+                    <td><span class="adm-badge" th:text="${p.active} ? '판매중' : '판매중지'">판매중</span></td>
+                    <!-- 판매중 → 판매중지 / 판매중지 → 다시 판매. 수정은 둘 다 -->
+                    <td>
+                        <a class="adm-btn adm-btn-sm adm-btn-link" th:href="@{/admin/products/{id}/edit(id=${p.id})}">수정</a>
+                        <button type="button" class="adm-btn adm-btn-sm" th:if="${p.active}" data-product-action="stop"
+                                th:attr="data-id=${p.id}, data-name=${p.name}, data-status='판매중'">판매중지</button>
+                        <button type="button" class="adm-btn adm-btn-sm" th:unless="${p.active}" data-product-action="resume"
+                                th:attr="data-id=${p.id}, data-name=${p.name}, data-status='판매중지'">다시 판매</button>
+                    </td>
+                </tr>
+                <tr th:if="${products.totalElements == 0}">
+                    <td colspan="8" class="adm-empty">검색 결과가 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : accounts.html 과 같은 방식. 링크마다 검색 조건을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${products.totalPages > 1}"
+             th:with="start=${products.number > 4 ? products.number - 4 : 0},
+                      end=${start + 9 < products.totalPages - 1 ? start + 9 : products.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${products.hasPrevious()}"
+               th:href="@{/admin/products(name=${name}, type=${type}, active=${active}, page=${products.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == products.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == products.number}" th:text="${p + 1}"
+                   th:href="@{/admin/products(name=${name}, type=${type}, active=${active}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${products.hasNext()}"
+               th:href="@{/admin/products(name=${name}, type=${type}, active=${active}, page=${products.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">예적금 상품만 표시합니다. 대출 상품은 대출 상품 화면에서 관리합니다. 등록일 칸이 없어 상품 ID 최신순으로 보여 줍니다.</p>
+
+    <!-- 판매중지·다시 판매 사유 : accounts.html M-01 과 같은 방식. 모달 하나를 버튼에 따라 문구·주소만 바꿔 쓴다
+         hidden 칸 = 지금 보던 검색 조건 → 처리 후 같은 목록으로 돌아온다 -->
+    <div class="adm-modal-backdrop" id="productModal" hidden>
+        <form class="adm-modal" id="productForm" method="post" th:action="@{/admin/products}"
+              role="dialog" aria-modal="true" aria-labelledby="productTitle">
+            <input type="hidden" name="name" th:value="${name}">
+            <input type="hidden" name="type" th:value="${type}">
+            <input type="hidden" name="active" th:value="${active}">
+            <input type="hidden" name="page" th:value="${products.number}">
+            <div class="adm-modal-head">
+                <h2 id="productTitle"></h2>
+                <p id="productDesc"></p>
+            </div>
+            <dl>
+                <dt>상품명</dt><dd id="pdName"></dd>
+                <dt>현재 상태</dt><dd id="pdStatus"></dd>
+            </dl>
+            <div class="adm-field">
+                <label for="productReason">사유 (필수)</label>
+                <input type="text" id="productReason" name="reason" maxlength="200" required>
+            </div>
+            <div class="adm-modal-btns">
+                <button type="button" class="adm-btn" id="productCancel">취소</button>
+                <button type="submit" class="adm-btn-primary" id="productOk"></button>
+            </div>
+        </form>
+    </div>
+    <script>
+        (function () {
+            var modal = document.getElementById('productModal');
+            var form = document.getElementById('productForm');
+            var base = form.getAttribute('action');
+            var reason = document.getElementById('productReason');
+            var texts = {
+                stop:   { title: '이 상품을 판매중지할까요?', ok: '판매중지', ph: '예: 금리 조건 변경으로 판매 종료',
+                    desc: '판매중지하면 고객 상품 목록·상세에서 빠지고 새로 가입할 수 없습니다. 이미 가입한 고객은 그대로입니다. 처리 내용과 사유는 활동 로그에 남습니다.' },
+                resume: { title: '이 상품을 다시 판매할까요?', ok: '다시 판매', ph: '예: 판매 재개 결정',
+                    desc: '다시 판매하면 고객 상품 목록에 보이고 가입할 수 있습니다. 같은 이름의 판매중 상품이 있으면 다시 판매할 수 없습니다. 처리 내용과 사유는 활동 로그에 남습니다.' }
+            };
+            var opener = null;
+
+            function close() { modal.hidden = true; if (opener) { opener.focus(); } }
+
+            document.querySelectorAll('[data-product-action]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var t = texts[btn.dataset.productAction];
+                    opener = btn;
+                    form.setAttribute('action', base + '/' + btn.dataset.id + '/' + btn.dataset.productAction);
+                    document.getElementById('productTitle').textContent = t.title;
+                    document.getElementById('productDesc').textContent = t.desc;
+                    document.getElementById('productOk').textContent = t.ok;
+                    document.getElementById('pdName').textContent = btn.dataset.name;
+                    document.getElementById('pdStatus').textContent = btn.dataset.status;
+                    reason.value = '';
+                    reason.placeholder = t.ph;
+                    modal.hidden = false;
+                    reason.focus();
+                });
+            });
+            document.getElementById('productCancel').addEventListener('click', close);
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !modal.hidden) { close(); } });
+        })();
+    </script>
+
+</main>
+</body>
+</html>
