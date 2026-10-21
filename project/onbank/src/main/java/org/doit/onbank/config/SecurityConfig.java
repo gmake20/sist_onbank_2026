@@ -168,8 +168,8 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				// 비회원 공개 : 회원가입, 가입용 휴대폰·이메일 인증 API, 비밀번호 찾기 (아래 anyRequest를 잠가도 열려 있어야 함)
 				.requestMatchers("/signup", "/api/phone/**", "/api/email/**", "/password/find").permitAll()
-				// 비회원 공개 : 지점/ATM 찾기
-				.requestMatchers("/branches", "/api/branches").permitAll()
+				// 비회원 공개 : 지점/ATM 찾기, 고객센터 안내
+				.requestMatchers("/branches", "/api/branches", "/customer").permitAll()
 				// 로그인한 고객만
 				.requestMatchers("/mybank/**").hasRole("USER")
 				.requestMatchers("/loan/apply", "/loan/apply/**").authenticated()
