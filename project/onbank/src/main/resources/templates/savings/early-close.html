@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>예적금 중도해지 확인 | ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}">
+<style>
+.early-shell{max-width:680px;margin:48px auto;padding:0 20px}.early-card{border:1px solid #e2e8f0;border-radius:18px;background:white;padding:28px;box-shadow:0 8px 24px #1638640a}.early-title{font-size:28px;margin-bottom:8px}.early-sub{color:#64748b}.early-list{margin:26px 0}.early-line{display:flex;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:1px solid #edf1f7}.early-line strong{font-variant-numeric:tabular-nums}.early-total{font-size:20px;color:#1d4ed8}.early-note{font-size:13px;color:#64748b;line-height:1.65}.early-actions{display:flex;gap:10px;margin-top:25px}.early-btn{border-radius:9px;padding:12px 18px;text-decoration:none;border:1px solid #cbd5e1;background:#fff;color:#334155;cursor:pointer;font-weight:650}.early-btn.danger{background:#1d4ed8;color:#fff;border-color:#1d4ed8}
+</style></head>
+<body><div th:replace="~{fragments/header :: headerFragment}"></div>
+<main class="early-shell"><article class="early-card">
+  <h1 class="early-title">예적금 중도해지 확인</h1>
+  <p class="early-sub">만기 전에 해지하면 약정금리가 아닌 중도해지이율이 적용됩니다.</p>
+  <div class="early-list">
+    <div class="early-line"><span>원금</span><strong th:text="|${#numbers.formatInteger(quote.principal,1,'COMMA')}원|">0원</strong></div>
+    <div class="early-line"><span>중도해지 연이율</span><strong th:text="|${quote.annualRate}%|">0%</strong></div>
+    <div class="early-line"><span>세전 이자</span><strong th:text="|${#numbers.formatInteger(quote.grossInterest,1,'COMMA')}원|">0원</strong></div>
+    <div class="early-line"><span>예상 세금</span><strong th:text="|${#numbers.formatInteger(quote.tax,1,'COMMA')}원|">0원</strong></div>
+    <div class="early-line early-total"><span>예상 지급액</span><strong th:text="|${#numbers.formatInteger(quote.payout,1,'COMMA')}원|">0원</strong></div>
+  </div>
+  <p class="early-note">예시 세율 15.4%, 단리·365일 기준. 확인 버튼을 누를 때 서버에서 금액을 다시 계산합니다. 상품별 규정과 실제 과세 방식에 따라 결과는 달라질 수 있습니다.</p>
+  <div class="early-actions">
+    <a class="early-btn" th:href="@{/savings/{id}(id=${accountId})}">취소</a>
+    <form th:action="@{/savings/{id}/early-close(id=${accountId})}" method="post" onsubmit="return confirm('예적금을 중도해지하고 원리금을 지급하시겠습니까? 이 작업은 취소할 수 없습니다.');">
+      <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button class="early-btn danger" type="submit">중도해지 확정</button>
+    </form>
+  </div>
+</article></main></body></html>

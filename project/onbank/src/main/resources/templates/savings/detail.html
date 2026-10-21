@@ -87,6 +87,23 @@
                     <strong class="sd-action-label">정기예금 안내</strong>
                     <p class="sd-help">정기예금은 가입 시 일시 예치하는 상품으로 매월 추가 납입 기능이 없습니다.</p>
                 </div>
+                
+                <!-- 중도해지: 만기 전 활성 계좌만 -->
+					<div class="sd-early-close"
+					     th:if="${account.status.name() == 'ACTIVE'
+					              and T(java.time.LocalDate).now().isBefore(account.maturityOn)}">
+					
+					    <div class="sd-early-close-content">
+					        <h3>중도해지</h3>
+					        <p>만기 전 해지 시 중도해지이율이 적용됩니다.</p>
+					    </div>
+					
+					    <a class="sd-early-close-link"
+					       th:href="@{/savings/{id}/early-close(id=${account.id})}">
+					        중도해지 예상금액 확인
+					        <span aria-hidden="true">→</span>
+					    </a>
+					</div>
 
                 <div class="sd-action-box sd-close-box" th:if="${account.status.name() == 'ACTIVE'}">
                     <h3>만기 해지</h3>
@@ -96,7 +113,9 @@
                         <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <button class="sd-outline-button" type="submit">만기 해지 신청</button>
                     </form>
-                </div>
+                </div>ㄴ
+                
+                
                 <div class="sd-complete-note" th:unless="${account.status.name() == 'ACTIVE'}">현재 계좌는 이용 중 상태가 아니므로 추가 납입·만기 해지 버튼이 표시되지 않습니다.</div>
             </section>
         </div>

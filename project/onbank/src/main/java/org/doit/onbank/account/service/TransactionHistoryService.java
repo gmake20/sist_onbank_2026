@@ -8,7 +8,6 @@ import org.doit.onbank.account.entity.TransactionHistory;
 import org.doit.onbank.account.entity.TransactionStatus;
 import org.doit.onbank.account.repository.TransactionHistoryRepository;
 
-// TransactionSqnoGenerator는 기존 프로젝트의 실제 패키지에서 import
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

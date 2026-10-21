@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>장기적금 중도해지 | ONBANK</title>
+<link rel="stylesheet" th:href="@{/css/index.css}">
+<link rel="stylesheet" th:href="@{/css/savings/savings-detail.css}">
+</head>
+<body>
+	<div th:replace="~{fragments/header :: headerFragment}"></div>
+
+	<main class="sd-page">
+		<div class="sd-container">
+			<section class="sd-panel"
+				style="max-width: 680px; margin: 40px auto;">
+				<h1>장기적금 중도해지</h1>
+				<p>만기 전 해지 시 중도해지이율이 적용됩니다.</p>
+
+				<dl class="sd-details">
+					<div>
+						<dt>상품명</dt>
+						<dd th:text="${account.product.name}"></dd>
+					</div>
+					<div>
+						<dt>납입 원금</dt>
+						<dd
+							th:text="|${#numbers.formatInteger(account.principal,1,'COMMA')}원|"></dd>
+					</div>
+					<div>
+						<dt>중도해지 연이율</dt>
+						<dd th:text="|${account.product.earlyTerminationRate}%|"></dd>
+					</div>
+					<div>
+						<dt>입금 계좌 ID</dt>
+						<dd th:text="${account.sourceAccountId}"></dd>
+					</div>
+				</dl>
+
+				<p class="sd-help">확정 시 세후 원리금이 연결된 입출금계좌로 지급됩니다. 실제 지급액은 서버에서
+					해지 시점에 계산합니다.</p>
+
+				<form
+					th:action="@{/savings/{id}/installment-early-close(id=${account.id})}"
+					method="post" onsubmit="return confirm('장기적금을 중도해지하시겠습니까?');">
+
+					<input type="hidden" th:if="${_csrf != null}"
+						th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+					<button type="submit" class="sd-primary-button">장기적금 중도해지
+						확정</button>
+				</form>
+
+
+				<a th:href="@{/savings/{id}(id=${account.id})}" class="sd-back">
+					취소하고 돌아가기 </a>
+			</section>
+		</div>
+	</main>
+</body>
+</html>
