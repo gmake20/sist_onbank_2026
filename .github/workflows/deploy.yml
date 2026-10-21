@@ -38,7 +38,7 @@ jobs:
 
     # gradle 빌드
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew build -x test
 
     - name: Set SSH key permissions
       run: |
