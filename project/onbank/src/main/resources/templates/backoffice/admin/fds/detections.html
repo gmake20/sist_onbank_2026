@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>이상거래 탐지</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 이상거래 · 모니터링 / 이상거래 탐지</div>
+<h1 layout:fragment="page-title">이상거래 탐지</h1>
+<main layout:fragment="content">
+
+    <!-- 처리 상태 "전체"는 빈 값 대신 ALL (AdminFdsController 주석 참고) -->
+    <form class="adm-search" method="get" th:action="@{/admin/fds}">
+        <div class="adm-field">
+            <label for="status">처리 상태</label>
+            <select id="status" name="status">
+                <option value="OPEN" th:selected="${status == 'OPEN'}">처리 중 (미확인·배정·연락 중)</option>
+                <option value="CLOSED" th:selected="${status == 'CLOSED'}">종결 (정상 확인·사기 조치)</option>
+                <option value="ALL" th:selected="${status == 'ALL'}">전체</option>
+                <option th:each="s : ${statusLabels}" th:value="${s.key}" th:text="${s.value}" th:selected="${s.key == status}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="from">탐지 기간</label>
+            <div class="adm-range">
+                <input type="date" id="from" name="from" th:value="${from}" required aria-label="시작일">
+                <span aria-hidden="true">~</span>
+                <input type="date" id="to" name="to" th:value="${to}" required aria-label="종료일">
+            </div>
+        </div>
+        <div class="adm-field">
+            <label for="accountNumber">계좌번호</label>
+            <input type="text" id="accountNumber" name="accountNumber" th:value="${accountNumber}" placeholder="전체 번호 정확히">
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/fds}">초기화</a>
+        </div>
+        <div class="adm-search-opts">
+            <label><input type="checkbox" name="mine" value="true" th:checked="${mine}"> 내 담당만</label>
+            <span>— 나에게 배정된 탐지만 봅니다</span>
+        </div>
+    </form>
+
+    <div class="adm-alert" role="alert" th:if="${searchError}" th:text="${searchError}"></div>
+    <div class="adm-alert" role="alert" th:if="${error != null}" th:text="${error}"></div>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>전체 <b th:text="${detections.totalElements}">0</b>건</span>
+            <span>최근 탐지 순 · 20건씩 보기</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>번호</th><th>탐지 일시</th><th>점수 · 규칙</th><th>거래</th><th>계좌 · 회원</th><th>처리 상태</th><th>담당자</th><th>관리</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${detections}">
+                    <td th:text="${d.detectionId}">18</td>
+                    <td th:text="${#temporals.format(d.detectedAt, 'yyyy-MM-dd HH:mm')}">YYYY-MM-DD HH:mm</td>
+                    <!-- 대표 규칙 = 걸린 규칙 중 점수가 가장 큰 것. "외 N건" = 함께 걸린 나머지 규칙 수 -->
+                    <td>
+                        <b th:text="|${d.riskScore}점|">85점</b> · <span th:text="${ruleLabels[d.ruleCode] ?: d.ruleCode}">처음 보내는 계좌</span>
+                        <div class="adm-note" th:if="${d.otherRuleCount > 0}" th:text="|외 ${d.otherRuleCount}건|">외 3건</div>
+                    </td>
+                    <td th:text="|${txTypeLabels[d.transactionType] ?: d.transactionType} ${#numbers.formatInteger(d.amount, 1, 'COMMA')}원|">이체 12,000,000원</td>
+                    <!-- 같은 계좌에 처리 중 탐지가 2건 이상일 때만 표시 (D-66) -->
+                    <td>
+                        <span th:text="${d.accountNumber}">1002-482-915307</span>
+                        <div class="adm-note">
+                            <span th:text="|${d.memberName} (${d.memberLoginId})|">이름 (member01)</span>
+                            <span th:if="${d.openCountOnAccount >= 2}" th:text="| · 같은 계좌 처리 중 ${d.openCountOnAccount}건|"> · 같은 계좌 처리 중 3건</span>
+                        </div>
+                    </td>
+                    <!-- 미확인만 빨강 채움 (종 배지와 같은 색, 2026-10-22 C안) -->
+                    <td><span class="adm-badge" th:classappend="${d.status == 'UNCHECKED'} ? 'adm-badge-alert'"
+                              th:text="${statusLabels[d.status] ?: d.status}">미확인</span></td>
+                    <td th:text="${d.assignedAdminName ?: '미배정'}">미배정</td>
+                    <!-- 상세(S-16)는 다음 작업. 그 전까지 누르면 페이지 없음 -->
+                    <!-- 지금 검색 조건을 같이 넘겨서 상세의 "탐지 목록"이 같은 목록으로 돌아오게 -->
+                    <td><a class="adm-btn adm-btn-sm adm-btn-link"
+                           th:href="@{/admin/fds/{id}(id=${d.detectionId}, status=${status}, from=${from}, to=${to}, accountNumber=${accountNumber}, mine=${mine}, page=${detections.number})}">상세</a></td>
+                </tr>
+                <tr th:if="${detections.totalElements == 0}">
+                    <td colspan="8" class="adm-empty">검색 결과가 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : accounts.html 과 같은 방식. 링크마다 검색 조건을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${detections.totalPages > 1}"
+             th:with="start=${detections.number > 4 ? detections.number - 4 : 0},
+                      end=${start + 9 < detections.totalPages - 1 ? start + 9 : detections.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${detections.hasPrevious()}"
+               th:href="@{/admin/fds(status=${status}, from=${from}, to=${to}, accountNumber=${accountNumber}, mine=${mine}, page=${detections.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == detections.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == detections.number}" th:text="${p + 1}"
+                   th:href="@{/admin/fds(status=${status}, from=${from}, to=${to}, accountNumber=${accountNumber}, mine=${mine}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${detections.hasNext()}"
+               th:href="@{/admin/fds(status=${status}, from=${from}, to=${to}, accountNumber=${accountNumber}, mine=${mine}, page=${detections.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">60점 이상으로 탐지된 거래만 나옵니다. 점수 옆 규칙은 걸린 규칙 중 점수가 가장 큰 것이고, "외 N건"은 함께 걸린 나머지 규칙 수입니다. 계좌번호는 하이픈 없이 입력해도 찾습니다.</p>
+</main>
+</body>
+</html>

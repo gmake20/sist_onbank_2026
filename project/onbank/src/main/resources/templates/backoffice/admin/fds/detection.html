@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>이상거래 탐지 상세</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 이상거래 · 모니터링 / 이상거래 탐지 / 상세</div>
+<h1 layout:fragment="page-title">이상거래 탐지 상세</h1>
+<!-- S-16 탐지 상세. 배정(FDS-004)·연락 시작(005)·연락 기록(006)까지. 종결은 4단계 (design-samples/fds-detection-contact-sample.html) -->
+<main layout:fragment="content" th:with="d=${view.row}, closed=${d.status == 'NORMAL_CONFIRMED' or d.status == 'FRAUD_ACTION'}">
+
+    <a class="det-back" th:href="@{${backUrl}}">&lt; 탐지 목록</a>
+
+    <div class="adm-alert" role="alert" th:if="${error != null}" th:text="${error}"></div>
+    <p class="adm-note" role="status" th:if="${message != null}" th:text="${message}"></p>
+
+    <!-- 머리 카드 : 번호·상태·시각 / 점수 막대 / 처리 단계 -->
+    <section class="adm-card det-head" aria-labelledby="detTitle">
+        <div class="det-title">
+            <h2 id="detTitle" th:text="|탐지 #${d.detectionId}|">탐지 #18</h2>
+            <span class="adm-badge" th:classappend="${d.status == 'UNCHECKED'} ? 'adm-badge-alert'"
+                  th:text="${statusLabels[d.status] ?: d.status}">미확인</span>
+            <time class="det-num" th:datetime="${d.detectedAt}"
+                  th:text="|${#temporals.format(d.detectedAt, 'yyyy-MM-dd HH:mm')} 탐지|">2026-10-22 13:28 탐지</time>
+        </div>
+
+        <!-- 점수 막대 : 규칙별 너비 % 는 서비스가 계산 (FdsDetailView). 기준선은 FdsRuleSettings 값 -->
+        <div class="det-score">
+            <div class="det-score-num det-num"><span th:text="${d.riskScore}">80</span><small>점</small></div>
+            <div class="det-bar-wrap" role="img"
+                 th:attr="aria-label=|합계 ${d.riskScore}점, 탐지 기준 ${view.detectScore}점|">
+                <div class="det-bar">
+                    <i th:each="r : ${view.rules}" th:style="|width:${r.percent}%; background:var(--det-s${r.shade})|"></i>
+                </div>
+                <div class="det-tick" th:style="|left:${view.percentOf(view.cautionScore)}%|"><span th:text="|${view.cautionScore} 주의|">30 주의</span></div>
+                <div class="det-tick" th:style="|left:${view.percentOf(view.detectScore)}%|"><span th:text="|${view.detectScore} 탐지|">60 탐지</span></div>
+            </div>
+        </div>
+
+        <!-- 처리 단계 : 종결이면 마지막 칸에 실제 결과 이름 -->
+        <ol class="det-steps" aria-label="처리 단계">
+            <li th:classappend="${d.status == 'UNCHECKED'} ? 'now'">미확인</li>
+            <li th:classappend="${d.status == 'ASSIGNED'} ? 'now'">담당 배정</li>
+            <li th:classappend="${d.status == 'CONTACTING'} ? 'now'">고객 연락 중</li>
+            <li th:classappend="${closed} ? 'now'"
+                th:text="${closed} ? |종결 (${statusLabels[d.status]})| : '종결 (정상 거래 확인 또는 사기 조치)'">종결</li>
+        </ol>
+
+        <!-- FDS-004 내가 맡기 : 미확인일 때만. hidden = 목록 검색 조건 (처리 후에도 "탐지 목록" 링크 유지) -->
+        <form class="det-action" method="post" th:if="${d.status == 'UNCHECKED'}"
+              th:action="@{/admin/fds/{id}/assign(id=${d.detectionId})}">
+            <input type="hidden" th:each="p : ${searchParams}" th:name="${p.key}" th:value="${p.value}">
+            <button type="submit" class="adm-btn-primary">내가 맡기</button>
+            <span>같은 계좌의 미확인 탐지도 함께 맡습니다.</span>
+        </form>
+
+        <!-- FDS-005 고객 연락 시작 : 담당 배정 + 내 담당일 때만 -->
+        <form class="det-action" method="post" th:if="${d.status == 'ASSIGNED' and mine}"
+              th:action="@{/admin/fds/{id}/contact-start(id=${d.detectionId})}">
+            <input type="hidden" th:each="p : ${searchParams}" th:name="${p.key}" th:value="${p.value}">
+            <button type="submit" class="adm-btn-primary">고객 연락 시작</button>
+            <span>같은 계좌의 내 담당 탐지도 함께 "고객 연락 중"이 됩니다.</span>
+        </form>
+        <!-- 처리 중인데 다른 관리자 담당 : 버튼 없이 안내만 (서버도 AdminFdsService.lockMine 이 막음) -->
+        <p class="det-action" th:if="${d.assignedAdminName != null and !mine and !closed}"
+           th:text="|${d.assignedAdminName} 님 담당 건입니다. 처리는 담당자만 할 수 있습니다.|">이관리 님 담당 건입니다.</p>
+    </section>
+
+    <!-- FDS-006 고객 연락 결과 기록 : 고객 연락 중 + 내 담당일 때만. 입력 오류면 같은 화면에 칸별 오류 (AdminFdsController.recordContact) -->
+    <section class="adm-card det-sec" aria-labelledby="detContact" th:if="${d.status == 'CONTACTING' and mine}">
+        <h3 id="detContact">고객 연락 결과 기록</h3>
+        <div class="adm-info">전화는 시스템 밖에서 하고, 여기에는 결과만 남깁니다. 연락이 안 되면 다시 걸고 한 번 더 기록하세요. 같은 계좌의 내 담당 탐지에 함께 기록됩니다.</div>
+        <form class="det-contact" method="post" th:object="${contactForm}"
+              th:action="@{/admin/fds/{id}/contacts(id=${d.detectionId})}">
+            <input type="hidden" th:each="p : ${searchParams}" th:name="${p.key}" th:value="${p.value}">
+            <div class="adm-field">
+                <label for="contactAt">연락 일시 (필수)</label>
+                <input type="datetime-local" th:field="*{contactAt}">
+                <span class="adm-error" th:if="${#fields.hasErrors('contactAt')}" th:text="${#fields.errors('contactAt')[0]}"></span>
+            </div>
+            <div class="adm-field">
+                <label for="contactMethod">연락 방법 (필수)</label>
+                <select th:field="*{contactMethod}">
+                    <option th:each="m : ${contactMethods}" th:value="${m}" th:text="${m.label}">전화</option>
+                </select>
+                <span class="adm-error" th:if="${#fields.hasErrors('contactMethod')}" th:text="${#fields.errors('contactMethod')[0]}"></span>
+            </div>
+            <fieldset class="det-radios wide">
+                <legend>판단 결과 (필수)</legend>
+                <label th:each="r : ${contactResults}">
+                    <input type="radio" th:field="*{contactResult}" th:value="${r}"> <span th:text="${r.label}">본인 아님</span>
+                </label>
+                <span class="adm-error" th:if="${#fields.hasErrors('contactResult')}" th:text="${#fields.errors('contactResult')[0]}"></span>
+            </fieldset>
+            <div class="adm-field wide">
+                <label for="memo">통화 내용 (필수)</label>
+                <textarea th:field="*{memo}" maxlength="500"></textarea>
+                <span class="adm-error" th:if="${#fields.hasErrors('memo')}" th:text="${#fields.errors('memo')[0]}"></span>
+                <span class="det-hint">500자까지</span>
+            </div>
+            <div class="det-form-btns wide">
+                <button type="submit" class="adm-btn-primary">연락 결과 저장</button>
+            </div>
+        </form>
+    </section>
+
+    <div class="det-grid">
+        <!-- 왼쪽 : 걸린 규칙. 네모 색 = 막대 색 -->
+        <section class="adm-card det-sec" aria-labelledby="detRules">
+            <h3 id="detRules">걸린 규칙<small th:text="|${#lists.size(view.rules)}개|">4개</small></h3>
+            <ul class="det-rules" th:unless="${#lists.isEmpty(view.rules)}">
+                <li th:each="r : ${view.rules}">
+                    <span class="sw" th:style="|background:var(--det-s${r.shade})|"></span>
+                    <span class="name" th:if="${r.code == d.ruleCode}"><b th:text="${r.label}">큰 입금 직후 출금</b></span>
+                    <span class="name" th:unless="${r.code == d.ruleCode}" th:text="${r.label}">1회 고액</span>
+                    <span class="pt det-num" th:text="${r.score}">40</span>
+                    <span class="basis" th:text="${r.basis}">입금 1,500만</span>
+                </li>
+            </ul>
+            <!-- detail 이 비었거나 깨졌을 때 (서버 로그 "FDS detail 해석 실패") -->
+            <p class="det-empty" th:if="${#lists.isEmpty(view.rules)}">저장된 규칙 정보를 읽지 못했습니다. 합계 점수만 표시합니다.</p>
+            <div class="det-sum"><span>합계</span><b class="det-num" th:text="|${d.riskScore}점|">80점</b></div>
+        </section>
+
+        <!-- 오른쪽 : 거래 / 계좌 · 회원 -->
+        <section class="adm-card det-sec" aria-labelledby="detTx">
+            <h3 id="detTx">거래</h3>
+            <p class="det-amount det-num">
+                <small th:text="${txTypeLabels[d.transactionType] ?: d.transactionType}">이체</small><span
+                    th:text="|${#numbers.formatInteger(d.amount, 1, 'COMMA')}원|">12,000,000원</span>
+            </p>
+            <dl class="det-dl">
+                <th:block th:if="${d.counterpartAccountNumber != null}">
+                    <dt>받는 계좌</dt><dd class="det-num" th:text="${d.counterpartAccountNumber}">3333-09-7781230</dd>
+                </th:block>
+                <th:block th:if="${d.content != null}">
+                    <dt>적요</dt><dd th:text="${d.content}">전세 잔금</dd>
+                </th:block>
+                <dt>거래 일시</dt><dd class="det-num" th:text="${#temporals.format(d.transactionAt, 'yyyy-MM-dd HH:mm:ss')}">2026-10-22 13:28:41</dd>
+            </dl>
+
+            <div class="det-split">
+                <h3>계좌 · 회원</h3>
+                <dl class="det-dl">
+                    <dt>출금 계좌</dt><dd class="det-num" th:text="${d.accountNumber}">1002-482-915307</dd>
+                    <dt>회원</dt><dd th:text="|${d.memberName} (${d.memberLoginId})|">김하나 (hana01)</dd>
+                    <!-- 이 건 포함 개수. 2건 이상이면 그 계좌로 거른 목록 링크 (D-66) -->
+                    <dt>같은 계좌</dt>
+                    <dd th:if="${d.openCountOnAccount >= 2}">
+                        <span class="det-warn" th:text="|처리 중 탐지 ${d.openCountOnAccount}건|">처리 중 탐지 3건</span>
+                        <a th:href="@{/admin/fds(accountNumber=${d.accountNumber})}">목록에서 보기</a>
+                    </dd>
+                    <dd th:unless="${d.openCountOnAccount >= 2}">다른 처리 중 탐지 없음</dd>
+                    <dt>담당자</dt>
+                    <dd th:text="${d.assignedAdminName != null} ? |${d.assignedAdminName} (${#temporals.format(d.assignedAt, 'MM-dd HH:mm')} 배정)| : '아직 없음'">아직 없음</dd>
+                </dl>
+            </div>
+        </section>
+    </div>
+
+    <!-- 처리 이력 : fds_handling_history. 2단계(배정)부터 쌓인다. 연락 결과 한글 이름은 3단계(연락 기록) 때 -->
+    <section class="adm-card det-sec" aria-labelledby="detHist">
+        <h3 id="detHist">처리 이력</h3>
+        <p class="det-empty" th:if="${#lists.isEmpty(view.history)}">담당자가 배정되면 단계를 옮길 때마다 여기에 기록이 남습니다.</p>
+        <div class="adm-table-wrap" th:unless="${#lists.isEmpty(view.history)}">
+            <table class="adm-table">
+                <thead><tr><th>일시</th><th>단계</th><th>처리자</th><th>연락</th><th>내용</th></tr></thead>
+                <tbody>
+                <tr th:each="h : ${view.history}">
+                    <td class="det-num" th:text="${#temporals.format(h.createdAt, 'yyyy-MM-dd HH:mm')}">YYYY-MM-DD HH:mm</td>
+                    <td th:text="${statusLabels[h.stage] ?: h.stage}">담당 배정</td>
+                    <td th:text="${h.adminName}">김운영</td>
+                    <!-- 연락 기록 줄만 : 방법 · 결과 (결과 굵게) -->
+                    <td th:if="${h.contactResult != null}">
+                        <span th:text="${contactMethodLabels[h.contactMethod] ?: h.contactMethod}">전화</span> ·
+                        <b th:text="${contactResultLabels[h.contactResult] ?: h.contactResult}">연락 안 됨</b>
+                    </td>
+                    <td th:unless="${h.contactResult != null}">–</td>
+                    <td th:text="${h.memo ?: '–'}">–</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+</body>
+</html>

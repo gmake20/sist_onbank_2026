@@ -65,5 +65,24 @@ public class FdsDetection {
         this.detail = detail;
     }
 
+    // FDS-004 배정 : 미확인(UNCHECKED) → 담당 배정(ASSIGNED). 다른 상태면 거절 (Account.freeze 와 같은 방식)
+    public void assign(Long adminId, LocalDateTime now) {
+        if (status != FdsStatus.UNCHECKED) {
+            throw new IllegalStateException("미확인 탐지만 맡을 수 있습니다. (현재 상태: " + status + ")");
+        }
+        this.status = FdsStatus.ASSIGNED;
+        this.assignedAdminId = adminId;
+        this.assignedAt = now;
+    }
+
+    // FDS-005 고객 연락 시작 : 담당 배정(ASSIGNED) → 고객 연락 중(CONTACTING). 순서를 건너뛰면 거절 (EX-ADM-FDS-003)
+    // 담당자 본인인지는 서비스가 본다 (관리자 번호가 필요해서)
+    public void startContact() {
+        if (status != FdsStatus.ASSIGNED) {
+            throw new IllegalStateException("담당 배정 단계에서만 고객 연락을 시작할 수 있습니다. (현재 상태: " + status + ")");
+        }
+        this.status = FdsStatus.CONTACTING;
+    }
+
 }
 

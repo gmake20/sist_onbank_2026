@@ -23,13 +23,14 @@
                 <h1 class="adm-page-title" layout:fragment="page-title">페이지 제목</h1>
             </div>
             <div class="adm-header-right">
-                <!-- 알림 목록(S-18). 미확인 개수 배지는 MON-005 때 추가 -->
+                <!-- 알림 목록(S-18). 배지 = 미확인 개수, admin-notification.js 가 3초마다 갱신 (MON-001) -->
                 <a class="adm-bell" th:href="@{/admin/notifications}" aria-label="알림 목록">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" stroke-width="1.6"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7"></path>
                         <path d="M10 20a2 2 0 0 0 4 0"></path>
                     </svg>
+                    <span class="adm-bell-badge js-bell-badge" hidden></span>
                 </a>
                 <div class="adm-user">
                     <!-- 이름 첫 글자 (principal.name = 팀원1 AdminPrincipal) -->
@@ -53,5 +54,11 @@
         </main>
     </div>
 </div>
+<!-- MON-001 새 알림 토스트 자리 (A안). 3초 폴링 API 주소는 data-url, 탭 저장 구분용 관리자 번호는 data-admin-id, 토스트를 누르면 갈 탐지 상세 앞주소는 data-fds-url -->
+<div class="adm-toasts" id="admToasts" aria-live="polite"
+     th:data-url="@{/admin/api/notifications}"
+     th:data-admin-id="${#authentication.principal.adminId}"
+     th:data-fds-url="@{/admin/fds}"></div>
+<script th:src="@{/js/admin-notification.js}"></script>
 </body>
 </html>
