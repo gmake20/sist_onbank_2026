@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SavingsEarlyCloseCalculator {
+	
 	public record Quote(long principal, long grossInterest, long tax,
 			long netInterest, long payout, BigDecimal annualRate,
 			LocalDate closeDate) {}
@@ -30,6 +31,7 @@ public class SavingsEarlyCloseCalculator {
 				earlyAnnualRate.compareTo(new BigDecimal("100")) > 0) {
 			throw new IllegalArgumentException("중도해지이율이 올바르지 않습니다.");
 		}
+		
 		BigDecimal interest = BigDecimal.ZERO;
 
 		if (account.getProduct().getType() == SavingsType.FIXED_DEPOSIT) {
@@ -38,6 +40,7 @@ public class SavingsEarlyCloseCalculator {
 		} else if (account.getProduct().getType() == SavingsType.INSTALLMENT_SAVINGS) {
 
 			long sumPaid = 0;
+			
 			for (SavingsPayment payment : payments) {
 				if (payment.getPaidOn().isAfter(closeDate)) {
 					throw new IllegalStateException("해지일 이후 납입 기록이 존재합니다.");
@@ -59,12 +62,14 @@ public class SavingsEarlyCloseCalculator {
 				.setScale(0, RoundingMode.DOWN).longValueExact();
 
 		long net = Math.subtractExact(gross, tax);
+		
 		return new Quote(account.getPrincipal(), gross, tax, net,
 				Math.addExact(account.getPrincipal(), net), earlyAnnualRate, closeDate);
 	}
 
 	private BigDecimal periodInterest(long amount, BigDecimal annualRate,
 			LocalDate start, LocalDate end) {
+		
 		long days = ChronoUnit.DAYS.between(start, end);
 
 		return BigDecimal.valueOf(amount).multiply(annualRate)
