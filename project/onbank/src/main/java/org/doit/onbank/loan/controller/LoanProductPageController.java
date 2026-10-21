@@ -18,13 +18,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @Controller
 @RequiredArgsConstructor
-@RequestMapping("/loan/products")
+// @RequestMapping("/loan/products")
+@RequestMapping("/employee/loan/products")
+@PreAuthorize("hasRole('MANAGER')")
 public class LoanProductPageController {
 
     private final LoanProductService loanProductService;

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/employee}">
+<!-- 관리자 회원 관리(backoffice/admin/member/members.html) 복사본. "관리" 열·상태 변경 모달을 뺀 조회 전용 -->
+<head>
+    <title>회원 조회</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">직원 콘솔 / 고객 · 계좌 / 회원 조회</div>
+<h1 layout:fragment="page-title">회원 조회</h1>
+<main layout:fragment="content">
+
+    <form class="adm-search" method="get" th:action="@{/employee/members}">
+        <div class="adm-field">
+            <label for="type">검색 구분</label>
+            <select id="type" name="type">
+                <option value="loginId" th:selected="${type == 'loginId'}">아이디</option>
+                <option value="name" th:selected="${type == 'name'}">이름</option>
+                <option value="phone" th:selected="${type == 'phone'}">휴대폰</option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="keyword">검색어</label>
+            <input type="text" id="keyword" name="keyword" th:value="${keyword}" placeholder="검색어를 입력하세요">
+        </div>
+        <div class="adm-field">
+            <label for="status">회원 상태</label>
+            <select id="status" name="status">
+                <option value="">전체</option>
+                <option th:each="s : ${statuses}" th:value="${s}" th:text="${statusLabels.get(s)}" th:selected="${s == status}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="from">가입 시작일</label>
+            <input type="date" id="from" name="from" th:value="${from}">
+        </div>
+        <div class="adm-field">
+            <label for="to">가입 종료일</label>
+            <input type="date" id="to" name="to" th:value="${to}">
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/employee/members}">초기화</a>
+        </div>
+    </form>
+
+    <div class="adm-alert" role="alert" th:if="${periodError}" th:text="${periodError}"></div>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>전체 <b th:text="${members.totalElements}">0</b>건</span>
+            <span>가입일 최신순 · 20건씩 보기</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>회원번호</th><th>아이디</th><th>이름</th><th>휴대폰</th><th>상태</th><th>가입일</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${members}">
+                    <td th:text="${m.memberId}">1</td>
+                    <td th:text="${m.loginId}">member01</td>
+                    <td th:text="${m.name}">이름</td>
+                    <td th:text="${m.maskedPhone} ?: '–'">010-****-5678</td>
+                    <td><span class="adm-badge" th:text="${statusLabels.get(m.status)}">정상</span></td>
+                    <td th:text="${#temporals.format(m.createdAt, 'yyyy-MM-dd')}">YYYY-MM-DD</td>
+                </tr>
+                <tr th:if="${members.totalElements == 0}">
+                    <td colspan="6" class="adm-empty">검색 결과가 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : 관리자 회원 목록과 같은 방식. 링크마다 검색 조건을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${members.totalPages > 1}"
+             th:with="start=${members.number > 4 ? members.number - 4 : 0},
+                      end=${start + 9 < members.totalPages - 1 ? start + 9 : members.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${members.hasPrevious()}"
+               th:href="@{/employee/members(type=${type}, keyword=${keyword}, status=${status}, from=${from}, to=${to}, page=${members.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == members.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == members.number}" th:text="${p + 1}"
+                   th:href="@{/employee/members(type=${type}, keyword=${keyword}, status=${status}, from=${from}, to=${to}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${members.hasNext()}"
+               th:href="@{/employee/members(type=${type}, keyword=${keyword}, status=${status}, from=${from}, to=${to}, page=${members.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">휴대폰은 가운데를 가려서 보여 줍니다. 휴대폰 검색은 하이픈 없이 숫자로 비교합니다. 기간을 비우면 전체 기간.</p>
+
+</main>
+</body>
+</html>

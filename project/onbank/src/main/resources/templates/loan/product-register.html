@@ -27,7 +27,7 @@
 			<!-- <form th:action="@{/loan/categories/{category}" th:object="${loanProductForm}"
 				method="post" class="register-form"> -->
 
-			<form th:action="@{/loan/products/register}"
+			<form th:action="@{/employee/loan/products/register}"
 				th:object="${loanProductForm}" method="post" class="register-form">
 
 				<input type="hidden" th:if="${_csrf != null}"
@@ -147,7 +147,7 @@
 
 				<div class="register-actions">
 						<button type="submit" class="btn-submit">상품 등록하기</button>
-						<a href="/loan/categories/credit" id="cancelBtn"
+						<a th:href="@{/employee}" id="cancelBtn"
 							class="btn-cancel"> 취소 </a>
 					</div>
 
