@@ -22,12 +22,13 @@
             <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.suspendedMembers, 1, 'COMMA')}">—</th:block><small>명</small></span>
             <span class="adm-kpi-go">이용 제한만 보기</span>
         </a>
-        <a class="adm-kpi" th:href="@{/admin/transactions}">
+        <!-- 오늘 거래 카드 2개 → 거래 관리(S-09)를 같은 기준으로 연다 : 오늘 하루 + 이체 중복 빼기(TRANSFER_IN 제외, COUNTED_TYPES 와 같음) -->
+        <a class="adm-kpi" th:href="@{/admin/transactions(from=${#temporals.createToday()}, to=${#temporals.createToday()}, excludeIn=true)}">
             <span class="adm-kpi-label">오늘 거래 건수</span>
             <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.todayTransactionCount, 1, 'COMMA')}">—</th:block><small>건</small></span>
             <span class="adm-kpi-go">오늘 거래 보기</span>
         </a>
-        <a class="adm-kpi" th:href="@{/admin/transactions}">
+        <a class="adm-kpi" th:href="@{/admin/transactions(from=${#temporals.createToday()}, to=${#temporals.createToday()}, excludeIn=true)}">
             <span class="adm-kpi-label">오늘 거래 금액</span>
             <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.todayTransactionAmount, 1, 'COMMA')}">—</th:block><small>원</small></span>
             <span class="adm-kpi-go">오늘 거래 보기</span>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>거래 관리</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 고객 · 계좌 / 거래 관리</div>
+<h1 layout:fragment="page-title">거래 관리</h1>
+<main layout:fragment="content">
+
+    <!-- 탭은 JS가 아니라 주소가 다른 링크 (admins.html 과 같음). 이체내역(TRX-002)은 다음 단계 -->
+    <nav class="adm-tabs" aria-label="거래 종류">
+        <a class="adm-tab active" aria-current="page" th:href="@{/admin/transactions}">전체 거래</a>
+        <a class="adm-tab" th:href="@{/admin/transactions/transfers}">이체내역</a>
+    </nav>
+
+    <form class="adm-search" method="get" th:action="@{/admin/transactions}">
+        <div class="adm-field">
+            <label for="from">기간</label>
+            <div class="adm-range">
+                <input type="date" id="from" name="from" th:value="${from}" required aria-label="시작일">
+                <span aria-hidden="true">~</span>
+                <input type="date" id="to" name="to" th:value="${to}" required aria-label="종료일">
+            </div>
+        </div>
+        <div class="adm-field">
+            <label for="type">거래 유형</label>
+            <select id="type" name="type">
+                <option value="">전체</option>
+                <option th:each="e : ${typeLabels}" th:value="${e.key}" th:text="${e.value}" th:selected="${e.key == type}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="accountNumber">계좌번호</label>
+            <input type="text" class="adm-input-sm" id="accountNumber" name="accountNumber" th:value="${accountNumber}" placeholder="일부만 입력">
+        </div>
+        <div class="adm-field">
+            <label for="min">금액 범위 (원)</label>
+            <div class="adm-range adm-range-sm">
+                <input type="number" id="min" name="min" th:value="${min}" min="0" step="1" placeholder="최소" aria-label="최소 금액">
+                <span aria-hidden="true">~</span>
+                <input type="number" id="max" name="max" th:value="${max}" min="0" step="1" placeholder="최대" aria-label="최대 금액">
+            </div>
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/transactions}">초기화</a>
+        </div>
+        <!-- 체크 안 하면 값이 안 넘어가서 컨트롤러 기본값 false. 대시보드 "오늘 거래" 카드는 켠 채로 넘어온다 -->
+        <div class="adm-search-opts">
+            <label><input type="checkbox" name="excludeIn" value="true" th:checked="${excludeIn}"> 이체 중복 빼기</label>
+            <span>— 이체 1건을 보낸 쪽 1줄로만 셉니다</span>
+        </div>
+    </form>
+
+    <div class="adm-alert" role="alert" th:if="${searchError}" th:text="${searchError}"></div>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>전체 <b th:text="${transactions.totalElements}">0</b>건 · 합계 <b th:text="${#numbers.formatInteger(totalAmount, 1, 'COMMA')}">0</b>원</span>
+            <span>최신순 · 20건씩 보기</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>거래일시</th><th>계좌번호</th><th>회원</th><th>유형</th><th>금액</th><th>거래 후 잔액</th><th>상대계좌</th><th>적요</th></tr>
+                </thead>
+                <tbody>
+                <!-- 출금·이체 보냄은 -, 입금·이체 받음은 + -->
+                <tr th:each="r : ${transactions}"
+                    th:with="out=${r.transactionType == 'WITHDRAWAL' or r.transactionType == 'TRANSFER_OUT'}">
+                    <td th:text="${#temporals.format(r.transactionAt, 'yyyy-MM-dd HH:mm')}">YYYY-MM-DD HH:mm</td>
+                    <td th:text="${r.accountNumber}">1002-482-915307</td>
+                    <td th:text="|${r.memberName} (${r.memberLoginId})|">이름 (member01)</td>
+                    <td th:text="${typeLabels.get(r.transactionType) ?: r.transactionType}">입금</td>
+                    <td th:text="|${out ? '-' : '+'}${#numbers.formatInteger(r.amount, 1, 'COMMA')}원|">+0원</td>
+                    <td th:text="${r.balanceAfter != null} ? |${#numbers.formatInteger(r.balanceAfter, 1, 'COMMA')}원| : '–'">0원</td>
+                    <td th:text="${r.counterpartAccountNumber ?: '–'}">–</td>
+                    <td th:text="${r.content ?: '–'}">적요</td>
+                </tr>
+                <tr th:if="${transactions.totalElements == 0}">
+                    <td colspan="8" class="adm-empty">검색 결과가 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : accounts.html 과 같은 방식. excludeIn 은 체크했을 때만 붙인다 (null 이면 주소에서 빠짐) -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${transactions.totalPages > 1}"
+             th:with="start=${transactions.number > 4 ? transactions.number - 4 : 0},
+                      end=${start + 9 < transactions.totalPages - 1 ? start + 9 : transactions.totalPages - 1},
+                      ex=${excludeIn ? true : null}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${transactions.hasPrevious()}"
+               th:href="@{/admin/transactions(from=${from}, to=${to}, type=${type}, accountNumber=${accountNumber}, min=${min}, max=${max}, excludeIn=${ex}, page=${transactions.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == transactions.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == transactions.number}" th:text="${p + 1}"
+                   th:href="@{/admin/transactions(from=${from}, to=${to}, type=${type}, accountNumber=${accountNumber}, min=${min}, max=${max}, excludeIn=${ex}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${transactions.hasNext()}"
+               th:href="@{/admin/transactions(from=${from}, to=${to}, type=${type}, accountNumber=${accountNumber}, min=${min}, max=${max}, excludeIn=${ex}, page=${transactions.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">기간은 최대 3개월입니다. 이체 1건은 보낸 쪽·받은 쪽 2줄로 나옵니다 ("이체 중복 빼기"를 체크하면 보낸 쪽 1줄만). 출금에는 ATM 출금 외에 대출 상환·적금 납입도 들어 있어 적요로 구분합니다. 합계는 입금·출금 구분 없이 거래 금액을 더한 값입니다.</p>
+</main>
+</body>
+</html>

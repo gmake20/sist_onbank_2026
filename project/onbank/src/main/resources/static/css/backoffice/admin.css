@@ -806,3 +806,47 @@ a {
     }
 }
 
+
+/* 검색 폼 — 칸 2개를 ~ 로 잇는 묶음 (거래 관리 기간·금액 범위, 와이어프레임 7장) */
+.adm-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.adm-field .adm-range input {
+    width: 140px;
+}
+
+.adm-field .adm-range-sm input {
+    width: 110px;
+}
+
+.adm-field input.adm-input-sm {
+    width: 160px;
+}
+
+/* 검색 폼 맨 아래 옵션 줄 (체크박스). .adm-field 밖이라 입력칸 공통 스타일(220×44)이 안 먹는다 */
+.adm-search-opts {
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--adm-sub);
+}
+
+.adm-search-opts label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--adm-text);
+    cursor: pointer;
+}
+
+.adm-search-opts input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--adm-blue);
+}
