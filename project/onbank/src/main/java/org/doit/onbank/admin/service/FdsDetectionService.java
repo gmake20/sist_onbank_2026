@@ -115,6 +115,8 @@ public class FdsDetectionService {
                 .riskScore(total)
                 .detail(toDetail(hits))
                 .build());
+        log.info("FDS 탐지 {}점 detection={} account={} history={} rule={}", total, saved.getDetectionId(),
+                facts.accountId(), facts.transactionHistoryId(), main.rule().name());
 
         String summary = total + "점 · " + main.rule().getLabel()
                 + (hits.size() > 1 ? " 외 " + (hits.size() - 1) + "건" : "");
