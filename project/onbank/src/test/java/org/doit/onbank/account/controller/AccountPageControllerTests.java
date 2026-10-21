@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,6 +43,15 @@ import org.doit.onbank.member.entity.Member;
 import org.doit.onbank.member.security.LoginMember;
 import org.doit.onbank.member.security.MemberDetailsService;
 import org.doit.onbank.member.security.MemberLoginAttemptRecorder;
+import org.doit.onbank.account.repository.AssetReportRepository;
+import org.doit.onbank.account.repository.LoanSummary;
+import org.doit.onbank.account.repository.SavingsLastPaid;
+import org.doit.onbank.savings.entity.SavingsAccount;
+import org.doit.onbank.savings.entity.SavingsProduct;
+import org.doit.onbank.savings.entity.SavingsStatus;
+import org.doit.onbank.savings.entity.SavingsType;
+import org.doit.onbank.savings.repository.SavingsAccountRepository;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +79,13 @@ class AccountPageControllerTests {
 
 	@MockitoBean
 	private AccountFavoriteService accountFavoriteService;
+
+	// 전계좌조회 예금·적금·대출 영역 : 팀3 savings_account, loan_account 조회 (가짜, 기본은 빈 목록)
+	@MockitoBean
+	private SavingsAccountRepository savingsAccountRepository;
+
+	@MockitoBean
+	private AssetReportRepository assetReportRepository;
 
 	// OnbankApplication 의 @EnableJpaAuditing 이 JPA 설정을 찾으므로 가짜로 채운다 (이 테스트는 JPA 를 띄우지 않음)
 	@MockitoBean
@@ -204,19 +221,73 @@ class AccountPageControllerTests {
 						containsString("보유중인 상품이 없습니다."))));
 	}
 
+	// (10-21) 예금·적금은 팀3 savings_account (진행 중만), 대출은 팀3 loan_account 에서 읽어 각 영역에 보여 준다
 	@Test
-	void listSeparatesDepositAndSavings() throws Exception {
-		Account deposit = Account.builder().memberId(MEMBER_ID).accountNumber("DEP-0001")
-				.accountType(AccountType.DEPOSIT).accountStatus(AccountStatus.ACTIVE).balance(2_000L).build();
-		ReflectionTestUtils.setField(deposit, "accountId", 2L);
-		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account, deposit));
+	void listShowsSavingsAndLoans() throws Exception {
+		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account));
+		SavingsAccount deposit = savings(11L, "ONBANK 프리미엄 예금", SavingsType.FIXED_DEPOSIT, 10_000_000L);
+		SavingsAccount installment = savings(12L, "ONBANK 미래설계 장기적금", SavingsType.INSTALLMENT_SAVINGS, 150_000L);
+		SavingsAccount closed = savings(13L, "해지한 예금", SavingsType.FIXED_DEPOSIT, 999L);
+		ReflectionTestUtils.setField(closed, "status", SavingsStatus.CLOSED);
+		given(savingsAccountRepository.findByMemberIdOrderByIdDesc(MEMBER_ID))
+				.willReturn(List.of(deposit, installment, closed));
+		given(assetReportRepository.findActiveLoans(MEMBER_ID)).willReturn(List.of(loan()));
+		given(assetReportRepository.findSavingsLastPaidOn(MEMBER_ID)).willReturn(List.of(new SavingsLastPaid() {
+			public Long getSavingsAccountId() { return 12L; }
+			public String getLastPaidOn() { return "2026.11.20"; }	// 적금 2회차 납입
+		}));
 
 		mockMvc.perform(get("/mybank/accounts").with(user(me)))
 				.andExpect(status().isOk())
 				.andExpect(content().string(allOf(
-						containsString("1,234,567원"),	// 입출금 총잔액에 예금은 포함하지 않음
-						containsString("DEP-0001"),
-						containsString("2,000원"))));
+						containsString("연결계좌"),		// 연결계좌 = 입출금 TEST-0001 (savings 의 sourceAccountId)
+						containsString("2026.11.20"),	// 적금 최종거래일 = 마지막 납입일
+						containsString("2026.10.20"),	// 예금은 납입 기록이 없어 가입일
+						containsString("1,234,567원"),	// 입출금 총잔액에 예적금은 포함하지 않음
+						containsString("ONBANK 프리미엄 예금"),
+						containsString("10,000,000원"),	// 예금 총잔액
+						containsString("ONBANK 미래설계 장기적금"),
+						containsString("150,000원"),		// 적금 총잔액
+						containsString("/savings/11"),
+						containsString("ON 직장인 신용 대출"),
+						containsString("4002-261-787347"),
+						containsString("35,000,000원"),	// 대출잔액 합계
+						containsString("/loan/repayment?accountId=2"),
+						not(containsString("해지한 예금")))));
+	}
+
+	// 대출 조회가 실패해도 전계좌조회는 열리고 대출 영역에만 안내
+	@Test
+	void listOpensWhenLoanQueryFails() throws Exception {
+		given(accountService.getMyAccounts(MEMBER_ID)).willReturn(List.of(account));
+		given(assetReportRepository.findActiveLoans(MEMBER_ID))
+				.willThrow(new InvalidDataAccessResourceUsageException("Unknown column"));
+
+		mockMvc.perform(get("/mybank/accounts").with(user(me)))
+				.andExpect(status().isOk())
+				.andExpect(content().string(allOf(
+						containsString("TEST-0001"),
+						containsString("대출 정보를 불러오지 못했습니다."))));
+	}
+
+	private SavingsAccount savings(Long id, String name, SavingsType type, long principal) {
+		SavingsProduct product = new SavingsProduct(name, type, new BigDecimal("4.0000"), 36, 1L, 100_000_000L);
+		SavingsAccount savings = new SavingsAccount(product, MEMBER_ID, ACCOUNT_ID, principal, LocalDate.of(2026, 10, 20));
+		ReflectionTestUtils.setField(savings, "id", id);
+		return savings;
+	}
+
+	private LoanSummary loan() {
+		return new LoanSummary() {
+			public Long getLoanAccountId() { return 2L; }
+			public String getLoanAccountNumber() { return "4002-261-787347"; }
+			public String getProductName() { return "ON 직장인 신용 대출"; }
+			public Long getPrincipalAmount() { return 37_000_000L; }
+			public Long getRemainingBalance() { return 35_000_000L; }
+			public BigDecimal getInterestRate() { return new BigDecimal("4.5000"); }
+			public String getMaturityDate() { return "2028-10-20"; }
+			public String getNextDueDate() { return null; }
+		};
 	}
 
 	// ---------- 거래내역 ----------

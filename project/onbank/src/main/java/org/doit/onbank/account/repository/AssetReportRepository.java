@@ -62,7 +62,9 @@ public interface AssetReportRepository extends JpaRepository<AssetReport, Long> 
 
 	// 실행된 대출 (팀3) : 대출 계좌(loan_account) 기준, 완납(CLOSED)은 뺀다
 	// 승인만 된 신청은 아직 돈이 나가지 않았으므로 넣지 않는다
-	@Query(value = "SELECT la.LOAN_ACCOUNT_ID AS loanAccountId, lp.PRODUCT_NAME AS productName,"
+	// (10-21) 전계좌조회 대출 영역도 이 조회를 쓴다 (대출 계좌번호 추가)
+	@Query(value = "SELECT la.LOAN_ACCOUNT_ID AS loanAccountId, la.LOAN_ACCOUNT_NUMBER AS loanAccountNumber,"
+			+ " lp.PRODUCT_NAME AS productName,"
 			+ " CAST(la.PRINCIPAL_AMOUNT AS SIGNED) AS principalAmount, CAST(la.REMAINING_BALANCE AS SIGNED) AS remainingBalance,"
 			+ " la.INTEREST_RATE AS interestRate, DATE_FORMAT(la.MATURITY_DATE, '%Y-%m-%d') AS maturityDate,"
 			+ " (SELECT DATE_FORMAT(MIN(s.DUE_DATE), '%Y-%m-%d') FROM loan_repayment_schedule s"
@@ -74,13 +76,22 @@ public interface AssetReportRepository extends JpaRepository<AssetReport, Long> 
 			+ " ORDER BY la.LOAN_ACCOUNT_ID", nativeQuery = true)
 	List<LoanSummary> findActiveLoans(@Param("memberId") Long memberId);
 
-	// 가입 중인 예적금 (팀3) : 해지한 가입은 뺀다
-	@Query(value = "SELECT p.PRODUCT_NAME AS productName, p.PRODUCT_TYPE AS productType,"
-			+ " ps.PRINCIPAL_AMOUNT AS principalAmount, ps.MONTHLY_PAYMENT AS monthlyPayment,"
-			+ " DATE_FORMAT(ps.SUBSCRIBED_AT, '%Y-%m-%d') AS subscribedAt,"
-			+ " DATE_FORMAT(ps.MATURITY_DATE, '%Y-%m-%d') AS maturityDate, ps.EXPECTED_INTEREST AS expectedInterest"
-			+ " FROM product_subscription ps LEFT JOIN product p ON p.PRODUCT_ID = ps.PRODUCT_ID"
-			+ " WHERE ps.MEMBER_ID = :memberId AND ps.CANCELLED_AT IS NULL"
-			+ " ORDER BY ps.MATURITY_DATE", nativeQuery = true)
+	// 가입 중인 예적금 (팀3) : 진행 중(ACTIVE)만, 만기·중도 해지는 뺀다
+	// (10-21) 팀3가 예적금을 product_subscription 대신 savings_account + savings_product 에 저장하므로 바꿈
+	//   principal : 예금은 맡긴 원금, 적금은 지금까지 넣은 금액. 예상 이자는 저장된 값이 없어 NULL
+	@Query(value = "SELECT p.name AS productName, p.type AS productType,"
+			+ " s.principal AS principalAmount, s.monthly_amount AS monthlyPayment,"
+			+ " DATE_FORMAT(s.opened_on, '%Y-%m-%d') AS subscribedAt,"
+			+ " DATE_FORMAT(s.maturity_on, '%Y-%m-%d') AS maturityDate, NULL AS expectedInterest"
+			+ " FROM savings_account s JOIN savings_product p ON p.product_id = s.product_id"
+			+ " WHERE s.member_id = :memberId AND s.status = 'ACTIVE'"
+			+ " ORDER BY s.maturity_on", nativeQuery = true)
 	List<SubscriptionSummary> findActiveSubscriptions(@Param("memberId") Long memberId);
+
+	// (10-21) 전계좌조회 예적금 최종거래일 (팀3 savings_payment) : 예적금별 가장 늦은 납입일
+	@Query(value = "SELECT p.savings_account_id AS savingsAccountId, DATE_FORMAT(MAX(p.paid_on), '%Y.%m.%d') AS lastPaidOn"
+			+ " FROM savings_payment p JOIN savings_account s ON s.savings_account_id = p.savings_account_id"
+			+ " WHERE s.member_id = :memberId"
+			+ " GROUP BY p.savings_account_id", nativeQuery = true)
+	List<SavingsLastPaid> findSavingsLastPaidOn(@Param("memberId") Long memberId);
 }

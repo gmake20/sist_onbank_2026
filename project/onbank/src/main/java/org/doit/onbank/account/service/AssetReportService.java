@@ -89,7 +89,7 @@ public class AssetReportService {
 		AssetReport previous = reports.get(key(month.minusMonths(1)));
 
 		// 4. 자산 구성·대출
-		List<Slice> composition = composition(accountService.getMyAccounts(memberId));
+		List<Slice> composition = composition(accountService.getMyAccounts(memberId), subscriptions);
 		long totalAssets = composition.stream().mapToLong(Slice::amount).sum();
 		List<LoanRow> loanRows = loans.stream().map(this::loanRow).toList();
 		long loanBalance = loanRows.stream().mapToLong(LoanRow::remaining).sum();
@@ -188,7 +188,9 @@ public class AssetReportService {
 	}
 
 	// 자산 구성 : 정상·동결 계좌 잔액 (개설대기·해지 제외). 유형이 비어 있는 계좌는 입출금으로 본다
-	private List<Slice> composition(List<Account> accounts) {
+	// (10-21) 팀3 예적금(savings_account) 원금도 예금·적금에 더한다
+	//   가입할 때 입출금 계좌에서 돈이 빠져나가므로, 더하지 않으면 그만큼 총자산이 줄어 보인다
+	private List<Slice> composition(List<Account> accounts, List<SubscriptionSummary> subscriptions) {
 		Map<AccountType, Long> sums = new LinkedHashMap<>();
 		sums.put(AccountType.CHECKING, 0L);
 		sums.put(AccountType.DEPOSIT, 0L);
@@ -202,6 +204,10 @@ public class AssetReportService {
 			if (sums.containsKey(type)) {
 				sums.merge(type, value(account.getBalance()), Long::sum);
 			}
+		}
+		for (SubscriptionSummary subscription : subscriptions) {
+			AccountType type = isInstallment(subscription.getProductType()) ? AccountType.SAVINGS : AccountType.DEPOSIT;
+			sums.merge(type, value(subscription.getPrincipalAmount()), Long::sum);
 		}
 
 		long total = sums.values().stream().mapToLong(Long::longValue).sum();
@@ -268,7 +274,7 @@ public class AssetReportService {
 		return new SubscriptionRow(
 				subscription.getProductName() == null ? "예적금" : subscription.getProductName(),
 				productTypeLabel(subscription.getProductType()),
-				amount, hasPrincipal ? "원금" : "월 납입",
+				amount, !hasPrincipal ? "월 납입" : isInstallment(subscription.getProductType()) ? "납입 금액" : "원금",
 				subscription.getSubscribedAt(), subscription.getMaturityDate(), subscription.getExpectedInterest(),
 				elapsedPercent(subscription.getSubscribedAt(), subscription.getMaturityDate()));
 	}
@@ -304,10 +310,15 @@ public class AssetReportService {
 			return "예적금";
 		}
 		return switch (productType.toUpperCase(Locale.ROOT)) {
-			case "DEPOSIT" -> "예금";
-			case "SAVINGS" -> "적금";
+			case "DEPOSIT", "FIXED_DEPOSIT" -> "예금";
+			case "SAVINGS", "INSTALLMENT_SAVINGS" -> "적금";
 			default -> productType;
 		};
+	}
+
+	// 적금(매달 넣는 상품)인지 : 팀3 savings_product.type 값 INSTALLMENT_SAVINGS (예전 값 SAVINGS 도 적금으로)
+	private static boolean isInstallment(String productType) {
+		return productType != null && productType.toUpperCase(Locale.ROOT).contains("SAVINGS");
 	}
 
 	private static String key(YearMonth month) {
