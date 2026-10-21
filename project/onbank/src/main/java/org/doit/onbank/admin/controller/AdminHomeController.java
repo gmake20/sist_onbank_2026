@@ -1,6 +1,7 @@
 package org.doit.onbank.admin.controller;
 
 import org.doit.onbank.admin.security.AdminPrincipal;
+import org.doit.onbank.admin.service.AdminDashboardService;
 import org.doit.onbank.common.exception.BusinessException;
 import org.doit.onbank.common.security.BackOfficePasswordService;
 import org.doit.onbank.common.security.PasswordChangeForm;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminHomeController {
 
 	private final BackOfficePasswordService backOfficePasswordService;
+	private final AdminDashboardService adminDashboardService;	// DSH-001 요약 지표, DSH-002 거래량 추이 (팀원4)
 
 	@GetMapping("/login")
 	public String loginForm(Model model) {
@@ -39,11 +42,17 @@ public class AdminHomeController {
 
 	// 관리자 홈 (대시보드는 팀원4가 이 자리에 만든다)
 	@GetMapping
-	public String home(@AuthenticationPrincipal AdminPrincipal me, Model model) {
+	// public String home(@AuthenticationPrincipal AdminPrincipal me, Model model) {
+	public String home(@AuthenticationPrincipal AdminPrincipal me, Model model,
+			@RequestParam(defaultValue = "7") int range) {
 		model.addAttribute("area", "관리자");
 		model.addAttribute("me", me);
 		model.addAttribute("roleName", me.getRole().name());
 		model.addAttribute("logoutUrl", "/admin/logout");
+		model.addAttribute("summary", adminDashboardService.summary());
+		int days = AdminDashboardService.normalizeRange(range);	// 7·30 외 값은 7
+		model.addAttribute("range", days);
+		model.addAttribute("trend", adminDashboardService.trend(days));
 		// return "backoffice/home";
 		return "backoffice/admin/dashboard";
 	}

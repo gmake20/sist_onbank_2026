@@ -10,53 +10,66 @@
 <h1 layout:fragment="page-title">대시보드</h1>
 <main layout:fragment="content">
 
-    <!-- 요약 지표 (DSH-001). 숫자는 GET /admin/api/dashboard/summary 연결 전까지 "—" -->
+    <!-- 요약 지표 (DSH-001). 숫자는 AdminHomeController 가 Model 에 넣은 summary (AdminDashboardService) -->
     <section class="adm-kpis" aria-label="요약 지표">
         <a class="adm-kpi" th:href="@{/admin/members}">
             <span class="adm-kpi-label">전체 회원</span>
-            <span class="adm-kpi-value">—<small>명</small></span>
+            <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.totalMembers, 1, 'COMMA')}">—</th:block><small>명</small></span>
             <span class="adm-kpi-go">회원 관리로 이동</span>
         </a>
-        <a class="adm-kpi" th:href="@{/admin/members}">
+        <a class="adm-kpi" th:href="@{/admin/members(status='SUSPENDED')}">
             <span class="adm-kpi-label">이용 제한 회원</span>
-            <span class="adm-kpi-value">—<small>명</small></span>
+            <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.suspendedMembers, 1, 'COMMA')}">—</th:block><small>명</small></span>
             <span class="adm-kpi-go">이용 제한만 보기</span>
         </a>
         <a class="adm-kpi" th:href="@{/admin/transactions}">
             <span class="adm-kpi-label">오늘 거래 건수</span>
-            <span class="adm-kpi-value">—<small>건</small></span>
+            <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.todayTransactionCount, 1, 'COMMA')}">—</th:block><small>건</small></span>
             <span class="adm-kpi-go">오늘 거래 보기</span>
         </a>
         <a class="adm-kpi" th:href="@{/admin/transactions}">
             <span class="adm-kpi-label">오늘 거래 금액</span>
-            <span class="adm-kpi-value">—<small>원</small></span>
+            <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.todayTransactionAmount, 1, 'COMMA')}">—</th:block><small>원</small></span>
             <span class="adm-kpi-go">오늘 거래 보기</span>
         </a>
-        <a class="adm-kpi" th:href="@{/admin/accounts}">
+        <a class="adm-kpi" th:href="@{/admin/accounts(status='FROZEN')}">
             <span class="adm-kpi-label">동결 계좌</span>
-            <span class="adm-kpi-value">—<small>개</small></span>
+            <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.frozenAccounts, 1, 'COMMA')}">—</th:block><small>개</small></span>
             <span class="adm-kpi-go">동결 계좌만 보기</span>
         </a>
         <a class="adm-kpi" th:href="@{/admin/loans}">
             <span class="adm-kpi-label">대출 잔액</span>
-            <span class="adm-kpi-value">—<small>원</small></span>
+            <span class="adm-kpi-value"><th:block th:text="${#numbers.formatInteger(summary.loanBalance, 1, 'COMMA')}">—</th:block><small>원</small></span>
             <span class="adm-kpi-go">대출 관리로 이동</span>
         </a>
     </section>
 
-    <!-- 거래량 추이 (DSH-002). 차트는 일별 집계 API 만들 때 -->
+    <!-- 거래량 추이 (DSH-002). 막대 = 일별 건수, 높이는 기간 중 최댓값 기준 %. 기간을 바꾸면 /admin?range= 로 다시 연다 -->
     <section class="adm-panel" aria-labelledby="trend-title">
         <div class="adm-panel-head">
             <h2 id="trend-title">거래량 추이</h2>
-            <div class="adm-field">
+            <form class="adm-field" th:action="@{/admin}" method="get">
                 <label for="trendRange">기간</label>
-                <select id="trendRange" disabled>
-                    <option>최근 7일</option>
-                    <option>최근 30일</option>
+                <select id="trendRange" name="range" onchange="this.form.submit()">
+                    <option value="7" th:selected="${range == 7}">최근 7일</option>
+                    <option value="30" th:selected="${range == 30}">최근 30일</option>
                 </select>
+            </form>
+        </div>
+        <div class="adm-trend" th:classappend="${range == 30} ? 'is-long'"
+             role="img" th:attr="aria-label=|최근 ${range}일 일별 거래 건수 막대 차트|">
+            <div class="adm-trend-col" th:each="b, st : ${trend}"
+                 th:title="|${#temporals.format(b.day, 'MM-dd')} · ${#numbers.formatInteger(b.count, 1, 'COMMA')}건 · ${#numbers.formatInteger(b.amount, 1, 'COMMA')}원|">
+                <span class="adm-trend-count" th:text="${#numbers.formatInteger(b.count, 1, 'COMMA')}">0</span>
+                <div class="adm-trend-plot">
+                    <div class="adm-trend-bar" th:style="|height: ${b.heightPercent}%|"></div>
+                </div>
+                <!-- 30일은 글자가 겹쳐서 5일마다 + 오늘만 날짜를 쓴다 -->
+                <span class="adm-trend-day"
+                      th:text="${range == 7 or st.index % 5 == 0 or st.last} ? ${#temporals.format(b.day, 'MM-dd')} : ''">MM-DD</span>
             </div>
         </div>
-        <p class="adm-empty adm-chart-empty">차트 준비 중</p>
+        <p class="adm-chart-note">입금 + ATM 출금 + 이체(보낸 쪽) 건수. 막대에 마우스를 올리면 금액이 나온다</p>
     </section>
 
 </main>
