@@ -84,5 +84,18 @@ public class FdsDetection {
         this.status = FdsStatus.CONTACTING;
     }
 
+    // FDS-005 종결 : 고객 연락 중(CONTACTING) → 정상 거래 확인(NORMAL_CONFIRMED) / 사기 의심 조치(FRAUD_ACTION)
+    // 담당자 본인인지, 연락 기록이 있는지, 마지막 연락 결과로 고를 수 있는 결과인지는 서비스가 본다 (다른 테이블이 필요해서)
+    public void close(FdsStatus result, LocalDateTime now) {
+        if (status != FdsStatus.CONTACTING) {
+            throw new IllegalStateException("고객 연락 중 단계에서만 종결할 수 있습니다. (현재 상태: " + status + ")");
+        }
+        if (result != FdsStatus.NORMAL_CONFIRMED && result != FdsStatus.FRAUD_ACTION) {
+            throw new IllegalArgumentException("종결 결과는 정상 거래 확인 또는 사기 의심 조치만 됩니다. (받은 값: " + result + ")");
+        }
+        this.status = result;
+        this.closedAt = now;
+    }
+
 }
 

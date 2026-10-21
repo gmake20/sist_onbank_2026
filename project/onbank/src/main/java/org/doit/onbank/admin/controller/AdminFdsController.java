@@ -7,6 +7,7 @@ import org.doit.onbank.admin.dto.FdsContactForm;
 import org.doit.onbank.admin.dto.FdsDetailView;
 import org.doit.onbank.admin.entity.ContactMethod;
 import org.doit.onbank.admin.entity.ContactResult;
+import org.doit.onbank.admin.entity.FdsStatus;
 import org.doit.onbank.admin.security.AdminPrincipal;
 import org.doit.onbank.admin.service.AdminFdsService;
 import org.doit.onbank.common.exception.BusinessException;
@@ -33,7 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-// S-15 이상거래 탐지 목록 · S-16 상세 (FDS-002), 배정·연락 시작·연락 기록 (FDS-004~006)
+// S-15 이상거래 탐지 목록 · S-16 상세 (FDS-002), 배정·연락 시작·연락 기록·종결 (FDS-004~006)
 // 역할은 사이드바·화면목록 5장과 같게. 직원(STAFF·MANAGER) 조회는 /employee 쪽에서 따로 (D-02)
 @Controller
 @RequestMapping("/admin/fds")
@@ -159,11 +160,36 @@ public class AdminFdsController {
         return "redirect:" + withSearch(UriComponentsBuilder.fromPath("/admin/fds/" + detectionId), searchParams(params));
     }
 
+    // FDS-005 종결. 같은 계좌의 내 담당 건도 함께, 사기 의심 조치면 계좌 거래정지 (AdminFdsService.close). 처리 후 같은 상세로 (PRG)
+    // result 를 안 고르면 null → 서비스가 "종결 결과를 고르세요." / 메모는 선택
+    @PostMapping("/{detectionId}/close")
+    public String close(@AuthenticationPrincipal AdminPrincipal me, @PathVariable("detectionId") Long detectionId,
+                        @RequestParam(name = "result", required = false) FdsStatus result,
+                        @RequestParam(name = "memo", required = false) String memo,
+                        @RequestParam Map<String, String> params, HttpServletRequest request,
+                        RedirectAttributes rttr) {
+        try {
+            int count = adminFdsService.close(me, detectionId, result, memo, request.getRemoteAddr());
+            String label = AdminFdsService.STATUS_LABELS.get(result.name());
+            rttr.addFlashAttribute("message", count > 1
+                    ? "\"" + label + "\"(으)로 종결했습니다. 같은 계좌의 내 담당 탐지 " + (count - 1) + "건도 함께 종결했습니다."
+                    : "\"" + label + "\"(으)로 종결했습니다.");
+        } catch (BusinessException e) {
+            rttr.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:" + withSearch(UriComponentsBuilder.fromPath("/admin/fds/" + detectionId), searchParams(params));
+    }
+
     // 상세 화면에 넣는 값. "내 담당" = 로그인한 관리자가 담당자 (버튼·연락 입력은 담당자에게만)
     private void fillDetail(AdminPrincipal me, Long detectionId, Map<String, String> params, Model model) {
         FdsDetailView view = adminFdsService.detail(detectionId);
         model.addAttribute("view", view);
-        model.addAttribute("mine", me.getAdminId().equals(view.row().getAssignedAdminId()));
+        boolean mine = me.getAdminId().equals(view.row().getAssignedAdminId());
+        model.addAttribute("mine", mine);
+        // 종결 칸은 고객 연락 중 + 내 담당일 때만 나온다 → 그때만 조회
+        if (mine && FdsStatus.CONTACTING.name().equals(view.row().getStatus())) {
+            model.addAttribute("closeInfo", adminFdsService.closeInfo(me, detectionId));
+        }
 
         Map<String, String> search = searchParams(params);
         model.addAttribute("searchParams", search);     // 처리 form 의 hidden 칸 → 처리 후에도 "탐지 목록" 링크 유지
