@@ -46,6 +46,9 @@ public class SavingsAccount {
         scale = 4
     )
     private BigDecimal contractRate;
+    
+    @Column(name = "last_transaction_at")
+    private LocalDateTime lastTransactionAt;
 
     @Column(name = "opened_on", nullable = false)
     private LocalDate openedOn;
@@ -96,9 +99,12 @@ public class SavingsAccount {
         this.openedOn = date;
         this.maturityOn = date.plusMonths(product.getTermMonths());
         this.status = SavingsStatus.ACTIVE;
+        
+        this.lastTransactionAt = date.atStartOfDay();
     }
 
-    public void addPayment(long amount) {
+    public void addPayment(long amount,
+    						LocalDateTime now) {
 
         if (status != SavingsStatus.ACTIVE
                 || product.getType() != SavingsType.INSTALLMENT_SAVINGS
@@ -110,6 +116,7 @@ public class SavingsAccount {
         }
 
         principal = Math.addExact(principal, amount);
+        lastTransactionAt = now;
     }
 
     public void close(LocalDate date) {
@@ -124,6 +131,7 @@ public class SavingsAccount {
 
         status = SavingsStatus.CLOSED;
         closedOn = date;
+        lastTransactionAt = LocalDateTime.now();
     }
     
     public void closeEarly(LocalDate date) {
@@ -136,5 +144,6 @@ public class SavingsAccount {
 
         status = SavingsStatus.CLOSED;
         closedOn = date;
+        lastTransactionAt = LocalDateTime.now();
     }
 }
