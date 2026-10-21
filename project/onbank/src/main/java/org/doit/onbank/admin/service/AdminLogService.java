@@ -2,12 +2,16 @@ package org.doit.onbank.admin.service;
 
 import lombok.RequiredArgsConstructor;
 import org.doit.onbank.admin.dto.AdminLogRow;
+import org.doit.onbank.admin.dto.AdminLoginLogRow;
 import org.doit.onbank.admin.entity.Admin;
 import org.doit.onbank.admin.entity.AdminLog;
+import org.doit.onbank.admin.entity.AdminLoginLog;
 import org.doit.onbank.admin.repository.AdminLogRepository;
+import org.doit.onbank.admin.repository.AdminLoginLogRepository;
 import org.doit.onbank.admin.repository.AdminRepository;
 import org.doit.onbank.common.security.ActorType;
 import org.doit.onbank.common.security.BackOfficeUser;
+import org.doit.onbank.common.security.LoginFailReason;
 import org.doit.onbank.employee.entity.Employee;
 import org.doit.onbank.employee.repository.EmployeeRepository;
 import org.doit.onbank.member.entity.Member;
@@ -39,6 +43,7 @@ public class AdminLogService {
     private static final int PAGE_SIZE = 20;
 
     private final AdminLogRepository adminLogRepository;
+    private final AdminLoginLogRepository adminLoginLogRepository;
     private final AdminRepository adminRepository;
     private final EmployeeRepository employeeRepository;
     private final MemberRepository memberRepository;
@@ -86,6 +91,28 @@ public class AdminLogService {
         return logs.map(l -> new AdminLogRow(l,
                 person(l.getActorType().name(), l.getActorId(), admins, employees, members),
                 person(l.getTargetType(), parseId(l.getTargetId()), admins, employees, members)));
+    }
+
+    // ---- S-14 로그인 이력 탭 (admin_login_log) ----
+
+    // 기간·빈 문자열 처리는 활동 로그와 같다. success : true 성공만 / false 실패만 / null 전체
+    @Transactional(readOnly = true)
+    public Page<AdminLoginLogRow> searchLogins(String loginId, Boolean success, LoginFailReason failReason,
+                                               String ipAddress, LocalDate from, LocalDate to, int page) {
+        Page<AdminLoginLog> logs = adminLoginLogRepository.search(blankToNull(loginId), success,
+                failReason == null ? null : failReason.name(), blankToNull(ipAddress),
+                from.atStartOfDay(), to.plusDays(1).atStartOfDay(),
+                PageRequest.of(Math.max(page, 0), PAGE_SIZE));
+
+        // 이 페이지에 나온 관리자만 한 번에 조회 (최대 20명)
+        Set<Long> adminIds = logs.stream()
+                .map(AdminLoginLog::getAdminId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> names = adminRepository.findAllById(adminIds).stream()
+                .collect(Collectors.toMap(Admin::getAdminId, Admin::getName));
+
+        return logs.map(l -> new AdminLoginLogRow(l, l.getAdminId() == null ? null : names.get(l.getAdminId())));
     }
 
     @Transactional(readOnly = true)

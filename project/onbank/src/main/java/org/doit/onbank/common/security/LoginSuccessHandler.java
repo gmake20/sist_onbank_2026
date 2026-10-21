@@ -32,6 +32,7 @@ public class LoginSuccessHandler extends SavedRequestAwareAuthenticationSuccessH
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws ServletException, IOException {
 		recorder.recordSuccess(authentication.getName());
+		recorder.recordHistory(authentication.getName(), null, request);
 		if (authentication.getPrincipal() instanceof TempPasswordUser user && user.isTempPassword()) {
 			clearAuthenticationAttributes(request);
 			getRedirectStrategy().sendRedirect(request, response, passwordUrl);

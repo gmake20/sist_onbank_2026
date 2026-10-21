@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 //   단, 이번 실패로 5회가 되어 잠겼으면 → ?locked
 // - 이미 잠긴 계정 → ?locked   (Spring이 비밀번호 확인 전에 막으므로 실패 횟수는 더 늘지 않음)
 // - 정지·휴직·퇴사·비활성 계정 → ?disabled
+// 로그인 이력(recordHistory)에는 사유를 BAD_CREDENTIALS / LOGIN_LOCKED / INACTIVE 로 남긴다
 // SecurityConfig에서 영역마다 하나씩 만든다 (Bean 아님)
 public class LoginFailureHandler implements AuthenticationFailureHandler {
 
@@ -35,16 +36,23 @@ public class LoginFailureHandler implements AuthenticationFailureHandler {
 	@Override
 	public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException exception) throws IOException {
+		String username = request.getParameter(usernameParameter);
 		String reason = "error";
+		LoginFailReason failReason = null;	// 그 외 예외(DB 오류 등)는 이력에 남기지 않는다
 		if (exception instanceof BadCredentialsException) {
-			String username = request.getParameter(usernameParameter);
+			failReason = LoginFailReason.BAD_CREDENTIALS;
 			if (username != null && !username.isBlank() && recorder.recordFailure(username)) {
 				reason = "locked";
 			}
 		} else if (exception instanceof LockedException) {
+			failReason = LoginFailReason.LOGIN_LOCKED;
 			reason = "locked";
 		} else if (exception instanceof DisabledException) {
+			failReason = LoginFailReason.INACTIVE;
 			reason = "disabled";
+		}
+		if (failReason != null) {
+			recorder.recordHistory(username, failReason, request);
 		}
 		redirectStrategy.sendRedirect(request, response, loginPage + "?" + reason);
 	}

@@ -83,6 +83,9 @@ public class SecurityConfig {
 				.authenticationEntryPoint(entryPoint("/admin/login", "/admin/api/**")))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/admin/login").permitAll()
+				// 활동 로그·로그인 이력(S-14)은 SUPER_ADMIN 전용. AdminLogController의 @PreAuthorize와 함께
+				// URL에서도 막는다 (@EnableMethodSecurity가 빠져도 열리지 않도록)
+				.requestMatchers("/admin/logs", "/admin/logs/**").hasRole("SUPER_ADMIN")
 				// TODO 역할별 세부 권한은 팀원4가 정하면 추가 (예: 공지사항 관리)
 				.anyRequest().hasAnyRole("SUPER_ADMIN", "OPERATOR", "SERVICE"))
 			.formLogin(form -> form
