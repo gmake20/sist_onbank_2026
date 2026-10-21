@@ -3,6 +3,7 @@ package org.doit.onbank.admin.controller;
 import lombok.RequiredArgsConstructor;
 import org.doit.onbank.admin.service.AdminLogService;
 import org.doit.onbank.common.security.ActorType;
+import org.doit.onbank.common.security.LoginFailReason;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.time.LocalDate;
 
 // S-14 활동 로그 (LOG-002). 조회만, SUPER_ADMIN 전용
+// 탭 : 작업 이력(/admin/logs, admin_log) / 로그인 이력(/admin/logs/logins, admin_login_log)
 @Controller
 @RequestMapping("/admin/logs")
 @RequiredArgsConstructor
@@ -57,5 +59,35 @@ public class AdminLogController {
         model.addAttribute("targetTypes", adminLogService.targetTypes());
 
         return "backoffice/admin/logs";
+    }
+
+    // S-14 로그인 이력 탭 (admin_login_log). 결과 : SUCCESS / FAIL / 빈 값(전체)
+    @GetMapping("/logins")
+    public String logins(@RequestParam(name = "loginId", required = false) String loginId,
+                         @RequestParam(name = "result", required = false) String result,
+                         @RequestParam(name = "failReason", required = false) LoginFailReason failReason,
+                         @RequestParam(name = "ipAddress", required = false) String ipAddress,
+                         @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                         @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                         @RequestParam(name = "page", defaultValue = "0") int page,
+                         Model model) {
+        if (to == null) {
+            to = LocalDate.now();
+        }
+        if (from == null) {
+            from = to.minusDays(DEFAULT_DAYS);
+        }
+        Boolean success = "SUCCESS".equals(result) ? Boolean.TRUE : "FAIL".equals(result) ? Boolean.FALSE : null;
+
+        model.addAttribute("logs", adminLogService.searchLogins(loginId, success, failReason, ipAddress, from, to, page));
+        model.addAttribute("loginId", loginId);
+        model.addAttribute("result", success == null ? null : result);
+        model.addAttribute("failReason", failReason);
+        model.addAttribute("ipAddress", ipAddress);
+        model.addAttribute("from", from);
+        model.addAttribute("to", to);
+        model.addAttribute("failReasons", LoginFailReason.values());
+
+        return "backoffice/admin/login-logs";
     }
 }

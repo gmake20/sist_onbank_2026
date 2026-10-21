@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>로그인 이력</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 감사 / 활동 로그 / 로그인 이력</div>
+<h1 layout:fragment="page-title">활동 로그</h1>
+<main layout:fragment="content">
+
+    <nav class="adm-tabs" aria-label="로그 종류">
+        <a class="adm-tab" th:href="@{/admin/logs}">작업 이력</a>
+        <a class="adm-tab active" aria-current="page" th:href="@{/admin/logs/logins}">로그인 이력</a>
+    </nav>
+
+    <form class="adm-search" method="get" th:action="@{/admin/logs/logins}">
+        <div class="adm-field">
+            <label for="loginId">아이디</label>
+            <input type="text" id="loginId" name="loginId" th:value="${loginId}" placeholder="입력한 아이디 (없는 아이디 포함)">
+        </div>
+        <div class="adm-field">
+            <label for="result">결과</label>
+            <select id="result" name="result">
+                <option value="">전체</option>
+                <option value="SUCCESS" th:selected="${result == 'SUCCESS'}">성공</option>
+                <option value="FAIL" th:selected="${result == 'FAIL'}">실패</option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="failReason">실패 사유</label>
+            <select id="failReason" name="failReason">
+                <option value="">전체</option>
+                <option th:each="r : ${failReasons}" th:value="${r}" th:text="${r.label}" th:selected="${r == failReason}"></option>
+            </select>
+        </div>
+        <div class="adm-field">
+            <label for="ipAddress">IP</label>
+            <input type="text" id="ipAddress" name="ipAddress" th:value="${ipAddress}" placeholder="예: 127.0.0.1">
+        </div>
+        <div class="adm-field">
+            <label for="from">시작일</label>
+            <input type="date" id="from" name="from" th:value="${from}">
+        </div>
+        <div class="adm-field">
+            <label for="to">종료일</label>
+            <input type="date" id="to" name="to" th:value="${to}">
+        </div>
+        <div class="adm-search-btns">
+            <button type="submit" class="adm-btn-primary">검색</button>
+            <a class="adm-btn adm-btn-link" th:href="@{/admin/logs/logins}">초기화</a>
+        </div>
+    </form>
+
+    <section class="adm-card">
+        <div class="adm-card-head">
+            <span>총 <b th:text="${logs.totalElements}">0</b>건</span>
+        </div>
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead>
+                <tr><th>일시</th><th>결과</th><th>실패 사유</th><th>아이디</th><th>관리자</th><th>IP</th><th>브라우저 (User-Agent)</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${logs}">
+                    <td th:text="${#temporals.format(row.log.loginAt, 'yyyy-MM-dd HH:mm:ss')}">YYYY-MM-DD HH:mm:ss</td>
+                    <td><span class="adm-badge" th:text="${row.log.success} ? '성공' : '실패'">성공</span></td>
+                    <td th:text="${row.failReasonLabel()} ?: '-'">-</td>
+                    <td th:text="${row.log.loginIdInput}">admin01</td>
+                    <!-- 없는 아이디로 시도했으면 관리자 칸은 비운다 -->
+                    <td th:text="${row.adminName} ?: '-'">이름</td>
+                    <td th:text="${row.log.ipAddress}">127.0.0.1</td>
+                    <td class="adm-cell-long" th:text="${row.log.userAgent} ?: '-'" th:title="${row.log.userAgent}">-</td>
+                </tr>
+                <tr th:if="${logs.totalElements == 0}">
+                    <td colspan="7" class="adm-empty">조건에 맞는 로그인 이력이 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지 이동 : 현재 페이지 앞뒤로 최대 10개. 링크마다 검색 조건을 그대로 붙인다 -->
+        <nav class="adm-pager" aria-label="페이지 이동" th:if="${logs.totalPages > 1}"
+             th:with="start=${logs.number > 4 ? logs.number - 4 : 0},
+                      end=${start + 9 < logs.totalPages - 1 ? start + 9 : logs.totalPages - 1}">
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${logs.hasPrevious()}"
+               th:href="@{/admin/logs/logins(loginId=${loginId}, result=${result}, failReason=${failReason},
+                         ipAddress=${ipAddress}, from=${from}, to=${to}, page=${logs.number - 1})}">이전</a>
+            <th:block th:each="p : ${#numbers.sequence(start, end)}">
+                <span class="adm-btn-primary adm-btn-sm" th:if="${p == logs.number}" aria-current="page" th:text="${p + 1}">1</span>
+                <a class="adm-btn adm-btn-sm adm-btn-link" th:unless="${p == logs.number}" th:text="${p + 1}"
+                   th:href="@{/admin/logs/logins(loginId=${loginId}, result=${result}, failReason=${failReason},
+                             ipAddress=${ipAddress}, from=${from}, to=${to}, page=${p})}">2</a>
+            </th:block>
+            <a class="adm-btn adm-btn-sm adm-btn-link" th:if="${logs.hasNext()}"
+               th:href="@{/admin/logs/logins(loginId=${loginId}, result=${result}, failReason=${failReason},
+                         ipAddress=${ipAddress}, from=${from}, to=${to}, page=${logs.number + 1})}">다음</a>
+        </nav>
+    </section>
+
+    <p class="adm-note">관리자 로그인 성공·실패 기록입니다. 조회만 됩니다 (수정·삭제 없음). 기간을 비우면 최근 30일. 잘린 칸은 마우스를 올리면 전체가 보입니다.</p>
+</main>
+</body>
+</html>
