@@ -35,4 +35,15 @@ class BranchRepositoryTests {
 
 		assertThat(all).anyMatch(b -> !b.getServices().isEmpty());
 	}
+
+	// 지점/ATM 찾기 : 사용 중인 지점·ATM 모두, 이름순, 업무가 여러 개여도 지점이 중복되지 않음
+	@Test
+	void findAllInUseWithServices() {
+		List<Branch> branches = branchRepository.findAllInUseWithServices();
+
+		assertThat(branches).isNotEmpty().allMatch(Branch::isInUse).doesNotHaveDuplicates();
+		assertThat(branches).extracting(Branch::getBranchType).contains(BranchType.BRANCH, BranchType.ATM);
+		assertThat(branches).extracting(Branch::getName).isSorted();
+		assertThat(branches).anyMatch(b -> !b.getServices().isEmpty());
+	}
 }
