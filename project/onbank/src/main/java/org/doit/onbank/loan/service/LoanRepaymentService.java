@@ -11,6 +11,7 @@ import org.doit.onbank.account.entity.AccountTransaction;
 import org.doit.onbank.account.entity.AccountTransactionType;
 import org.doit.onbank.account.repository.AccountRepository;
 import org.doit.onbank.account.repository.AccountTransactionRepository;
+import org.doit.onbank.account.service.TransactionHistoryService;
 import org.doit.onbank.loan.entity.LoanAccount;
 import org.doit.onbank.loan.entity.LoanApplication;
 import org.doit.onbank.loan.entity.LoanRepaymentSchedule;
@@ -30,6 +31,8 @@ public class LoanRepaymentService {
     private final LoanRepaymentScheduleRepository scheduleRepository;
     private final AccountRepository accountRepository;
     private final AccountTransactionRepository transactionRepository;
+    
+    private final TransactionHistoryService transactionHistoryService;
 
     @Transactional
     public void repay(
@@ -185,20 +188,12 @@ public class LoanRepaymentService {
         // 12. 거래내역 저장
         // =====================================
 
-        AccountTransaction transaction =
-                AccountTransaction.builder()
-                    .account(account)
-                    .transactionType(
-                        AccountTransactionType.LOAN_REPAYMENT)
-                    .amount(total)
-                    .balanceAfter(
-                        BigDecimal.valueOf(account.getBalance()))
-                    .loanAccountId(loanAccountId)
-                    .description(
-                        schedule.getInstallmentNo()
-                            + "회차 대출금 상환")
-                    .build();
-
-        transactionRepository.save(transaction);
+        transactionHistoryService.record(
+                account,
+                "WITHDRAWAL",
+                withdrawalAmount,
+                "ONBANK 대출금 상환",
+                now 
+        );
     }
 }
