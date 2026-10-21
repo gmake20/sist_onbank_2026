@@ -61,6 +61,8 @@ public class AccountTransferService {
 	
 	// 2026/10/19 이지훈 추가
 	private final AccountTransactionRepository accountTransactionRepository;
+	private final TransactionHistoryService transactionHistoryService;
+	
 	private final OtpService otpService;
 
 	// 이체 (기획서 11-1장 순서) : 1~3 검증·인증은 authorize(), 4~7 실행은 execute() 가 한다
@@ -318,18 +320,70 @@ public class AccountTransferService {
 	    account.deposit(depositAmount, now);
 
 	    // 거래내역 저장
-	    AccountTransaction transaction =
-	            AccountTransaction.builder()
-	                .account(account)
-	                .transactionType(
-	                    AccountTransactionType.LOAN_DISBURSEMENT)
-	                .amount(amount)
-	                .balanceAfter(
-	                    BigDecimal.valueOf(account.getBalance()))
-	                .loanAccountId(loanAccount.getLoanAccountId())
-	                .description("대출금 지급")
-	                .build();
-
-	    accountTransactionRepository.save(transaction);
+	    transactionHistoryService.record(
+	            account,
+	            "DEPOSIT",
+	            amount.longValueExact(),
+	            "ONBANK 대출금 지급",
+	            now
+	    );
 	}
+	
+//	@Transactional(propagation = Propagation.MANDATORY)
+//	public void disburseLoan(
+//	        LoanAccount loanAccount,
+//	        Account account,
+//	        BigDecimal amount) {
+//
+//	    if (loanAccount == null || account == null
+//	            || amount == null || amount.signum() <= 0) {
+//	        throw new IllegalArgumentException(
+//	                "대출 지급 정보가 올바르지 않습니다.");
+//	    }
+//
+//	    if (amount.compareTo(
+//	            loanAccount.getPrincipalAmount()) != 0) {
+//	        throw new IllegalStateException(
+//	                "대출 실행 금액이 일치하지 않습니다.");
+//	    }
+//
+//	    
+//	    if (account.getAccountType() != AccountType.CHECKING
+//	            || account.getAccountStatus() != AccountStatus.ACTIVE) {
+//	        throw new IllegalStateException(
+//	                "대출금을 지급할 수 없는 계좌입니다.");
+//	    }
+//
+//
+//	    if (accountTransactionRepository
+//	            .existsByLoanAccountIdAndTransactionType(
+//	                loanAccount.getLoanAccountId(),
+//	                AccountTransactionType.LOAN_DISBURSEMENT)) {
+//	        throw new IllegalStateException(
+//	                "이미 지급된 대출금입니다.");
+//	    }
+//
+//	    // BigDecimal -> long (정확한 변환)
+//	    long depositAmount = amount.longValueExact();
+//
+//	    LocalDateTime now = LocalDateTime.now();
+//
+//	    // 입출금 계좌 잔액 증가
+//	    account.deposit(depositAmount, now);
+//
+//	    // 거래내역 저장
+//	    AccountTransaction transaction =
+//	            AccountTransaction.builder()
+//	                .account(account)
+//	                .transactionType(
+//	                    AccountTransactionType.LOAN_DISBURSEMENT)
+//	                .amount(amount)
+//	                .balanceAfter(
+//	                    BigDecimal.valueOf(account.getBalance()))
+//	                .loanAccountId(loanAccount.getLoanAccountId())
+//	                .description("대출금 지급")
+//	                .build();
+//
+//	    accountTransactionRepository.save(transaction);
+//	}
 }
