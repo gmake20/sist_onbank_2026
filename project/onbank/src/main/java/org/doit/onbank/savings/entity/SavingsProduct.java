@@ -22,6 +22,10 @@ public class SavingsProduct {
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 30)
     private SavingsType type;
+    
+    @Column(name = "early_termination_rate",
+            precision = 7, scale = 4)
+    private BigDecimal earlyTerminationRate;
 
     @Column(
         name = "annual_rate",

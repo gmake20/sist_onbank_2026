@@ -1,6 +1,7 @@
 package org.doit.onbank.account.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.doit.onbank.account.entity.TransactionHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,4 +13,15 @@ public interface TransactionHistoryRepository extends JpaRepository<TransactionH
 
 	// 거래 번호 중복 확인 (transaction_sqno 에 UNIQUE 가 없으므로 코드에서 확인)
 	boolean existsByTransactionSqno(String transactionSqno);
+	
+	
+	// 삭제 예정
+	Optional<TransactionHistory> findByTransactionSqno(
+	        String transactionSqno
+	);
+
+	boolean existsByAccountIdAndTransactionContent(
+	        Long accountId,
+	        String transactionContent
+	);
 }

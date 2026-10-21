@@ -8,6 +8,7 @@ import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountTransaction;
 import org.doit.onbank.account.entity.AccountTransactionType;
+import org.doit.onbank.account.entity.AccountType;
 import org.doit.onbank.account.service.TransactionHistoryService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -46,11 +47,11 @@ public class OnbankAccountMoneyAdapter implements SavingsMoneyPort {
         }
 
         // AccountType이 enum인 경우
-//        if (a.getAccountType() != AccountType.CHECKING) {
-//            throw new IllegalStateException(
-//                    "입출금계좌만 사용할 수 있습니다."
-//            );
-//        }
+        if (a.getAccountType() != AccountType.CHECKING) {
+            throw new IllegalStateException(
+                    "입출금계좌만 사용할 수 있습니다."
+            );
+        }
 
         // AccountStatus가 문자열 상수인 경우
         if (a.getAccountStatus() != AccountStatus.ACTIVE) {
@@ -62,42 +63,7 @@ public class OnbankAccountMoneyAdapter implements SavingsMoneyPort {
         return a;
     }
 
-//    @Override
-//    @Transactional(propagation = Propagation.MANDATORY)
-//    public void debit(Long id, Long memberId, long amount) {
-//
-//        if (amount <= 0) {
-//            throw new IllegalArgumentException("출금금액 오류");
-//        }
-//
-//        Account account = getAccount(id, memberId);
-//
-//        LocalDateTime now = LocalDateTime.now();
-//
-//        // 1. 입출금계좌 출금
-//        account.withdraw(amount, now);
-//
-//        // 2. 출금 후 잔액
-//        BigDecimal balanceAfter =
-//                BigDecimal.valueOf(account.getBalance());
-//
-//        // 3. 거래내역 생성
-//        AccountTransaction transaction =
-//                AccountTransaction.builder()
-//                        .account(account)
-//                        .transactionType(
-//                                AccountTransactionType.SAVINGS_PAYMENT
-//                        )
-//                        .amount(BigDecimal.valueOf(amount))
-//                        .balanceAfter(balanceAfter)
-//                        .loanAccountId(null)
-//                        .description("ONBANK 적금 납입")
-//                        .build();
-//
-//        // 4. 거래내역 저장
-//        em.persist(transaction);
-//    }
-    
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void debit(Long id, Long memberId, long amount) {
@@ -125,60 +91,39 @@ public class OnbankAccountMoneyAdapter implements SavingsMoneyPort {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void credit(Long id, Long memberId, long amount) {
+        credit(id, memberId, amount, "ONBANK 예적금 만기 지급");
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void credit(
+            Long id,
+            Long memberId,
+            long amount,
+            String description) {
 
         if (amount <= 0) {
             throw new IllegalArgumentException("입금 금액 오류");
         }
 
+        if (description == null || description.isBlank()) {
+            throw new IllegalArgumentException("거래 내용이 없습니다.");
+        }
+
         Account account = getAccount(id, memberId);
         LocalDateTime now = LocalDateTime.now();
 
+        // 1. 입출금계좌 입금
         account.deposit(amount, now);
 
+        // 2. 입금 거래내역 기록
         transactionHistoryService.record(
                 account,
                 "DEPOSIT",
                 amount,
-                "ONBANK 예적금 만기 지급",
+                description,
                 now
         );
-    }
 
-//    @Override
-//    @Transactional(propagation = Propagation.MANDATORY)
-//    public void credit(Long id, Long memberId, long amount) {
-//
-//        if (amount <= 0) {
-//            throw new IllegalArgumentException("입금금액 오류");
-//        }
-//
-//        Account account = getAccount(id, memberId);
-//
-//        LocalDateTime now = LocalDateTime.now();
-//
-//        // 1. 입출금계좌 입금
-//        account.deposit(amount, now);
-//
-//        // 2. 입금 후 잔액
-//        BigDecimal balanceAfter =
-//                BigDecimal.valueOf(account.getBalance());
-//
-//        // 3. 거래내역 생성
-//        AccountTransaction transaction =
-//                AccountTransaction.builder()
-//                        .account(account)
-//                        .transactionType(
-//                                AccountTransactionType.SAVINGS_MATURITY
-//                        )
-//                        .amount(BigDecimal.valueOf(amount))
-//                        .balanceAfter(balanceAfter)
-//                        .loanAccountId(null)
-//                        .description("ONBANK 예적금 만기 지급")
-//                        .build();
-//
-//        // 4. 거래내역 저장
-//        em.persist(transaction);
-//    }
-    
-    
+    }
 }
