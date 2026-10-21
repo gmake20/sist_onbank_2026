@@ -191,7 +191,7 @@ public class SavingsService {
 				amount
 				);
 
-		account.addPayment(amount);
+		account.addPayment(amount, LocalDateTime.now());
 
 		payments.save(
 				new SavingsPayment(
