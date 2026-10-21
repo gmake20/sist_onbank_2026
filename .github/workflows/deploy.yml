@@ -35,6 +35,11 @@ jobs:
       run: |
         echo "${{ secrets.APPLICATION_LOCAL_PROPERTIES }}" > src/main/resources/application-local.properties
 
+    # 서버 포트를 8000으로 변경 (Git의 application.properties는 그대로 80)
+    - name: Change server port to 8000
+      run: |
+        sed -i 's/^server\.port=.*/server.port=8000/' src/main/resources/application.properties
+        grep '^server.port' src/main/resources/application.properties
 
     # gradle 빌드
     - name: Build with Gradle
