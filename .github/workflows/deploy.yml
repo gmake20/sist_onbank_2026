@@ -11,7 +11,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: project/onbank   
+        
     steps:
     # 코드 체크아웃(가져오기)
     - name: Checkout repository
@@ -27,6 +30,11 @@ jobs:
     - name: Set gradlew permissions
       run: |
         chmod +x ./gradlew
+
+    - name: Create application-local.properties
+      run: |
+        echo "${{ secrets.APPLICATION_LOCAL_PROPERTIES }}" > src/main/resources/application-local.properties
+
 
     # gradle 빌드
     - name: Build with Gradle
