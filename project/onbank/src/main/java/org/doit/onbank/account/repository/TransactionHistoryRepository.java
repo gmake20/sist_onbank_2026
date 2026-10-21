@@ -15,13 +15,4 @@ public interface TransactionHistoryRepository extends JpaRepository<TransactionH
 	boolean existsByTransactionSqno(String transactionSqno);
 	
 	
-	// 삭제 예정
-	Optional<TransactionHistory> findByTransactionSqno(
-	        String transactionSqno
-	);
-
-	boolean existsByAccountIdAndTransactionContent(
-	        Long accountId,
-	        String transactionContent
-	);
 }
