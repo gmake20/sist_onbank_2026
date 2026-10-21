@@ -46,7 +46,9 @@
 		testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 		
 		implementation 'org.springframework.boot:spring-boot-starter-mail'
-		
+
+		// FDS: 이체·출금 메서드 실행 뒤 탐지를 끼워 넣는 AOP (Boot 4에서 -aop → -aspectj로 이름 바뀜)
+		implementation 'org.springframework.boot:spring-boot-starter-aspectj'
 	}
 
 	tasks.named('test') {
