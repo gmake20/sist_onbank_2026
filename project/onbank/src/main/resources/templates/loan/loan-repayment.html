@@ -149,15 +149,19 @@
 								<option value="">회차를 선택하세요</option>
 
 								<option th:each="s : ${schedules}"
-									th:if="${s.status.name() == 'PENDING'}"
-									th:value="${s.scheduleId}"
-									th:attr="
-						                    data-principal=${s.principalAmount},
-						                    data-interest=${s.interestAmount},
-						                    data-total=${s.totalAmount}"
+										th:if="${s.status.name() == 'PENDING'
+							                 and s.dueDate != null
+							                 and !s.dueDate.isAfter(today)}"
+																th:value="${s.scheduleId}"
+																th:attr="
+							            data-principal=${s.principalAmount},
+							            data-interest=${s.interestAmount},
+							            data-total=${s.totalAmount}"
 									th:text="|${s.installmentNo}회차 · ${#temporals.format(s.dueDate,'yyyy.MM.dd')}|">
 								</option>
 							</select>
+
+
 
 							<div class="payment-breakdown">
 								<div>

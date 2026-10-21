@@ -23,9 +23,12 @@ public class SavingsEarlyCloseController {
     @GetMapping("/{id}/early-close")
     public String preview(@PathVariable Long id,
             @AuthenticationPrincipal LoginMember member, Model model) {
+    	
         if (member == null) return "redirect:/login";
+        
         model.addAttribute("accountId", id);
         model.addAttribute("quote", service.preview(id, member.getMemberId()));
+        
         return "savings/early-close";
     }
 
@@ -34,8 +37,11 @@ public class SavingsEarlyCloseController {
             @AuthenticationPrincipal LoginMember member,
             RedirectAttributes redirect) {
         if (member == null) return "redirect:/login";
+        
         var quote = service.execute(id, member.getMemberId());
+        
         redirect.addFlashAttribute("message", "중도해지 완료: " + quote.payout() + "원 지급");
+        
         return "redirect:/savings/mine";
     }
 }
