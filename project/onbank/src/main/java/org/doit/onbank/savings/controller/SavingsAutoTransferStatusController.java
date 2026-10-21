@@ -32,6 +32,7 @@ public class SavingsAutoTransferStatusController {
         if (member == null) return "redirect:/login";
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        
         List<TransferRow> rows = repository.findByAccount_MemberIdOrderByIdDesc(member.getMemberId())
             .stream().map(setting -> toRow(setting, today)).toList();
 
@@ -40,14 +41,19 @@ public class SavingsAutoTransferStatusController {
         model.addAttribute("activeCount", rows.stream().filter(r -> "ACTIVE".equals(r.statusCode())).count());
         model.addAttribute("failedCount", rows.stream().filter(r -> "FAILED".equals(r.statusCode())).count());
         model.addAttribute("disabledCount", rows.stream().filter(r -> "DISABLED".equals(r.statusCode())).count());
+        
         return "savings/auto-transfers";
     }
 
     private TransferRow toRow(SavingsAutoTransfer setting, LocalDate today) {
+    	
         var account = setting.getAccount();
+        
         boolean accountActive = account.getStatus() == SavingsStatus.ACTIVE;
+        
         String code;
         String label;
+        
         if (!setting.isEnabled() || !accountActive || !today.isBefore(account.getMaturityOn())) {
             code = "DISABLED"; label = "중지/종료";
         } else if (setting.getLastError() != null && !setting.getLastError().isBlank()) {
@@ -57,7 +63,9 @@ public class SavingsAutoTransferStatusController {
         }
 
         String nextAttempt = "—";
+        
         if ("ACTIVE".equals(code) || "FAILED".equals(code)) {
+        	
             YearMonth month = YearMonth.from(today);
             // 마지막 성공한 달은 다음 달로; 지정일이 지난 실패 건은 다음 실행일부터 재시도.
             if (month.toString().equals(setting.getLastSuccessMonth())) {

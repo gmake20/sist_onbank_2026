@@ -2,13 +2,12 @@
 package org.doit.onbank.loan.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.doit.onbank.account.entity.Account;
 import org.doit.onbank.account.entity.AccountStatus;
 import org.doit.onbank.account.entity.AccountType;
-import org.doit.onbank.account.entity.AccountTransaction;
-import org.doit.onbank.account.entity.AccountTransactionType;
 import org.doit.onbank.account.repository.AccountRepository;
 import org.doit.onbank.account.repository.AccountTransactionRepository;
 import org.doit.onbank.account.service.TransactionHistoryService;
@@ -103,6 +102,20 @@ public class LoanRepaymentService {
                 != LoanRepaymentStatus.PENDING) {
             throw new IllegalStateException(
                     "이미 납부했거나 상환할 수 없는 회차입니다.");
+        }
+        
+        LocalDate today = LocalDate.now();
+
+        if (schedule.getDueDate() == null) {
+            throw new IllegalStateException(
+                    "납부예정일이 설정되지 않았습니다.");
+        }
+
+        // 납부예정일 전에는 정기 상환 불가
+        if (today.isBefore(schedule.getDueDate())) {
+            throw new IllegalStateException(
+                    "납부예정일(" + schedule.getDueDate()
+                    + ") 이후에 상환할 수 있습니다.");
         }
 
         // =====================================

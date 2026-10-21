@@ -1,6 +1,7 @@
 
 package org.doit.onbank.loan.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.doit.onbank.loan.entity.LoanAccount;
@@ -96,6 +97,7 @@ public class LoanRepaymentPageController {
                             selected.getLoanAccountId());
 
         model.addAttribute("schedules", repaymentSchedules);
+        model.addAttribute("today", LocalDate.now());
 
         return "loan/loan-repayment";
     }
