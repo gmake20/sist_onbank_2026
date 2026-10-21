@@ -1,0 +1,69 @@
+/* 지점/ATM 찾기 (branch/find.html) */
+.br-page{background:#f7f9fc;min-height:calc(100vh - 100px);padding:32px 20px 80px;color:#172b4d}
+.br-container{max-width:1200px;margin:0 auto}
+.br-breadcrumb{display:flex;gap:10px;align-items:center;font-size:13px;color:#8390a3;margin-bottom:22px}
+.br-breadcrumb a{color:#6a778b}.br-breadcrumb strong{color:#334155}
+.br-heading{margin-bottom:22px}
+.br-kicker{display:inline-block;font-size:12px;font-weight:800;letter-spacing:1.4px;color:#356db7}
+.br-heading h1{font-size:28px;letter-spacing:-.8px;margin:8px 0}
+.br-heading p{font-size:14px;color:#77859b;margin:0}
+
+.br-layout{display:grid;grid-template-columns:380px minmax(0,1fr);gap:20px;align-items:start}
+.br-panel,.br-map-wrap{background:#fff;border:1px solid #e4eaf2;border-radius:18px;box-shadow:0 8px 25px rgba(29,57,105,.035)}
+.br-panel{padding:20px;display:flex;flex-direction:column;height:640px;box-sizing:border-box}
+
+/* 검색 조건 */
+.br-tabs{display:grid;grid-template-columns:repeat(3,1fr);background:#f1f4f9;border-radius:10px;padding:4px;gap:4px}
+.br-tabs input{position:absolute;opacity:0;pointer-events:none}
+.br-tabs span{display:block;text-align:center;padding:9px 0;border-radius:8px;font-size:14px;font-weight:700;color:#6a778b;cursor:pointer}
+.br-tabs input:checked+span{background:#fff;color:#2359b0;box-shadow:0 2px 6px rgba(29,57,105,.1)}
+.br-tabs input:focus-visible+span{outline:3px solid #88b6ff}
+.br-keyword{display:flex;gap:8px;margin-top:12px}
+.br-keyword input{flex:1;min-width:0;border:1px solid #d7e2ef;border-radius:9px;padding:11px 12px;font:inherit;font-size:14px}
+.br-keyword button{border:0;border-radius:9px;background:#2359b0;color:#fff;font:inherit;font-weight:700;font-size:14px;padding:0 18px;cursor:pointer}
+.br-keyword button:hover{filter:brightness(1.1)}
+.br-options{display:flex;gap:10px;align-items:center;margin-top:10px}
+.br-options select{flex:1;border:1px solid #d7e2ef;border-radius:9px;padding:9px 10px;font:inherit;font-size:13px;background:#fff}
+.br-check{display:flex;gap:6px;align-items:center;font-size:13px;color:#475569;white-space:nowrap;cursor:pointer}
+
+/* 결과 목록 */
+.br-count{font-size:13px;color:#77859b;margin:16px 0 8px}
+.br-count strong{color:#2359b0}
+.br-list{flex:1;overflow-y:auto;margin:0 -8px;padding:0 8px}
+.br-item{border:1px solid transparent;border-bottom-color:#eef2f7;border-radius:12px;padding:14px 12px;cursor:pointer}
+.br-item:hover{background:#f7faff}
+.br-item.is-active{border-color:#9dbcf0;background:#f2f7ff}
+.br-item:focus-visible{outline:3px solid #88b6ff}
+.br-item-head{display:flex;gap:8px;align-items:center}
+.br-item h3{font-size:15px;margin:0}
+.br-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:20px;color:#356db7;background:#eaf2ff}
+.br-badge--atm{color:#8a5a00;background:#fff4dc}
+.br-badge--24h{color:#0f7a4f;background:#e4f6ed}
+.br-item p{font-size:13px;color:#64748b;margin:6px 0 0;line-height:1.6}
+.br-services{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.br-services span{font-size:11px;color:#6e7d92;padding:4px 8px;border-radius:6px;background:#f4f6f9}
+.br-empty{font-size:14px;color:#8390a3;text-align:center;padding:40px 0}
+
+/* 지도 */
+.br-map-wrap{position:relative;overflow:hidden;height:640px}
+.br-map{width:100%;height:100%}
+.br-map-notice{position:absolute;inset:0;margin:0;display:grid;place-items:center;padding:30px;text-align:center;font-size:14px;color:#77859b;background:#f7f9fc}
+.br-map-notice[hidden]{display:none}
+
+/* 지도 마커 (카카오맵 CustomOverlay) */
+.br-pin{display:grid;place-items:center;width:34px;height:34px;border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#2359b0;box-shadow:0 3px 8px rgba(0,0,0,.25);cursor:pointer;padding:0}
+.br-pin span{transform:rotate(45deg);color:#fff;font:800 12px 'Noto Sans KR',sans-serif}
+.br-pin--atm{background:#d08a00}
+.br-pin.is-active{background:#e0484c}
+.br-info{position:relative;margin-bottom:52px;min-width:200px;max-width:260px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 6px 18px rgba(0,0,0,.18);font-family:'Noto Sans KR',sans-serif}
+.br-info::after{content:"";position:absolute;left:50%;bottom:-8px;margin-left:-8px;border:8px solid transparent;border-bottom:0;border-top-color:#fff}
+.br-info strong{display:block;font-size:14px;color:#172b4d}
+.br-info p{font-size:12px;color:#64748b;margin:4px 0 0;line-height:1.5;white-space:normal}
+
+@media(max-width:900px){
+    .br-layout{grid-template-columns:1fr}
+    .br-map-wrap{order:-1;height:360px}
+    .br-panel{height:auto}
+    .br-list{max-height:480px}
+}
+@media(max-width:600px){.br-page{padding:22px 16px 50px}.br-heading h1{font-size:23px}}

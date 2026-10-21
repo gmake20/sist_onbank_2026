@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>지점/ATM 찾기 | ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/branch.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: headerFragment}"></div>
+<main class="br-page">
+    <div class="br-container">
+        <nav class="br-breadcrumb" aria-label="현재 위치">
+            <a th:href="@{/}">홈</a><span aria-hidden="true">›</span><strong>지점/ATM 찾기</strong>
+        </nav>
+        <div class="br-heading">
+            <span class="br-kicker">BRANCH &amp; ATM</span>
+            <h1>지점/ATM 찾기</h1>
+            <p>지역이나 지점 이름으로 가까운 ONBANK 지점과 ATM을 찾아보세요.</p>
+        </div>
+
+        <div class="br-layout">
+            <!-- 검색 조건 + 결과 목록 -->
+            <section class="br-panel" aria-label="검색">
+                <form id="branchSearch" class="br-search" autocomplete="off">
+                    <div class="br-tabs" role="radiogroup" aria-label="구분">
+                        <label><input type="radio" name="type" value="" checked><span>전체</span></label>
+                        <label><input type="radio" name="type" value="BRANCH"><span>지점</span></label>
+                        <label><input type="radio" name="type" value="ATM"><span>ATM</span></label>
+                    </div>
+                    <div class="br-keyword">
+                        <input type="search" name="keyword" placeholder="지역, 주소, 지점 이름 (예: 강남)" aria-label="검색어">
+                        <button type="submit">검색</button>
+                    </div>
+                    <div class="br-options">
+                        <select name="service" aria-label="이용 가능 업무">
+                            <option value="">전체 업무</option>
+                            <option th:each="s : ${serviceTypes}" th:value="${s.name()}" th:text="${s.label}">입금</option>
+                        </select>
+                        <label class="br-check"><input type="checkbox" name="open24h" value="true"> 24시간 운영</label>
+                    </div>
+                </form>
+                <p class="br-count" id="branchCount" aria-live="polite"></p>
+                <ul class="br-list" id="branchList"></ul>
+            </section>
+
+            <!-- 지도 : 카카오맵 키가 없거나 불러오지 못하면 숨기고 목록만 사용 -->
+            <section class="br-map-wrap" aria-label="지도">
+                <div id="branchMap" class="br-map"></div>
+                <p id="mapNotice" class="br-map-notice" hidden>지도를 불러오지 못했습니다. 왼쪽 목록에서 지점/ATM 정보를 확인해 주세요.</p>
+            </section>
+        </div>
+    </div>
+</main>
+
+<script th:if="${!#strings.isEmpty(kakaoJsKey)}"
+        th:src="|https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoJsKey}&autoload=false|"></script>
+<script th:src="@{/js/branch-find.js}"></script>
+</body>
+</html>
