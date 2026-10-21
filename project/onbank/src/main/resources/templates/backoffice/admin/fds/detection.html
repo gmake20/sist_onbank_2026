@@ -8,7 +8,7 @@
 <body>
 <div layout:fragment="breadcrumb">관리자 콘솔 / 이상거래 · 모니터링 / 이상거래 탐지 / 상세</div>
 <h1 layout:fragment="page-title">이상거래 탐지 상세</h1>
-<!-- S-16 탐지 상세. 배정(FDS-004)·연락 시작(005)·연락 기록(006)까지. 종결은 4단계 (design-samples/fds-detection-contact-sample.html) -->
+<!-- S-16 탐지 상세. 배정(FDS-004)·연락 시작(005)·연락 기록(006)·종결(005) (design-samples/fds-detection-contact-sample.html) -->
 <main layout:fragment="content" th:with="d=${view.row}, closed=${d.status == 'NORMAL_CONFIRMED' or d.status == 'FRAUD_ACTION'}">
 
     <a class="det-back" th:href="@{${backUrl}}">&lt; 탐지 목록</a>
@@ -102,6 +102,36 @@
             </div>
             <div class="det-form-btns wide">
                 <button type="submit" class="adm-btn-primary">연락 결과 저장</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- FDS-005 종결 : 고객 연락 중 + 내 담당일 때만. 정상 확인은 마지막 연락 결과가 "본인 거래 확인"일 때만 (AdminFdsService.close 가 다시 검사) -->
+    <section class="adm-card det-sec" aria-labelledby="detClose" th:if="${d.status == 'CONTACTING' and mine}"
+             th:with="last=${closeInfo.lastContact}">
+        <h3 id="detClose">종결</h3>
+        <p class="det-empty" th:if="${last == null}">연락 결과를 먼저 기록하세요. 연락 기록이 있어야 종결할 수 있습니다.</p>
+        <form class="det-contact" method="post" th:if="${last != null}"
+              th:action="@{/admin/fds/{id}/close(id=${d.detectionId})}">
+            <input type="hidden" th:each="p : ${searchParams}" th:name="${p.key}" th:value="${p.value}">
+            <fieldset class="det-radios wide">
+                <legend>결과 (필수)</legend>
+                <label><input type="radio" name="result" value="NORMAL_CONFIRMED" th:disabled="${!closeInfo.normalAllowed()}"> 정상 거래 확인</label>
+                <label><input type="radio" name="result" value="FRAUD_ACTION"> 사기 의심 조치</label>
+                <span class="det-hint" th:unless="${closeInfo.normalAllowed()}"
+                      th:text="|마지막 연락 결과가 '${last.label}'이라 정상 거래 확인은 고를 수 없습니다.|">마지막 연락 결과가 '본인 아님'이라 정상 거래 확인은 고를 수 없습니다.</span>
+            </fieldset>
+            <div class="adm-field wide">
+                <label for="closeMemo">메모 (선택)</label>
+                <textarea id="closeMemo" name="memo" maxlength="300"></textarea>
+                <span class="det-hint">300자까지</span>
+            </div>
+            <ul class="adm-info det-close-notes wide">
+                <li>사기 의심 조치를 고르면 계좌 <b class="det-num" th:text="${d.accountNumber}">1002-482-915307</b>이(가) 거래정지됩니다. 이미 거래정지된 계좌면 그대로 둡니다.</li>
+                <li th:if="${closeInfo.count > 1}" th:text="|같은 계좌의 내 담당 탐지 ${closeInfo.count - 1}건도 함께 종결됩니다.|">같은 계좌의 내 담당 탐지 2건도 함께 종결됩니다.</li>
+            </ul>
+            <div class="det-form-btns wide">
+                <button type="submit" class="adm-btn-primary">종결</button>
             </div>
         </form>
     </section>

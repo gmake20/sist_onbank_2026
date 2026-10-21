@@ -38,4 +38,8 @@ public interface FdsDetectionRepository extends JpaRepository<FdsDetection, Long
     List<FdsDetection> findMineByAccountIdAndStatusForUpdate(@Param("accountId") Long accountId,
                                                              @Param("status") FdsStatus status,
                                                              @Param("adminId") Long adminId);
+
+    // S-16 종결 칸 표시용 : 위와 같은 조건이지만 잠그지 않고 읽기만 (상세 조회는 readOnly 트랜잭션)
+    List<FdsDetection> findByAccountIdAndStatusAndAssignedAdminIdOrderByDetectionId(Long accountId, FdsStatus status,
+                                                                                    Long assignedAdminId);
 }

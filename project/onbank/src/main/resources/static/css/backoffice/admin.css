@@ -1340,6 +1340,22 @@ a.adm-toast-body:hover .adm-toast-msg {
     justify-content: flex-end;
 }
 
+/* 종결 (FDS-005) : 고를 수 없는 결과는 흐리게, 안내 줄은 판단 결과 아래 한 줄 */
+.det-radios label:has(input:disabled) {
+    color: var(--adm-sub);
+    background: var(--adm-bg);
+    cursor: not-allowed;
+}
+
+.det-radios .det-hint {
+    flex-basis: 100%;
+}
+
+.det-close-notes {
+    margin: 0;
+    padding-left: 32px;
+}
+
 /* 빈 상태 안내 (처리 이력 없음, 규칙 정보 없음) */
 .det-empty {
     margin: 0;

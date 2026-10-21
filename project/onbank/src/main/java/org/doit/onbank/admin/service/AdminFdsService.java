@@ -1,6 +1,7 @@
 package org.doit.onbank.admin.service;
 
 import lombok.RequiredArgsConstructor;
+import org.doit.onbank.account.entity.AccountStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.doit.onbank.admin.dto.FdsContactForm;
 import org.doit.onbank.admin.dto.FdsDetailRow;
@@ -34,9 +35,10 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-// FDS-002 탐지 목록 (S-15) · 상세 (S-16) 조회, FDS-004 담당자 배정
+// FDS-002 탐지 목록 (S-15) · 상세 (S-16) 조회, FDS-004 담당자 배정, FDS-005·006 연락 시작·연락 기록·종결
 // 기간 검사는 컨트롤러에서 (AdminTransactionService 와 같음)
 @Slf4j
 @Service
@@ -48,6 +50,9 @@ public class AdminFdsService {
 
     // 상세 점수 막대 색 단계 수 (화면 --det-s1 ~ s5)
     private static final int MAX_SHADE = 5;
+
+    // 종결 메모 최대 길이. 처리 이력 memo(500자)에 거래정지 결과 한 줄을 덧붙여도 넘지 않게
+    private static final int CLOSE_MEMO_MAX = 300;
 
     // detail JSON 읽기용. 설정이 필요 없어 빈(bean) 대신 기본값 하나를 둔다
     private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -84,6 +89,7 @@ public class AdminFdsService {
     private final FdsDetectionRepository fdsDetectionRepository;
     private final FdsHandlingHistoryRepository fdsHandlingHistoryRepository;
     private final AdminLogService adminLogService;
+    private final AdminAccountService adminAccountService;
 
     // assignedAdminId : "내 담당만"이면 로그인한 관리자 번호, 아니면 null
     public Page<FdsListRow> search(LocalDate from, LocalDate to, String status, String accountNumber,
@@ -175,6 +181,75 @@ public class AdminFdsService {
         return targets.size();
     }
 
+    // FDS-005 종결 : 고객 연락 중 → 정상 거래 확인 / 사기 의심 조치. 같은 계좌의 내 담당 건을 함께 (사건 단위)
+    // 정상 확인은 마지막 연락 결과가 "본인 거래 확인"일 때만. 사기 의심 조치는 연락 기록만 있으면 된다
+    // 사기 의심 조치 = 계좌 거래정지 (ACC-003 과 같은 AdminAccountService.freeze → 계좌 상태 이력에도 남음)
+    // 한 트랜잭션 : 거래정지 + 탐지 종결 + 처리 이력 + 활동 로그 → 하나라도 실패하면 전부 롤백
+    @Transactional
+    public int close(AdminPrincipal me, Long detectionId, FdsStatus result, String memo, String requestIp) {
+        if (result != FdsStatus.NORMAL_CONFIRMED && result != FdsStatus.FRAUD_ACTION) {
+            throw new BusinessException("종결 결과를 고르세요.");
+        }
+        String note = (memo == null || memo.isBlank()) ? null : memo.trim();
+        if (note != null && note.length() > CLOSE_MEMO_MAX) {
+            throw new BusinessException("메모는 " + CLOSE_MEMO_MAX + "자 이내로 입력하세요.");
+        }
+        List<FdsDetection> targets = lockMine(me, detectionId, FdsStatus.CONTACTING,
+                "고객 연락 중 단계에서만 종결할 수 있습니다. 화면을 새로 고쳐 확인하세요.");
+
+        // 연락 기록 없이 종결 → 거절 (EX-ADM-FDS-004)
+        ContactResult lastContact = lastContact(targets)
+                .orElseThrow(() -> new BusinessException("연락 결과를 먼저 기록하세요."));
+        if (result == FdsStatus.NORMAL_CONFIRMED && lastContact != ContactResult.CONFIRMED_BY_CUSTOMER) {
+            throw new BusinessException("마지막 연락 결과가 '" + lastContact.getLabel()
+                    + "'이라 정상 거래 확인으로 종결할 수 없습니다.");
+        }
+
+        String freezeNote = (result == FdsStatus.FRAUD_ACTION)
+                ? freezeAccount(me, targets.get(0).getAccountId(), detectionId, targets.size(), note, requestIp)
+                : null;
+
+        LocalDateTime now = LocalDateTime.now();
+        for (FdsDetection d : targets) {
+            try {
+                d.close(result, now);
+            } catch (IllegalStateException e) {     // 잠금 안에서 다시 보는 확인. 정상 흐름에선 안 생김
+                throw new BusinessException("이미 처리된 요청입니다. 화면을 새로 고쳐 확인하세요.");
+            }
+            String historyMemo = d.getDetectionId().equals(detectionId)
+                    ? (note == null ? "종결" : note) + (freezeNote == null ? "" : " / " + freezeNote)
+                    : "같은 계좌 #" + detectionId + " 종결 때 함께";
+            fdsHandlingHistoryRepository.save(FdsHandlingHistory.builder()
+                    .detectionId(d.getDetectionId())
+                    .adminId(me.getAdminId())
+                    .stage(result)
+                    .memo(historyMemo)
+                    .build());
+            adminLogService.record(me, "FDS_STAGE_CHANGE", "FDS_DETECTION", String.valueOf(d.getDetectionId()),
+                    FdsStatus.CONTACTING.name(), result.name(), null, requestIp);
+        }
+        log.info("FDS 종결 admin={} clicked={} count={} result={} lastContact={} freeze={}", me.getAdminId(),
+                detectionId, targets.size(), result, lastContact, freezeNote);
+        return targets.size();
+    }
+
+    // S-16 종결 칸에 쓸 값 : 함께 종결될 건수 + 사건 단위 마지막 연락 결과 (없으면 null = 연락 기록 없음 → 종결 칸 대신 안내)
+    // close() 와 같은 기준 (같은 계좌·내 담당·고객 연락 중, lastContact). 잠그지 않고 읽기만. 버튼을 누르면 close() 가 다시 검사
+    public CloseInfo closeInfo(AdminPrincipal me, Long detectionId) {
+        FdsDetection clicked = fdsDetectionRepository.findById(detectionId)
+                .orElseThrow(() -> new BusinessException("없는 탐지 번호입니다."));
+        List<FdsDetection> targets = fdsDetectionRepository.findByAccountIdAndStatusAndAssignedAdminIdOrderByDetectionId(
+                clicked.getAccountId(), FdsStatus.CONTACTING, me.getAdminId());
+        return new CloseInfo(targets.size(), lastContact(targets).orElse(null));
+    }
+
+    // 화면에서 "정상 거래 확인"을 고를 수 있는지 = 마지막 연락이 본인 거래 확인
+    public record CloseInfo(int count, ContactResult lastContact) {
+        public boolean normalAllowed() {
+            return lastContact == ContactResult.CONFIRMED_BY_CUSTOMER;
+        }
+    }
+
     // 누른 건 확인 → 담당자 본인인지 (EX-ADM-FDS-002) → 같은 계좌의 내 담당·그 단계 건을 번호 순 잠금
     // 누른 건이 목록에 없으면 = 단계가 다르거나 그 사이 바뀜 (EX-ADM-FDS-003)
     private List<FdsDetection> lockMine(AdminPrincipal me, Long detectionId, FdsStatus stage, String wrongStage) {
@@ -189,6 +264,32 @@ public class AdminFdsService {
             throw new BusinessException(wrongStage);
         }
         return targets;
+    }
+
+    // 사건 단위 마지막 연락 = 함께 종결할 건들의 마지막 연락 중 연락 일시가 가장 늦은 것 → 어느 건에서 눌러도 같은 판단
+    private Optional<ContactResult> lastContact(List<FdsDetection> targets) {
+        return targets.stream()
+                .map(d -> fdsHandlingHistoryRepository
+                        .findFirstByDetectionIdAndContactResultIsNotNullOrderByContactAtDescHistoryIdDesc(d.getDetectionId()))
+                .flatMap(Optional::stream)
+                .max(Comparator.comparing(FdsHandlingHistory::getContactAt)
+                        .thenComparing(FdsHandlingHistory::getHistoryId))
+                .map(FdsHandlingHistory::getContactResult);
+    }
+
+    // 사기 의심 조치의 거래정지. 정상(ACTIVE) 계좌만 (팀원2 Account.freeze 가 ACTIVE 만 받음)
+    // 이미 거래정지·해지면 건너뛰고 그때 상태를 처리 이력에 남긴다. 돌려주는 값 = 처리 이력 메모에 붙일 한 줄
+    private String freezeAccount(AdminPrincipal me, Long accountId, Long detectionId, int count, String note,
+                                 String requestIp) {
+        AccountStatus status = adminAccountService.account(accountId).accountStatus();
+        if (status != AccountStatus.ACTIVE) {
+            log.info("FDS 종결 거래정지 생략 account={} status={}", accountId, status);
+            return "계좌가 이미 " + status.getLabel() + " 상태라 거래정지하지 않음";
+        }
+        String reason = "FDS 탐지 #" + detectionId + (count > 1 ? " 외 " + (count - 1) + "건" : "")
+                + " 사기 의심 조치" + (note == null ? "" : " : " + note);
+        adminAccountService.freeze(me, accountId, reason.length() > 200 ? reason.substring(0, 200) : reason, requestIp);
+        return "계좌 거래정지";
     }
 
     // S-16 상세. 없는 번호면 BusinessException → 컨트롤러가 목록으로 돌려보내며 안내 (AdminAccountService.account 와 같음)
