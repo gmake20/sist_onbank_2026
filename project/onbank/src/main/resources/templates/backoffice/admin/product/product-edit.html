@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>상품 수정</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 상품 · 대출 / 상품 관리 / 상품 수정</div>
+<h1 layout:fragment="page-title">상품 수정</h1>
+<main layout:fragment="content">
+    <section class="adm-card adm-form-card">
+
+        <!-- 바꿀 수 있는 칸만 form 에 묶는다. 유형·가입기간은 name 없는 disabled 칸이라 전송되지 않음 -->
+        <form class="adm-form" method="post" th:action="@{/admin/products/{id}/edit(id=${product.id})}" th:object="${form}">
+            <div class="adm-alert" role="alert" th:if="${#fields.hasGlobalErrors()}" th:text="${#fields.globalErrors()[0]}"></div>
+            <p class="adm-note">유형과 가입기간은 이미 가입한 고객에게 영향이 있어 바꿀 수 없습니다. 바꾸려면 판매중지 후 새로 등록하세요. 연이율을 바꿔도 이미 가입한 고객은 가입할 때 이율 그대로입니다.</p>
+
+            <div class="adm-field">
+                <label for="viewId">상품 ID</label>
+                <input type="text" id="viewId" th:value="|${product.id} (${product.active ? '판매중' : '판매중지'})|" disabled>
+            </div>
+
+            <div class="adm-field">
+                <label for="viewType">유형 (바꿀 수 없음)</label>
+                <input type="text" id="viewType" th:value="${typeLabels[product.type.name()] ?: product.type}" disabled>
+            </div>
+
+            <div class="adm-field">
+                <label for="viewTerm">가입기간 (바꿀 수 없음)</label>
+                <input type="text" id="viewTerm" th:value="|${product.termMonths}개월|" disabled>
+            </div>
+
+            <div class="adm-field">
+                <label for="productName">상품명 (필수)</label>
+                <input type="text" id="productName" th:field="*{productName}" maxlength="120">
+                <span class="adm-error" th:if="${#fields.hasErrors('productName')}" th:text="${#fields.errors('productName')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="annualRate">연이율 (%, 필수)</label>
+                <input type="number" id="annualRate" th:field="*{annualRate}" step="0.0001" min="0" max="100">
+                <span class="adm-error" th:if="${#fields.hasErrors('annualRate')}" th:text="${#fields.errors('annualRate')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="minAmount">최소 금액 (원, 필수)</label>
+                <input type="number" id="minAmount" th:field="*{minAmount}" min="1" step="1">
+                <span class="adm-error" th:if="${#fields.hasErrors('minAmount')}" th:text="${#fields.errors('minAmount')[0]}"></span>
+            </div>
+
+            <div class="adm-field">
+                <label for="maxAmount">최대 금액 (원, 필수)</label>
+                <input type="number" id="maxAmount" th:field="*{maxAmount}" min="1" step="1">
+                <span class="adm-error" th:if="${#fields.hasErrors('maxAmount')}" th:text="${#fields.errors('maxAmount')[0]}"></span>
+            </div>
+
+            <div class="adm-form-btns">
+                <a class="adm-btn adm-btn-link" th:href="@{/admin/products}">취소</a>
+                <button type="submit" class="adm-btn-primary">저장</button>
+            </div>
+        </form>
+    </section>
+</main>
+</body>
+</html>
