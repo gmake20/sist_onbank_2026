@@ -58,7 +58,7 @@ jobs:
 
     - name: Add known_hosts
       run: |
-        ssh-keyscan -t ed25519 "$SERVER_IP" >> ~/.ssh/known_hosts
+        ssh-keyscan "$SERVER_IP" >> ~/.ssh/known_hosts
 
     #- name: 기존프로세스 종료
     #  run: |
