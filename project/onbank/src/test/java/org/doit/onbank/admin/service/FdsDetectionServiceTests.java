@@ -78,6 +78,13 @@ class FdsDetectionServiceTests {
     @Mock
     private AdminSearchRepository adminSearchRepository;
 
+    @Mock
+    private FdsCautionStore fdsCautionStore;
+
+    // AI 보조 판정은 점수·저장·알림과 따로라 여기선 가짜로만 둔다
+    @Mock
+    private FdsAiService fdsAiService;
+
     @InjectMocks
     private FdsDetectionService service;
 
@@ -138,6 +145,7 @@ class FdsDetectionServiceTests {
 
         verify(fdsDetectionRepository, never()).save(any());
         verify(adminNotificationRepository, never()).saveAll(any());
+        verify(fdsCautionStore).put(HISTORY_ID, 59);
     }
 
     @Test

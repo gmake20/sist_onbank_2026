@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.doit.onbank.account.entity.Account;
-import org.doit.onbank.account.service.TransactionHistoryService;
+import org.doit.onbank.account.entity.AccountType;
+import org.doit.onbank.account.service.AccountNumberGenerator;
 import org.doit.onbank.savings.entity.SavingsAccount;
 import org.doit.onbank.savings.entity.SavingsCashFlow;
 import org.doit.onbank.savings.entity.SavingsPayment;
@@ -20,8 +20,6 @@ import org.doit.onbank.savings.repository.SavingsProductRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -34,6 +32,7 @@ public class SavingsService {
 	private final SavingsCashFlowRepository flows;
 	private final SavingsMoneyPort money;
 	private final SavingsInterestCalculator interest;
+	private final AccountNumberGenerator generator;
 
 	private final SavingsEarlyTerminationCalculator earlyCalculator;
 
@@ -100,6 +99,11 @@ public class SavingsService {
 		LocalDate today = LocalDate.now();
 
 		money.debit(sourceAccountId, memberId, amount);
+		
+		String savingsAccountNumber =
+		        generator.generate(AccountType.SAVINGS);
+
+
 
 		SavingsAccount account = accounts.saveAndFlush(
 				new SavingsAccount(
@@ -107,9 +111,13 @@ public class SavingsService {
 						memberId,
 						sourceAccountId,
 						amount,
+						savingsAccountNumber,
 						today
 						)
 				);
+		
+		// DB 저장
+		account = accounts.saveAndFlush(account);
 
 		payments.save(
 				new SavingsPayment(

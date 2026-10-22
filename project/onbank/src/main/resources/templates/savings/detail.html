@@ -42,8 +42,10 @@
 							th:text="${account.status.name() == 'ACTIVE' ? '이용 중' : account.status.name()}">이용
 							중</span>
 					</div>
-					<span class="sd-account-id" th:text="|계좌 ID #${account.id}|">계좌
-						ID #1</span>
+					<span class="sd-account-id"
+						      th:text="|예적금 계좌번호 ${account.accountNumber}|">
+						    예적금 계좌번호 200-123-456789
+						</span>
 				</div>
 				<h2 th:text="${account.product.name}">ONBANK 첫걸음 적금</h2>
 				<div class="sd-balance-caption">현재 누적 납입 원금</div>
@@ -85,6 +87,13 @@
 							<dd
 								th:text="${account.product.type.name() == 'FIXED_DEPOSIT' ? '정기예금' : '정기적금'}">정기적금</dd>
 						</div>
+						<div>
+							    <dt>예적금 계좌번호</dt>
+							    <dd class="sd-emphasis"
+							        th:text="${account.accountNumber}">
+							        200-123-456789
+							    </dd>
+							</div>
 						<div>
 							<dt>누적 납입 원금</dt>
 							<dd

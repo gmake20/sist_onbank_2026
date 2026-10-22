@@ -47,6 +47,14 @@ public class SavingsAccount {
     )
     private BigDecimal contractRate;
     
+    @Column(
+    	    name = "account_number",
+    	    nullable = false,
+    	    unique = true,
+    	    length = 30
+    	)
+    private String accountNumber;
+    
     @Column(name = "last_transaction_at")
     private LocalDateTime lastTransactionAt;
 
@@ -72,6 +80,7 @@ public class SavingsAccount {
             Long memberId,
             Long sourceAccountId,
             long amount,
+            String accountNumber,
             LocalDate date) {
 
         if (product == null
@@ -94,6 +103,8 @@ public class SavingsAccount {
                 product.getType() == SavingsType.INSTALLMENT_SAVINGS
                         ? amount
                         : 0;
+        
+        this.accountNumber = accountNumber;
 
         this.contractRate = product.getAnnualRate();
         this.openedOn = date;
