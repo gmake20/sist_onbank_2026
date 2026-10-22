@@ -1529,3 +1529,57 @@ a.adm-toast-body:hover .adm-toast-msg {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* AI 보조 판정 (D-72, design-samples/fds-ai-assist-sample.html) : 규칙 판정(빨강·노랑)과 섞이지 않게 보라 + 점선.
+   점수에 안 들어가는 참고 의견이라 칩 글자("AI")로도 구분. 실패는 회색 "AI 판정 없음" (빈칸이면 "괜찮다"로 오해)
+   글자 대비 (계산값) : #5a3fb0 on #f5f2fc 6.85, on 빨강 줄 #fdf1ef 6.85, on 노랑 줄 #fdf6e3 7.02, 흰 글자 on #5a3fb0 7.57 */
+.mon-ai-chip {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #5a3fb0;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.mon-ai-chip.is-off {
+    background: #fff;
+    color: var(--adm-sub);
+    border: 1px solid var(--adm-line);
+    font-weight: 400;
+}
+
+.mon-ai-note {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #5a3fb0;
+}
+
+.mon-ai {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 8px 10px;
+    border: 1px dashed #c9bdec;
+    border-radius: 6px;
+    background: #f5f2fc;
+    color: #5a3fb0;
+    font-size: 13px;
+}
+
+.mon-ai small {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--adm-sub);
+}
+
+.mon-ai.is-off {
+    border-color: var(--adm-line);
+    background: var(--adm-bg);
+    color: var(--adm-sub);
+}

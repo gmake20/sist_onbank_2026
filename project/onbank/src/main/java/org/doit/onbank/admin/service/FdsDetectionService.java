@@ -52,6 +52,7 @@ public class FdsDetectionService {
     private final AdminNotificationRepository adminNotificationRepository;
     private final AdminSearchRepository adminSearchRepository;
     private final FdsCautionStore fdsCautionStore;
+    private final FdsAiService fdsAiService;
 
     // 즉시이체. 본인 계좌끼리 이체는 판정하지 않는다
     @Transactional
@@ -69,14 +70,15 @@ public class FdsDetectionService {
         boolean first = fdsSearchRepository.countPastTransfersTo(
                 memberId, receipt.toAccountNumber(), receipt.transactionSqno()) == 0;
         detect(collectFacts(TransactionType.TRANSFER_OUT, memberId, receipt.fromAccountId(), historyId,
-                receipt.amount(), receipt.transferAt(), first));
+                receipt.amount(), receipt.transferAt(), first), receipt.senderMemo(), receipt.receiverMemo());
     }
 
     // ATM 출금
     @Transactional
     public void onWithdrawal(Long memberId, TransactionHistory history) {
         detect(collectFacts(TransactionType.WITHDRAWAL, memberId, history.getAccountId(),
-                history.getTransactionHistoryId(), history.getTransactionAmount(), history.getTransactionAt(), null));
+                history.getTransactionHistoryId(), history.getTransactionAmount(), history.getTransactionAt(), null),
+                null, null);
     }
 
     // 기간은 이번 거래 시각 기준. 이번 거래는 이미 저장돼 있다 (FdsSearchRepository 주석)
@@ -94,9 +96,14 @@ public class FdsDetectionService {
                 fdsSearchRepository.findPreviousTransactionAt(accountId, historyId));
     }
 
-    private void detect(FdsFacts facts) {
+    // senderMemo·receiverMemo 는 AI 보조 판정용 (이체만, ATM 출금은 null)
+    private void detect(FdsFacts facts, String senderMemo, String receiverMemo) {
         List<FdsRuleHit> hits = evaluator.evaluate(facts);
         int total = hits.stream().mapToInt(FdsRuleHit::score).sum();
+        if (total >= settings.getCautionScore()) {
+            // AI 보조 판정 (D-72) : 주의·탐지만. 점수·저장·알림에는 안 들어가고, 이 트랜잭션 커밋 뒤에 따로 돈다
+            fdsAiService.judgeAfterCommit(facts.transactionHistoryId(), facts.transactionType(), hits, senderMemo, receiverMemo);
+        }
         if (total < settings.getDetectScore()) {
             if (total >= settings.getCautionScore()) {
                 // 주의는 DB에 저장하지 않고 서버 메모리에만 둔다 (D-37, D-84). 모니터링 화면이 노란색으로 표시

@@ -54,6 +54,64 @@ document.addEventListener('DOMContentLoaded', () => {
         return tr;
     }
 
+    // AI 보조 판정 (D-72) 문구. 점수에 안 들어가는 참고 의견이라 규칙 판정과 따로 보라색으로 표시
+    // ai = null 이면 아직 안 왔거나(다음 3초에 붙음) 서버를 다시 켜기 전 거래 → 아무것도 안 그림
+    function aiParts(ai) {
+        const parts = [];
+        if (ai.pattern) {
+            parts.push(`${ai.pattern} 수법과 닮음 ${ai.patternPercent}%`);
+        }
+        if (ai.memo) {
+            parts.push(`문구 "${ai.memo}" 보이스피싱 표현 ${ai.memoPercent}%`);
+        }
+        return parts;
+    }
+
+    function aiChip(text, off) {
+        const chip = document.createElement('span');
+        chip.className = off ? 'mon-ai-chip is-off' : 'mon-ai-chip';
+        chip.textContent = text;
+        return chip;
+    }
+
+    // 표 판정 칸 아래 한 줄 (짧게)
+    function aiNote(ai) {
+        const div = document.createElement('div');
+        div.className = 'mon-ai-note';
+        if (!ai.ok) {
+            div.append(aiChip('AI 판정 없음', true));
+            return div;
+        }
+        const short = [];
+        if (ai.pattern) {
+            short.push(`${ai.pattern} ${ai.patternPercent}%`);
+        }
+        if (ai.memo) {
+            short.push(`문구 ${ai.memoPercent}%`);
+        }
+        div.append(aiChip('AI'), document.createTextNode(` ${short.length ? short.join(' · ') : '특이 사항 없음'}`));
+        return div;
+    }
+
+    // 오른쪽 탐지 카드 아래 보라 띠 (design-samples/fds-ai-assist-sample.html S-17)
+    function aiBand(ai) {
+        const div = document.createElement('div');
+        div.className = ai.ok ? 'mon-ai' : 'mon-ai is-off';
+        const text = document.createElement('span');
+        if (!ai.ok) {
+            div.append(aiChip('AI 판정 없음', true));
+            text.textContent = `규칙 점수만 반영됨 (${ai.failReason})`;
+            div.append(text);
+            return div;
+        }
+        const parts = aiParts(ai);
+        text.textContent = parts.length ? parts.join(' · ') : '닮은 수법·특이 문구 없음';
+        const sub = document.createElement('small');
+        sub.textContent = '참고용 · 점수에 안 들어감';
+        div.append(aiChip('AI 보조'), text, sub);
+        return div;
+    }
+
     // 판정 칸 : 탐지는 상세(S-16) 링크, 주의는 글자만, 점수 없으면 -
     function judgeCell(item) {
         const td = document.createElement('td');
@@ -68,6 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
             td.textContent = `주의 ${item.riskScore}점`;
         } else {
             td.textContent = '-';
+        }
+        if (item.ai) {
+            td.append(aiNote(item.ai));
         }
         return td;
     }
@@ -134,6 +195,9 @@ document.addEventListener('DOMContentLoaded', () => {
             meta.append(at, badge);
 
             a.append(head, body, meta);
+            if (d.ai) {
+                a.append(aiBand(d.ai));
+            }
             const li = document.createElement('li');
             li.append(a);
             alerts.append(li);

@@ -8,27 +8,29 @@ import java.util.List;
 public record MonitoringPoll(long uncheckedCount, List<Item> items, List<Detection> detections) {
 
     // level : DETECTED(60점 이상, 빨강) / CAUTION(30~59점, 노랑) / null(점수 없음 — 30점 미만, 판정 제외, 아직 판정 중)
+    // ai : AI 보조 판정 (D-72). null = 아직 안 옴·30점 미만·서버 재시작 전 거래
     public record Item(Long transactionHistoryId, LocalDateTime transactionAt, String transactionType, Long amount,
                        String accountNumber, String memberLoginId, String memberName, String counterpartAccountNumber,
-                       Long detectionId, Integer riskScore, String level) {
+                       Long detectionId, Integer riskScore, String level, FdsAiResult ai) {
 
         // 탐지는 DB(row), 주의는 서버 메모리(cautionScore). 둘 다 없으면 점수 없음
-        public static Item of(MonitoringRow row, Integer cautionScore) {
+        public static Item of(MonitoringRow row, Integer cautionScore, FdsAiResult ai) {
             String level = row.getDetectionId() != null ? "DETECTED" : cautionScore != null ? "CAUTION" : null;
             Integer score = row.getDetectionId() != null ? row.getRiskScore() : cautionScore;
             return new Item(row.getTransactionHistoryId(), row.getTransactionAt(), row.getTransactionType(),
                     row.getAmount(), row.getAccountNumber(), row.getMemberLoginId(), row.getMemberName(),
-                    row.getCounterpartAccountNumber(), row.getDetectionId(), score, level);
+                    row.getCounterpartAccountNumber(), row.getDetectionId(), score, level, ai);
         }
     }
 
     // 규칙·상태 이름은 서비스가 AdminFdsService.RULE_LABELS·STATUS_LABELS 로 바꿔서 넣는다 (탐지 목록 화면과 같은 글자)
     public record Detection(Long detectionId, LocalDateTime detectedAt, Integer riskScore, String ruleLabel,
-                            String status, String statusLabel, String transactionType, Long amount, String accountNumber) {
+                            String status, String statusLabel, String transactionType, Long amount, String accountNumber,
+                            FdsAiResult ai) {
 
-        public static Detection of(MonitoringDetectionRow row, String ruleLabel, String statusLabel) {
+        public static Detection of(MonitoringDetectionRow row, String ruleLabel, String statusLabel, FdsAiResult ai) {
             return new Detection(row.getDetectionId(), row.getDetectedAt(), row.getRiskScore(), ruleLabel,
-                    row.getStatus(), statusLabel, row.getTransactionType(), row.getAmount(), row.getAccountNumber());
+                    row.getStatus(), statusLabel, row.getTransactionType(), row.getAmount(), row.getAccountNumber(), ai);
         }
     }
 }
