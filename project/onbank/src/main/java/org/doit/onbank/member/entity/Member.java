@@ -156,4 +156,27 @@ public class Member extends BaseEntity {
 			status = MemberStatus.ACTIVE;
 		}
 	}
+
+	// ---------- 회원정보 수정·탈퇴 (마이페이지에서 본인이 호출) ----------
+
+	// 연락처·마케팅 수신 동의 변경. 아이디·이름·생년월일은 바꾸지 않는다
+	// 중복·인증 확인은 MemberService에서 끝난 상태로 호출된다
+	public void changeContact(String email, String phone, boolean marketingAgree) {
+		this.email = email;
+		this.phone = phone;
+		this.marketingAgree = marketingAgree;
+	}
+
+	// 탈퇴 : 행은 지우지 않고 상태만 바꾼다. 이메일·휴대폰은 비워 같은 값으로 재가입할 수 있게 한다
+	// 아이디는 남겨 재사용을 막는다 (schema-team1-dictionary.md). 탈퇴 회원은 isEnabled() = false 라 로그인 불가
+	public void withdraw(LocalDateTime now) {
+		if (status == MemberStatus.WITHDRAWN) {
+			throw new IllegalStateException("이미 탈퇴한 회원입니다.");
+		}
+		status = MemberStatus.WITHDRAWN;
+		withdrawnAt = now;
+		email = null;
+		phone = null;
+		marketingAgree = false;
+	}
 }
