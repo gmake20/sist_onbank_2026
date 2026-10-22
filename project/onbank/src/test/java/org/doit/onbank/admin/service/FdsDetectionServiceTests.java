@@ -81,6 +81,10 @@ class FdsDetectionServiceTests {
     @Mock
     private FdsCautionStore fdsCautionStore;
 
+    // AI 보조 판정은 점수·저장·알림과 따로라 여기선 가짜로만 둔다
+    @Mock
+    private FdsAiService fdsAiService;
+
     @InjectMocks
     private FdsDetectionService service;
 

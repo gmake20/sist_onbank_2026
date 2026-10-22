@@ -58,6 +58,7 @@ public interface MonitoringSearchRepository extends Repository<TransactionHistor
     // 오른쪽 "탐지 실시간 알림" : 최근 탐지 10건, 최신순. 처리 상태와 상관없이 (와이어프레임 11장 미확인/확인함)
     @Query(value = """
              SELECT fd.detection_id AS detectionId,
+                    fd.transaction_history_id AS transactionHistoryId,
                     fd.detected_at AS detectedAt,
                     fd.risk_score AS riskScore,
                     fd.rule_code AS ruleCode,
