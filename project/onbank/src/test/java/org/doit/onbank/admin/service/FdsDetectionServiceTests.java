@@ -78,6 +78,9 @@ class FdsDetectionServiceTests {
     @Mock
     private AdminSearchRepository adminSearchRepository;
 
+    @Mock
+    private FdsCautionStore fdsCautionStore;
+
     @InjectMocks
     private FdsDetectionService service;
 
@@ -138,6 +141,7 @@ class FdsDetectionServiceTests {
 
         verify(fdsDetectionRepository, never()).save(any());
         verify(adminNotificationRepository, never()).saveAll(any());
+        verify(fdsCautionStore).put(HISTORY_ID, 59);
     }
 
     @Test

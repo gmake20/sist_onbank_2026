@@ -1393,3 +1393,139 @@ a.adm-toast-body:hover .adm-toast-msg {
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+/* 실시간 모니터링 S-17 (MON-002, 와이어프레임 11장, D-84)
+   위 지표 3개(.adm-kpis 재사용) → 왼쪽 거래 표 + 오른쪽 탐지 목록 360px. 좁으면 한 줄로 */
+.mon-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 와이어프레임 "실시간 연결됨" 자리 : 초록 점 = 갱신 중, 빨강 = 다시 연결 중, 회색 = 멈춤.
+   점은 글자의 보조 표시라 색만으로 뜻을 전하지 않음. 초록 #2e7d4f 는 판 배경 대비 4.74 (계산값) */
+.mon-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--adm-sub);
+}
+
+.mon-status::before {
+    content: "";
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2e7d4f;
+}
+
+.mon-status.is-error::before {
+    background: #a52f23;
+}
+
+.mon-status.is-stopped::before {
+    background: var(--adm-sub);
+}
+
+.mon-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 16px;
+    align-items: start;
+}
+
+.mon-grid .adm-card-head h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+/* 거래 줄 색 : 탐지 = 빨강(.adm-alert 와 같은 #fdf1ef·#a52f23), 주의 = 노랑.
+   왼쪽 4px 띠 + 옅은 면, 판정 글자에도 색 → 색을 못 봐도 "탐지 N점/주의 N점" 글자로 구분.
+   글자 대비 (계산값) : #a52f23 on #fdf1ef 6.27, #8a5a00 on #fdf6e3 5.49 / 띠 #b7791f on #fdf6e3 3.38 */
+.adm-table tr.mon-detected td {
+    background: #fdf1ef;
+}
+
+.adm-table tr.mon-caution td {
+    background: #fdf6e3;
+}
+
+.adm-table tr.mon-detected td:first-child {
+    box-shadow: inset 4px 0 0 #a52f23;
+}
+
+.adm-table tr.mon-caution td:first-child {
+    box-shadow: inset 4px 0 0 #b7791f;
+}
+
+.mon-judge-detected {
+    color: #a52f23;
+    font-weight: 700;
+}
+
+.mon-judge-caution {
+    color: #8a5a00;
+    font-weight: 700;
+}
+
+/* 오른쪽 탐지 목록 : 한 건 전체가 상세 링크 */
+.mon-alert-list {
+    margin: 0;
+    padding: 0 16px 12px;
+    list-style: none;
+}
+
+.mon-alert-list li.adm-empty {
+    padding: 20px 16px;
+    font-size: 14px;
+}
+
+.mon-alert-list a {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--adm-active);
+    border-radius: 6px;
+    color: inherit;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.mon-alert-list li:first-child a {
+    border-top: 0;
+}
+
+.mon-alert-list a:hover {
+    background: var(--adm-bg);
+}
+
+.mon-alert-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-weight: 500;
+}
+
+.mon-alert-body {
+    font-variant-numeric: tabular-nums;
+}
+
+.mon-alert-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--adm-sub);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1100px) {
+    .mon-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

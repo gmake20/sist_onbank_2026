@@ -51,6 +51,7 @@ public class FdsDetectionService {
     private final FdsHandlingHistoryRepository fdsHandlingHistoryRepository;
     private final AdminNotificationRepository adminNotificationRepository;
     private final AdminSearchRepository adminSearchRepository;
+    private final FdsCautionStore fdsCautionStore;
 
     // 즉시이체. 본인 계좌끼리 이체는 판정하지 않는다
     @Transactional
@@ -98,7 +99,8 @@ public class FdsDetectionService {
         int total = hits.stream().mapToInt(FdsRuleHit::score).sum();
         if (total < settings.getDetectScore()) {
             if (total >= settings.getCautionScore()) {
-                // 주의는 저장하지 않는다 (D-37). 실시간 화면에 띄우는 방법은 폴링 단계에서 정함 (D-71)
+                // 주의는 DB에 저장하지 않고 서버 메모리에만 둔다 (D-37, D-84). 모니터링 화면이 노란색으로 표시
+                fdsCautionStore.put(facts.transactionHistoryId(), total);
                 log.info("FDS 주의 {}점 account={} history={}", total, facts.accountId(), facts.transactionHistoryId());
             }
             return;

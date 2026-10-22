@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{backoffice/layout/admin}">
+<head>
+    <title>실시간 모니터링</title>
+</head>
+<body>
+<div layout:fragment="breadcrumb">관리자 콘솔 / 이상거래 · 모니터링 / 실시간 모니터링</div>
+<h1 layout:fragment="page-title">실시간 모니터링</h1>
+<main layout:fragment="content">
+
+    <!-- MON-002 실시간 거래 현황 (와이어프레임 11장, D-84). 숫자·표·목록은 비워 두고 admin-monitoring.js 가 3초마다 채운다
+         data-url = 조회 API, data-fds-url = 탐지 상세(S-16) 앞주소 -->
+    <div class="mon-wrap" id="admMonitoring"
+         th:data-url="@{/admin/api/monitoring}" th:data-fds-url="@{/admin/fds}">
+
+        <!-- 와이어프레임의 "실시간 연결됨" 자리. 폴링이라 마지막으로 받은 시각을 보여 주고, 실패하면 "다시 연결 중" -->
+        <p class="mon-status js-mon-status" role="status">불러오는 중입니다.</p>
+
+        <!-- 분당 거래 건수·금액 카드는 뺌 (2026-10-22 사용자) -->
+        <section class="adm-kpis" aria-label="실시간 지표">
+            <a class="adm-kpi" th:href="@{/admin/fds(status='UNCHECKED')}">
+                <span class="adm-kpi-label">미확인 탐지</span>
+                <span class="adm-kpi-value"><span class="js-mon-unchecked">—</span><small>건</small></span>
+                <span class="adm-kpi-go">미확인만 보기</span>
+            </a>
+        </section>
+
+        <div class="mon-grid">
+            <section class="adm-card" aria-labelledby="mon-tx-title">
+                <div class="adm-card-head">
+                    <h2 id="mon-tx-title">실시간 거래 현황</h2>
+                    <span>최근 <b class="js-mon-count">0</b>건 · 최신순</span>
+                </div>
+                <div class="adm-table-wrap">
+                    <table class="adm-table">
+                        <thead>
+                        <tr><th>시각</th><th>출금 계좌</th><th>입금 계좌</th><th>금액</th><th>판정</th></tr>
+                        </thead>
+                        <tbody class="js-mon-rows">
+                        <tr><td colspan="5" class="adm-empty">불러오는 중입니다.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 오른쪽 : 최근 탐지 10건. 누르면 탐지 상세. 상태 배지는 탐지 목록(S-15)과 같음 (미확인만 빨강) -->
+            <section class="adm-card mon-alerts" aria-labelledby="mon-alert-title">
+                <div class="adm-card-head">
+                    <h2 id="mon-alert-title">탐지 실시간 알림</h2>
+                    <a th:href="@{/admin/fds}">탐지 목록 보기</a>
+                </div>
+                <ul class="mon-alert-list js-mon-detections">
+                    <li class="adm-empty">불러오는 중입니다.</li>
+                </ul>
+            </section>
+        </div>
+    </div>
+
+    <p class="adm-note">이체와 ATM 출금만 나옵니다(입금·대출·예적금 제외). 빨강은 탐지(60점 이상, 누르면 상세), 노랑은 주의(30~59점)입니다. 주의 표시는 서버를 다시 켜면 사라집니다. 예약·정기 이체와 본인 계좌 이체는 판정 대상이 아니라 점수가 없습니다.</p>
+
+    <script th:src="@{/js/admin-monitoring.js}"></script>
+</main>
+</body>
+</html>
