@@ -272,7 +272,15 @@ class AccountPageControllerTests {
 
 	private SavingsAccount savings(Long id, String name, SavingsType type, long principal) {
 		SavingsProduct product = new SavingsProduct(name, type, new BigDecimal("4.0000"), 36, 1L, 100_000_000L);
-		SavingsAccount savings = new SavingsAccount(product, MEMBER_ID, ACCOUNT_ID, principal, LocalDate.of(2026, 10, 20));
+		
+		 String prefix = type == SavingsType.FIXED_DEPOSIT
+		            ? "2002"
+		            : "3002";
+
+		    String accountNumber =
+		            String.format("%s-123-%06d", prefix, id);
+		    
+		SavingsAccount savings = new SavingsAccount(product, MEMBER_ID, ACCOUNT_ID, principal, accountNumber, LocalDate.of(2026, 10, 20));
 		ReflectionTestUtils.setField(savings, "id", id);
 		return savings;
 	}
