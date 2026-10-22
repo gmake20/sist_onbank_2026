@@ -155,16 +155,17 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- (10-21) 팀3 예금 (savings_account) : 고유 계좌번호가 없어 연결계좌(가입·만기 때 돈이 오가는 입출금 계좌)를 보여 준다
-                         최종거래일은 savings_payment 의 마지막 납입일, 기록이 없으면 가입일 -->
+                    <!-- (10-21) 팀3 예금 (savings_account). 최종거래일은 savings_payment 의 마지막 납입일, 기록이 없으면 가입일
+                         (10-22) 계좌번호 칸 : 팀3가 추가한 예적금 고유 번호(account_number). 아래 줄에 연결계좌(가입·만기 때 돈이 오가는 입출금 계좌)
+                         고유 번호가 비어 있는 예전 데이터는 연결계좌 번호를 대신 보여 준다 -->
                     <tr th:each="item : ${depositProducts}">
                         <td>
                             <th:block th:text="${item.product.name}">ONBANK 프리미엄 예금</th:block><br>
                             <span class="sub-text" th:text="|연 ${#numbers.formatDecimal(item.contractRate, 1, 2)}% · 만기 ${#temporals.format(item.maturityOn, 'yyyy.MM.dd')}|">연 4.00% · 만기 2029.10.20</span>
                         </td>
                         <td>
-                            <th:block th:text="${accountNumbers[item.sourceAccountId] ?: '-'}">1002-376-992742</th:block><br>
-                            <span class="sub-text">연결계좌</span>
+                            <th:block th:text="${item.accountNumber ?: accountNumbers[item.sourceAccountId] ?: '-'}">2002-123-456789</th:block><br>
+                            <span class="sub-text" th:text="|연결계좌 ${accountNumbers[item.sourceAccountId] ?: '-'}|">연결계좌 1002-376-992742</span>
                         </td>
                         <td th:text="${lastPaidOn[item.id] ?: #temporals.format(item.openedOn, 'yyyy.MM.dd')}">2026.10.20</td>
                         <td class="balance" th:text="${#numbers.formatInteger(item.principal, 1, 'COMMA')}">0</td>
@@ -213,15 +214,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- (10-21) 팀3 적금 (savings_account) : 잔액 칸은 지금까지 넣은 금액. 연결계좌·최종거래일은 예금과 같다 -->
+                    <!-- (10-21) 팀3 적금 (savings_account) : 잔액 칸은 지금까지 넣은 금액. 계좌번호·연결계좌·최종거래일은 예금과 같다 -->
                     <tr th:each="item : ${savingsProducts}">
                         <td>
                             <th:block th:text="${item.product.name}">ONBANK 미래설계 장기적금</th:block><br>
                             <span class="sub-text" th:text="|월 ${#numbers.formatInteger(item.monthlyAmount, 1, 'COMMA')}원 · 연 ${#numbers.formatDecimal(item.contractRate, 1, 2)}% · 만기 ${#temporals.format(item.maturityOn, 'yyyy.MM.dd')}|">월 150,000원 · 연 4.20% · 만기 2029.10.21</span>
                         </td>
                         <td>
-                            <th:block th:text="${accountNumbers[item.sourceAccountId] ?: '-'}">1002-376-992742</th:block><br>
-                            <span class="sub-text">연결계좌</span>
+                            <th:block th:text="${item.accountNumber ?: accountNumbers[item.sourceAccountId] ?: '-'}">3002-123-456789</th:block><br>
+                            <span class="sub-text" th:text="|연결계좌 ${accountNumbers[item.sourceAccountId] ?: '-'}|">연결계좌 1002-376-992742</span>
                         </td>
                         <td th:text="${lastPaidOn[item.id] ?: #temporals.format(item.openedOn, 'yyyy.MM.dd')}">2026.10.21</td>
                         <td class="balance" th:text="${#numbers.formatInteger(item.principal, 1, 'COMMA')}">0</td>

@@ -2,7 +2,7 @@
 -- 팀원2 계좌/이체 파트 DDL (MySQL 8.0 이상)
 -- 소유: financial_institution_code, account, transaction_history, account_transfer, account_favorite, asset_report,
 --       scheduled_transfer (10-20 추가)
--- 컬럼 설명: docs/schema-team2-dictionary.md (테이블을 바꾸면 이 파일 + 데이터 사전 + 엔티티를 함께 고친다)
+-- 컬럼 설명: docs/account/schema-team2-dictionary.md (테이블을 바꾸면 이 파일 + 데이터 사전 + 엔티티를 함께 고친다)
 -- 테이블 변경: 이 파일 수정 + 맨 아래 "변경 이력"에 ALTER 문 추가 → 공용 DB에 ALTER 실행 → 엔티티 수정
 -- 실행 순서: 01_auth_ddl.sql → 이 파일 → 02_admin_ddl.sql
 --            (02_admin_ddl.sql 의 FK가 account, account_transfer, transaction_history 를 참조하므로 이 파일을 먼저 실행)

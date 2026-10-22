@@ -1,6 +1,6 @@
 # 팀원2 테이블 데이터 사전
 
-[03_account_ddl.sql](../project/onbank/src/main/resources/db/03_account_ddl.sql)에 정의된 테이블 7개의 컬럼 설명입니다. (10-20 `scheduled_transfer` 추가)
+[03_account_ddl.sql](../../project/onbank/src/main/resources/db/03_account_ddl.sql)에 정의된 테이블 7개의 컬럼 설명입니다. (10-20 `scheduled_transfer` 추가)
 기준은 팀원2 데이터 사전 원본이며, 원본에 없는 컬럼은 `account.password_fail_count` 하나만 추가했습니다. SQL 파일을 수정하면 이 문서와 엔티티(`org.doit.onbank.account.entity`)도 함께 고칩니다.
 
 - 금액은 모두 `BIGINT`(원 단위)이며 엔티티에서는 `Long`으로 매핑합니다. 이자율은 `DECIMAL(7,4)` ↔ `BigDecimal`입니다.

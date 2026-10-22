@@ -240,6 +240,8 @@ class AccountPageControllerTests {
 		mockMvc.perform(get("/mybank/accounts").with(user(me)))
 				.andExpect(status().isOk())
 				.andExpect(content().string(allOf(
+						containsString("2002-123-000011"),	// (10-22) 예금 고유 계좌번호 (savings_account.account_number)
+						containsString("3002-123-000012"),	// (10-22) 적금 고유 계좌번호
 						containsString("연결계좌"),		// 연결계좌 = 입출금 TEST-0001 (savings 의 sourceAccountId)
 						containsString("2026.11.20"),	// 적금 최종거래일 = 마지막 납입일
 						containsString("2026.10.20"),	// 예금은 납입 기록이 없어 가입일
