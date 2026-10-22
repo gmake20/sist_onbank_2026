@@ -1,0 +1,131 @@
+name: Deploy with DockerHub to cafe24 Server
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때 트리거
+  workflow_dispatch:  # Actions 화면에서 수동 실행도 가능
+
+env:
+  SERVER_HOST: scym3.cafe24.com   # cafe24 서버 주소 (IP로 바꿔도 됨)
+  SERVER_USER: root
+  APP_PORT: 8000                  # 서버에서 열 포트
+  CONTAINER_NAME: onbank
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: project/onbank
+
+    steps:
+    # 코드 체크아웃(가져오기)
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # JDK 21 설정 (gradle 의존성 캐시 사용)
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'gradle'
+        cache-dependency-path: project/onbank/*.gradle*
+
+    # gradlew 권한 설정
+    - name: Set gradlew permissions
+      run: chmod +x ./gradlew
+
+    # gradle 빌드 (bootJar 하나만 build/libs 에 생성됨)
+    - name: Build with Gradle
+      run: ./gradlew clean build -x test
+
+    # 이미지 이름: <도커허브계정>/onbank
+    - name: Set image name
+      run: echo "IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/onbank" >> "$GITHUB_ENV"
+
+    - name: Log in to DockerHub
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    # latest 와 커밋 해시 태그를 같이 올림 (문제 생기면 이전 해시로 되돌릴 수 있게)
+    - name: Build and Push Docker image
+      run: |
+        docker build -t "$IMAGE:latest" -t "$IMAGE:${GITHUB_SHA::7}" .
+        docker push "$IMAGE:latest"
+        docker push "$IMAGE:${GITHUB_SHA::7}"
+
+    - name: Add SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: Add known_hosts
+      run: ssh-keyscan -t ed25519 "$SERVER_HOST" >> ~/.ssh/known_hosts
+
+    # 비밀 설정 파일은 이미지에 넣지 않고 서버의 ~/onbank/config 에 둔다
+    - name: Upload application-local.properties
+      env:
+        APP_PROPS: ${{ secrets.APPLICATION_LOCAL_PROPERTIES }}
+      run: |
+        printf '%s\n' "$APP_PROPS" | ssh "$SERVER_USER@$SERVER_HOST" \
+          "mkdir -p ~/onbank/config && cat > ~/onbank/config/application-local.properties && chmod 600 ~/onbank/config/application-local.properties"
+
+    # 서버에서 도커허브 로그인 (private 저장소에서 pull 하기 위해)
+    - name: Log in to DockerHub on server
+      run: |
+        echo "${{ secrets.DOCKERHUB_TOKEN }}" | ssh "$SERVER_USER@$SERVER_HOST" \
+          "docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' --password-stdin"
+
+    # 기존 컨테이너를 지우고 새 이미지로 실행
+    - name: Deploy on server
+      run: |
+        ssh "$SERVER_USER@$SERVER_HOST" << EOF
+          set -e
+          docker pull $IMAGE:latest
+          docker stop $CONTAINER_NAME 2>/dev/null || true
+          docker rm $CONTAINER_NAME 2>/dev/null || true
+          docker run -d --name $CONTAINER_NAME \
+            --restart unless-stopped \
+            -p $APP_PORT:$APP_PORT \
+            -e SERVER_PORT=$APP_PORT \
+            -v ~/onbank/config:/app/config:ro \
+            $IMAGE:latest
+          docker image prune -f
+        EOF
+
+    # 앱이 실제로 응답하는지 확인 (최대 약 2분 대기)
+    - name: Health check
+      run: |
+        ssh "$SERVER_USER@$SERVER_HOST" << EOF
+          for i in \$(seq 1 24); do
+            CODE=\$(curl -s -o /dev/null -w '%{http_code}' http://localhost:$APP_PORT/ || true)
+            if [ "\$CODE" != "000" ]; then
+              echo "앱 응답 확인 (HTTP \$CODE)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "앱이 응답하지 않습니다. 최근 로그:"
+          docker logs --tail 100 $CONTAINER_NAME
+          exit 1
+        EOF
+
+    # Slack 알림 (성공/실패 모두 전송)
+    - name: Notify Slack
+      if: always()
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        STATUS: ${{ job.status }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        COMMITS: ${{ toJSON(github.event.commits) }}
+      run: |
+        if [ -z "$SLACK_WEBHOOK_URL" ]; then
+          echo "SLACK_WEBHOOK_URL 이 없어 알림을 건너뜁니다."
+          exit 0
+        fi
+        if [ "$STATUS" = "success" ]; then ICON=":white_check_mark:"; else ICON=":x:"; fi
+        # 이번 push에 포함된 커밋 목록 (커밋 메시지 첫 줄, 최대 10개). 수동 실행이면 비어 있음
+        CHANGES=$(echo "$COMMITS" | jq -r '(. // [])[-10:][] | "• <\(.url)|\(.id[0:7])> \(.message | split("\n")[0]) - \(.author.name)"')
+        TEXT="$ICON onbank 도커 배포 $STATUS ($GITHUB_ACTOR) <$RUN_URL|실행 로그>"$'\n'"$CHANGES"
+        jq -n --arg text "$TEXT" '{text: $text}' | curl -sS -X POST -H 'Content-Type: application/json' -d @- "$SLACK_WEBHOOK_URL"
