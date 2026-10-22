@@ -69,6 +69,7 @@ public class SavingsEarlyCloseService {
     }
 
     private SavingsEarlyCloseCalculator.Quote makeQuote(SavingsAccount account, LocalDate date) {
+    	
         if (account.getStatus() != SavingsStatus.ACTIVE) {
             throw new IllegalStateException("활성 계좌만 중도해지할 수 있습니다.");
         }
@@ -80,6 +81,7 @@ public class SavingsEarlyCloseService {
     }
 
     private SavingsAccount requireOwned(Long id, Long memberId, boolean lock) {
+    	
         if (id == null || memberId == null) throw new AccessDeniedException("로그인이 필요합니다.");
         
         SavingsAccount a = lock
