@@ -1,9 +1,7 @@
-
 package org.doit.onbank.loan.controller;
 
 import org.doit.onbank.loan.dto.LoanApplicationForm;
 import org.doit.onbank.loan.service.LoanApplicationService;
-import org.doit.onbank.loan.service.LoanService;
 import org.doit.onbank.member.security.LoginMember;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/loans")
 public class LoanApiController {
 
-    private final LoanService loanService;
     private final LoanApplicationService applicationService;
 
     // 1. 대출 신청

@@ -33,17 +33,13 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class LoanExecutionService {
 
-	private final OnbankApplication onbankApplication;
 	private final LoanRepaymentScheduleService loanRepaymentScheduleService;
 	private final AccountTransferService accountTransferService;
 	private final LoanApplicationRepository loanApplicationRepository;
 	private final EmployeeRepository employeeRepository;
 	private final LoanAccountRepository loanAccountRepository;
-
 	private final AccountNumberGenerator generator;
-
-	private final LoanRepaymentScheduleRepository schedules;
-	private final LoanService loanService;
+	
 
 
 	@Transactional(readOnly = true)
@@ -118,19 +114,20 @@ public class LoanExecutionService {
 
 		String loanAccountNumber = generator.generate(AccountType.LOAN);
 
+		LocalDateTime executedAt = LocalDateTime.now();
+
 		LoanAccount loanAccount = LoanAccount.builder()
-				.loanAccountNumber(loanAccountNumber)
-				.loanApplication(application)
-				.principalAmount(application.getApprovedAmount())
-				.interestRate(application.getApprovedInterestRate())
-				.repaymentMethod(application.getRepaymentMethod())
-				.executedAt(LocalDateTime.now())
-				.maturityDate(
-						LocalDate.now().plusMonths(
-								application.getRequestedMonths()
-								)
-						)
-				.build();
+		        .loanAccountNumber(loanAccountNumber)
+		        .loanApplication(application)
+		        .principalAmount(application.getApprovedAmount())
+		        .interestRate(application.getApprovedInterestRate())
+		        .repaymentMethod(application.getRepaymentMethod())
+		        .executedAt(executedAt)
+		        .maturityDate(
+		                executedAt.toLocalDate()
+		                        .plusMonths(application.getRequestedMonths())
+		        )
+		        .build();
 
 		loanAccountRepository.save(loanAccount);
 
@@ -171,61 +168,5 @@ public class LoanExecutionService {
 					);
 		}
 	}
-
-
-	@Transactional(propagation = Propagation.MANDATORY)
-	public void createSchedule(
-			LoanAccount loanAccount,
-			LoanApplication application) {
-
-		// 1. 입력값 검증
-		if (loanAccount == null || application == null) {
-			throw new IllegalArgumentException(
-					"대출 계좌 또는 대출 신청 정보가 없습니다."
-					);
-		}
-
-		// 2. 대출 계좌 저장 여부 확인
-		if (loanAccount.getLoanAccountId() == null) {
-			throw new IllegalStateException(
-					"대출 계좌가 저장되지 않았습니다."
-					);
-		}
-
-		// 3. 대출 신청 ID 확인
-		if (application.getId() == null
-				|| loanAccount.getLoanApplication() == null
-				|| !application.getId().equals(
-						loanAccount.getLoanApplication().getId())) {
-			throw new IllegalStateException(
-					"대출 계좌와 신청 정보가 일치하지 않습니다."
-					);
-		}
-
-		// 4. 승인된 대출인지 확인
-		if (application.getStatus()
-				!= LoanApplicationStatus.APPROVED) {
-			throw new IllegalStateException(
-					"승인된 대출만 상환 일정을 생성할 수 있습니다."
-					);
-		}
-
-		// 5. 상환 스케줄 중복 생성 방지
-		if (schedules.existsByLoanAccount_LoanAccountId(
-				loanAccount.getLoanAccountId())) {
-			throw new IllegalStateException(
-					"이미 상환 스케줄이 생성되었습니다."
-					);
-		}
-
-		// 6. 상환 스케줄 계산
-		List<LoanRepaymentSchedule> result =
-				loanService.calculate(loanAccount, application);
-
-		// 7. 상환 스케줄 저장
-		schedules.saveAll(result);
-	}
-
-
 
 }
