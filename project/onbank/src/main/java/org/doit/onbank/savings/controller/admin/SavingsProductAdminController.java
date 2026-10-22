@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/admin/savings/products")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('OPERATOR')")
 public class SavingsProductAdminController {
 	
     private final SavingsProductAdminService service;
@@ -33,7 +33,7 @@ public class SavingsProductAdminController {
         if (!model.containsAttribute("form")) {
             model.addAttribute("form", new SavingsProductCreateForm());
         }
-        return "admin/savings/product-register";
+        return "savings/product-register";
     }
 
     @PostMapping
@@ -53,7 +53,7 @@ public class SavingsProductAdminController {
             return "redirect:/admin/savings/products/new";
         } catch (IllegalArgumentException e) {
             model.addAttribute("error", e.getMessage());
-            return "admin/savings/product-register";
+            return "savings/product-register";
         }
     }
 }
