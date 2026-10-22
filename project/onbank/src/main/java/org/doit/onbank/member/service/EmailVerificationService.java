@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
-// 회원가입 이메일 인증 : 인증번호 생성·메일 발송·검증
+// 이메일 인증 (회원가입, 마이페이지 이메일 변경) : 인증번호 생성·메일 발송·검증
 // 비밀번호 찾기(임시 비밀번호)가 가입한 이메일로 가므로, 가입할 때 실제로 받을 수 있는 주소인지 확인한다
 // - 휴대폰 인증(PhoneVerificationService)과 같은 방식 : 인증번호, 만료시각, 입력 횟수를 세션에 이메일별로 저장
 // - 인증에 성공하면 "emailVerified:주소"를 남기고, 회원가입 POST에서 서버가 다시 확인한다
@@ -70,12 +70,13 @@ public class EmailVerificationService {
 		}
 
 		String code = String.format("%06d", random.nextInt(1_000_000));
-		emailSender.send(email.trim(), "[ONBANK] 회원가입 이메일 인증번호", """
-				ONBANK 회원가입 이메일 인증번호입니다.
+		// 회원가입과 마이페이지 이메일 변경에서 함께 쓰므로 문구는 공통으로
+		emailSender.send(email.trim(), "[ONBANK] 이메일 인증번호", """
+				ONBANK 이메일 인증번호입니다.
 
 				인증번호 : %s
 
-				가입 화면에 %d분 이내로 입력해 주세요.
+				인증 화면에 %d분 이내로 입력해 주세요.
 				본인이 요청하지 않았다면 이 메일을 무시하셔도 됩니다.
 				""".formatted(code, CODE_TTL.toMinutes()));
 

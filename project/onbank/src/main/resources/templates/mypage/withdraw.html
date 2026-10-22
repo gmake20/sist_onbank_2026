@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>회원 탈퇴 - ONBANK</title>
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <style>
+        .withdraw-wrap { max-width: 480px; margin: 60px auto; padding: 40px; border: 1px solid #e5e5e5; border-radius: 12px; }
+        .withdraw-wrap h2 { margin: 0 0 20px; color: #0b1d3a; text-align: center; }
+        .withdraw-wrap h3 { font-size: 15px; margin: 0 0 8px; color: #0b1d3a; }
+        .withdraw-box { padding: 16px 18px; border-radius: 8px; font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
+        .withdraw-box ul { margin: 0; padding-left: 18px; }
+        .withdraw-box li { list-style: disc; }
+        .withdraw-notice { background: #f6f8fb; color: #444; }
+        .withdraw-blocked { background: #fdf3f2; border: 1px solid #f1c4c2; color: #b03a35; }
+        .withdraw-wrap label { display: block; margin-bottom: 6px; font-size: 14px; }
+        .withdraw-wrap input[type=password] { width: 100%; box-sizing: border-box; padding: 12px;
+                                              border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
+        .withdraw-wrap .field { margin-bottom: 16px; }
+        .withdraw-wrap .agree { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
+        .withdraw-wrap button { width: 100%; padding: 12px; border: 0; border-radius: 6px;
+                                background: #c0392b; color: #fff; font-size: 16px; cursor: pointer; }
+        .withdraw-wrap button:disabled { background: #ccc; cursor: default; }
+        .msg-error { color: #c0392b; font-size: 14px; margin: 0 0 16px; }
+        .withdraw-links { margin-top: 16px; font-size: 14px; text-align: center; }
+        .withdraw-links a { color: #1f4e9c; }
+    </style>
+</head>
+<body>
+
+    <div th:replace="~{fragments/header :: headerFragment}"></div>
+
+    <main class="withdraw-wrap">
+        <h2>회원 탈퇴</h2>
+
+        <p class="msg-error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+        <div class="withdraw-box withdraw-notice">
+            <h3>탈퇴 전에 확인해 주세요</h3>
+            <ul>
+                <li>탈퇴하면 바로 로그아웃되며 같은 아이디로 다시 로그인하거나 가입할 수 없습니다.</li>
+                <li>잔액이 0원인 입출금 계좌는 모두 해지되고, 예약·정기이체는 취소됩니다.</li>
+                <li>휴대폰 번호와 이메일은 삭제되며, 같은 번호·이메일로 새로 가입할 수 있습니다.</li>
+                <li>거래내역 등 금융거래 기록은 관계 법령에 따라 일정 기간 보관됩니다.</li>
+            </ul>
+        </div>
+
+        <!-- 남은 금융거래가 있으면 탈퇴 불가 (MemberWithdrawService.findBlockers) -->
+        <div class="withdraw-box withdraw-blocked" th:unless="${#lists.isEmpty(blockers)}">
+            <h3>지금은 탈퇴할 수 없습니다</h3>
+            <ul>
+                <li th:each="b : ${blockers}" th:text="${b}">잔액이 남아 있는 계좌가 있습니다.</li>
+            </ul>
+        </div>
+
+        <!-- th:action 을 써야 CSRF 토큰이 자동으로 들어감 -->
+        <form th:action="@{/mybank/profile/withdraw}" method="post">
+            <div class="field">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" name="password" required
+                       th:disabled="${!#lists.isEmpty(blockers)}" placeholder="본인 확인을 위해 입력하세요">
+            </div>
+            <div class="field">
+                <label class="agree"><input type="checkbox" name="agreed" value="true"
+                       th:disabled="${!#lists.isEmpty(blockers)}"> 위 내용을 확인했으며 회원 탈퇴에 동의합니다.</label>
+            </div>
+            <button type="submit" th:disabled="${!#lists.isEmpty(blockers)}">탈퇴하기</button>
+        </form>
+
+        <div class="withdraw-links">
+            <a th:href="@{/mybank/profile}">마이페이지로 돌아가기</a>
+        </div>
+    </main>
+
+    <div th:replace="~{fragments/footer :: footerFragment}"></div>
+</body>
+</html>
