@@ -1,7 +1,8 @@
 # 팀원2 작업 진행 기록 (계좌/이체/자산관리)
 
 > Claude에게 이어서 작업을 요청할 때 이 파일을 먼저 읽게 하세요.
-> 예: "docs/team2-progress.md 읽고 이어서 작업하자"
+> 예: "docs/account/team2-progress.md 읽고 이어서 작업하자"
+> (10-22) 팀2 문서 4개(handoff, progress, 데이터 사전, 테스트 데이터 SQL)를 `docs/` → `docs/account/`로 옮김
 
 마지막 정리: 2026-10-20
 
@@ -9,7 +10,7 @@
 
 ## 1. 내 역할
 
-- 팀원2. 담당: 계좌, 입출금, 이체, 거래내역, 자산관리 (기획서 [README.md](README.md) 12장)
+- 팀원2. 담당: 계좌, 입출금, 이체, 거래내역, 자산관리 (기획서 [README.md](../README.md) 12장)
 - 현재 상태 (10-20): 입출금·당행 즉시이체·계좌 개설·즐겨찾기·이체 OTP·자산 리포트 완료(main 머지). **10-20 예약이체(5.4) 완료 — 커밋했지만 푸시 전, 브라우저 확인 전.** 다음: **정기이체(5.5)** (handoff 2-3). 후보: 사기계좌 확인 (팀4 답 대기). 6.1 거래내역 페이징·필터는 사용자가 건너뛰기로 함
 - 세션 인수인계: [team2-handoff.md](team2-handoff.md) (최근 작업 상태, 다음에 할 일, 주의할 점). **10-16 이후 결정(계좌 유형 값, 계좌번호 규칙, 한도 기본값, 즐겨찾기 등)은 handoff 1-1이 기준**
 - 처리 규칙의 기준은 기획서 11-1장 (비밀번호 검증 → 비관적 락 → 검증 → 잔액 갱신 → 원장 기록 → 커밋 후 이벤트)
@@ -18,10 +19,10 @@
 
 | 파일 | 상태 |
 |---|---|
-| [03_account_ddl.sql](../project/onbank/src/main/resources/db/03_account_ddl.sql) | 팀2 DDL (2026-10-16에 docs/schema-team2-mysql.sql 에서 옮김). 공용 DB(cafe24)에 테이블 생성 완료 |
+| [03_account_ddl.sql](../../project/onbank/src/main/resources/db/03_account_ddl.sql) | 팀2 DDL (2026-10-16에 docs/schema-team2-mysql.sql 에서 옮김). 공용 DB(cafe24)에 테이블 생성 완료 |
 | [schema-team2-dictionary.md](schema-team2-dictionary.md) | SQL과 같게 정리 완료 |
 | 엔티티 6개 (`org.doit.onbank.account.entity`) | 커밋·main 머지 완료. 공용 DB에서 `ddl-auto=validate` 통과 확인 |
-| [schema-team1-mysql.sql](schema-team1-mysql.sql) | members에 `daily_transfer_limit`, `once_transfer_limit` 추가. 공용 DB에 ALTER 완료, 팀1과 협의 완료 |
+| [schema-team1-mysql.sql](../schema-team1-mysql.sql) | members에 `daily_transfer_limit`, `once_transfer_limit` 추가. 공용 DB에 ALTER 완료, 팀1과 협의 완료 |
 | [data-team2-mysql.sql](data-team2-mysql.sql) | 화면 확인용 테스트 계좌 3개 (`TEST-0001`~`0003`, 계좌 비밀번호 1234). 삭제 SQL 포함. 아이디 줄은 PC마다 바꿔 쓰고 커밋하지 않음 |
 | 입출금 코드·화면 (`org.doit.onbank.account` 아래 `entity / repository / service / controller / dto`, `templates/account/list, detail, deposit, withdraw.html`, `static/js/account.js`) | 10-15 작성, main 머지됨, 브라우저 확인 완료 |
 | 이체 코드·화면 (`AccountTransferService`, `TransferPageController`, `transfer.html`, `transfer-result.html`, `static/js/transfer.js`) | 10-16 작성, main 머지됨, 브라우저 확인 완료 |

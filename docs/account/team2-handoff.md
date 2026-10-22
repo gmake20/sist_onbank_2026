@@ -1,7 +1,8 @@
 # 팀원2 작업 인수인계 (2026-10-21 오후 정리)
 
 > 새 세션에서 Claude에게 이렇게 요청하세요.
-> **"docs/team2-handoff.md 와 docs/team2-progress.md 읽고 이어서 작업하자"**
+> **"docs/account/team2-handoff.md 와 docs/account/team2-progress.md 읽고 이어서 작업하자"**
+> (10-22) 팀2 문서 4개를 `docs/` → `docs/account/`로 옮김 (팀원들이 팀2 문서를 구분하기 쉽게)
 >
 > - 이 파일: 최근 작업 상태, 바로 다음에 할 일, 주의할 점 (**최신**)
 > - [team2-progress.md](team2-progress.md): 기본 결정 사항(3장), 엔티티 메서드, 이체 설계, 전체 할 일 목록. **10-16 이후 결정은 이 파일 1-1이 기준**
@@ -29,7 +30,7 @@
      git pull origin account
      ```
    - 받아졌는지 확인: `project/onbank/src/main/java/org/doit/onbank/account/service/ScheduledTransferService.java` 가 있으면 10-20 작업까지 받아진 것
-   - 커밋하지 않은 파일이 있으면 pull 이 막힌다. 먼저 `git status` 로 확인 (`docs/data-team2-mysql.sql` 아이디 줄은 PC마다 다르므로 커밋하지 않는다)
+   - 커밋하지 않은 파일이 있으면 pull 이 막힌다. 먼저 `git status` 로 확인 (`docs/account/data-team2-mysql.sql` 아이디 줄은 PC마다 다르므로 커밋하지 않는다)
    - PR이 머지된 뒤 새 작업을 시작할 때는 `git pull origin main`으로 `account`를 main과 맞춘다
 2. PC마다 따로 있는 것 (Git에 없음)
    - `CLAUDE.local.md`: 개인 작업 원칙 (`.git/info/exclude`로 제외)
