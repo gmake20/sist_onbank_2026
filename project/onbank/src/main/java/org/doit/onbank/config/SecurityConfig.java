@@ -71,22 +71,40 @@ public class SecurityConfig {
 			AdminLoginAttemptRecorder adminLoginAttemptRecorder) throws Exception {
 		HttpSessionRequestCache requestCache = requestCache("SPRING_SECURITY_SAVED_REQUEST_ADMIN");
 		http
+			// 이 체인이 맡는 주소 범위 : /admin 으로 시작하는 요청만 이 체인을 탄다
+			// (@Order(1)이라 가장 먼저 검사. 맞지 않으면 다음 체인(직원)으로 넘어감)
 			.securityMatcher("/admin/**")
+			// 로그인할 때 아이디·비밀번호를 admin 테이블에서 찾는다
+			// (UserDetailsService Bean이 3개라 자동으로 고를 수 없어서 직접 지정)
 			.userDetailsService(adminDetailsService)
+			// 로그인 정보를 세션의 SPRING_SECURITY_CONTEXT_ADMIN 이름으로 저장·조회한다
+			// → 고객·직원 로그인 정보(다른 이름)와 섞이지 않음. 고객으로 로그인해도 관리자 화면에서는 비로그인으로 처리
 			.securityContext(context -> context.securityContextRepository(contextRepository("SPRING_SECURITY_CONTEXT_ADMIN")))
+			// 로그인 전에 보려던 주소를 SPRING_SECURITY_SAVED_REQUEST_ADMIN 이름으로 저장한다
+			// → 로그인 성공 후 그 주소로 돌아감 (LoginSuccessHandler에도 같은 requestCache를 넘김)
 			.requestCache(cache -> cache.requestCache(requestCache))
 			// 권한 검사를 통과한 뒤에 확인 (로그인하지 않은 요청은 먼저 로그인 화면으로)
+			// 임시 비밀번호 상태면 변경 화면(/admin/password)과 로그아웃(/admin/logout)만 허용
+			// 그 외 화면은 변경 화면으로 redirect, /admin/api/** 는 403 응답
 			.addFilterAfter(new TempPasswordFilter("/admin/password", "/admin/logout", "/admin/api/**"),
 					AuthorizationFilter.class)
+			// 인증·권한 오류가 났을 때 처리 방법
 			.exceptionHandling(ex -> ex
+				// 403 : CSRF 토큰 오류면 /admin/login?expired 로, 그 외 권한 부족은 기본 403 응답
 				.accessDeniedHandler(accessDeniedHandler("/admin/login"))
+				// 로그인하지 않은 요청 : /admin/api/** 는 401만, 그 외 화면은 /admin/login 으로 redirect
 				.authenticationEntryPoint(entryPoint("/admin/login", "/admin/api/**")))
+			// 주소별 접근 권한 : 위에서부터 차례로 검사하고 처음 맞는 규칙 하나만 적용
 			.authorizeHttpRequests(auth -> auth
+				// 로그인 화면은 누구나 접근 가능 (막으면 로그인 화면으로 가는 redirect가 무한 반복됨)
 				.requestMatchers("/admin/login").permitAll()
 				// 활동 로그·로그인 이력(S-14)은 SUPER_ADMIN 전용. AdminLogController의 @PreAuthorize와 함께
 				// URL에서도 막는다 (@EnableMethodSecurity가 빠져도 열리지 않도록)
+				// /admin/logs 와 그 하위 주소 모두 해당. OPERATOR·SERVICE는 403
 				.requestMatchers("/admin/logs", "/admin/logs/**").hasRole("SUPER_ADMIN")
 				// TODO 역할별 세부 권한은 팀원4가 정하면 추가 (예: 공지사항 관리)
+				// 나머지 관리자 주소는 관리자 역할 3개 중 하나만 있으면 접근 가능
+				// (hasRole은 앞에 ROLE_을 붙여 검사 : ROLE_SUPER_ADMIN, ROLE_OPERATOR, ROLE_SERVICE)
 				.anyRequest().hasAnyRole("SUPER_ADMIN", "OPERATOR", "SERVICE"))
 			.formLogin(form -> form
 				.loginPage("/admin/login")
