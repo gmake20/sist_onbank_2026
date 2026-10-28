@@ -114,14 +114,14 @@ flowchart LR
 
 | # | 영상 | 보여 주는 것 |
 |---|---|---|
-| 1 | [회원가입](<docs/temp1_시연영상/1.onbank_회원가입.mp4>) | 이메일 인증번호 발송 · 확인 후 가입 |
-| 2 | [비밀번호 5회 오류 잠금](<docs/temp1_시연영상/2.onbank_회원비번5회틀리고잠김.mp4>) | 비밀번호를 5번 틀리면 계정 잠김 |
-| 3 | [비밀번호 찾기](<docs/temp1_시연영상/3.onbank_비밀번호_찾기_이메일인증.mp4>) | 가입한 이메일로 임시 비밀번호 발송 → 로그인 → 비밀번호 변경 강제 |
-| 4 | [고객 · 직원 · 관리자 로그인](<docs/temp1_시연영상/4.onbank_일반유저_직원_관리자로그인.mp4>) | 세 로그인 화면과 영역 분리 |
-| 5 | [OTP 등록](<docs/temp1_시연영상/5.onbank_otp등록.mp4>) | OTP 발급 → 인증 앱 등록 → 연속 2회 입력으로 사용 등록 |
-| 6 | [OTP를 사용한 계좌이체](<docs/temp1_시연영상/6.onbank_otp를 사용한계좌이체.mp4>) | 10만 원 초과 · 다른 회원 계좌 이체에서 OTP 입력 |
-| 7 | [지점 찾기](<docs/temp1_시연영상/7.onbank_지점찾기.mp4>) | 카카오맵 지점 · ATM 검색과 정보창 |
-| 8 | [자동 배포 테스트](<docs/temp1_시연영상/8.onbank_자동배포테스트.mp4>) | main 반영 → GitHub Actions → Docker 배포 → Slack 알림 |
+| 1 | [회원가입](<docs/team1_시연영상/1.onbank_회원가입.mp4>) | 이메일 인증번호 발송 · 확인 후 가입 |
+| 2 | [비밀번호 5회 오류 잠금](<docs/team1_시연영상/2.onbank_회원비번5회틀리고잠김.mp4>) | 비밀번호를 5번 틀리면 계정 잠김 |
+| 3 | [비밀번호 찾기](<docs/team1_시연영상/3.onbank_비밀번호_찾기_이메일인증.mp4>) | 가입한 이메일로 임시 비밀번호 발송 → 로그인 → 비밀번호 변경 강제 |
+| 4 | [고객 · 직원 · 관리자 로그인](<docs/team1_시연영상/4.onbank_일반유저_직원_관리자로그인.mp4>) | 세 로그인 화면과 영역 분리 |
+| 5 | [OTP 등록](<docs/team1_시연영상/5.onbank_otp등록.mp4>) | OTP 발급 → 인증 앱 등록 → 연속 2회 입력으로 사용 등록 |
+| 6 | [OTP를 사용한 계좌이체](<docs/team1_시연영상/6.onbank_otp를 사용한계좌이체.mp4>) | 10만 원 초과 · 다른 회원 계좌 이체에서 OTP 입력 |
+| 7 | [지점 찾기](<docs/team1_시연영상/7.onbank_지점찾기.mp4>) | 카카오맵 지점 · ATM 검색과 정보창 |
+| 8 | [자동 배포 테스트](<docs/team1_시연영상/8.onbank_자동배포테스트.mp4>) | main 반영 → GitHub Actions → Docker 배포 → Slack 알림 |
 
 ---
 
@@ -147,6 +147,9 @@ flowchart TD
 | 권한 | `ROLE_USER` | `ROLE_STAFF`, `ROLE_MANAGER` | `ROLE_SUPER_ADMIN`, `ROLE_OPERATOR`, `ROLE_SERVICE` |
 | 세션 저장 이름 | `SPRING_SECURITY_CONTEXT` | `…_EMPLOYEE` | `…_ADMIN` |
 
+![고객 · 직원 · 관리자 로그인 화면](docs/team1_시연영상/images/04-login-3.jpg)
+<sub>왼쪽부터 고객 로그인(`/login`) · 직원 로그인(`/employee/login`) · 관리자 로그인(`/admin/login`)</sub>
+
 - **로그인 컨트롤러를 직접 만들지 않았습니다.** `POST /login`은 Spring Security 폼 로그인이 처리하고, 직접 만든 것은 "어느 테이블에서 회원을 찾을지"(`UserDetailsService`)와 "계정이 잠겼는지 · 정지됐는지"(`UserDetails`)입니다.
 - **세션 저장 이름을 영역별로 나눴습니다.** 고객으로 로그인한 상태로 `/employee/**`에 가도 "로그인 안 함"으로 처리되고, 같은 브라우저에서 고객과 직원으로 함께 로그인해도 섞이지 않습니다.
 - **권한 계층(`RoleHierarchy`)** 을 두었습니다. `MANAGER > STAFF`, `SUPER_ADMIN > OPERATOR · SERVICE`이고, OPERATOR와 SERVICE는 서로의 권한을 갖지 않습니다.
@@ -168,6 +171,10 @@ flowchart TD
 → 새 비밀번호로 변경 → 자동 로그아웃 → 다시 로그인
 ```
 
+| 비밀번호 5회 오류 → 로그인 잠금 | 임시 비밀번호 로그인 → 변경 강제 |
+|---|---|
+| ![로그인 잠금 안내](docs/team1_시연영상/images/02-login-locked.jpg) | ![비밀번호 변경 강제 화면](docs/team1_시연영상/images/03-temp-password-change.jpg) |
+
 ### 6-3. 이메일 인증 (회원가입 · 마이페이지)
 
 비밀번호 찾기 메일이 **가입한 이메일로** 가기 때문에, 가입할 때 실제로 받을 수 있는 주소인지 확인합니다.
@@ -179,6 +186,10 @@ flowchart TD
 | 비교 | `MessageDigest.isEqual` 고정 시간 비교 (응답 시간으로 번호를 추측하지 못하게) |
 | 서버 재확인 | 화면에서 인증을 통과해도 **가입 요청 때 서버가 한 번 더 확인** |
 | 메일 발송 | `EmailSender` 인터페이스 — 설정에 따라 SMTP 발송(`SmtpEmailSender`) 또는 콘솔 출력(`ConsoleEmailSender`) |
+
+<img src="docs/team1_시연영상/images/01-signup.jpg" alt="회원가입 화면 (이메일 인증번호 받기 · 확인)" width="640">
+
+<sub>회원가입 화면 — 이메일 칸 옆 "인증번호 받기"로 6자리 번호를 받아 확인해야 가입됩니다.</sub>
 
 ### 6-4. 가상 OTP (이체 2차 인증)
 
@@ -207,6 +218,10 @@ stateDiagram-v2
 
 **이체 연동 (팀원2):** **10만 원 초과 + 다른 회원 계좌**로 보낼 때 팀원2의 이체 서비스가 `otpService.verify(memberId, code)`를 호출합니다. 계좌 비밀번호 확인과 OTP 검증은 계좌를 잠그기 **전에** 끝냅니다.
 
+| 사용 등록 완료 (오른쪽 위: OTP 인증 앱) | 이체 확인 화면의 OTP 입력 |
+|---|---|
+| ![OTP 관리 화면 - 사용중](docs/team1_시연영상/images/05-otp-active.jpg) | ![OTP를 입력하는 이체 확인 화면](docs/team1_시연영상/images/06-otp-transfer.jpg) |
+
 ### 6-5. 지점 · ATM 찾기 (Kakao Maps API)
 
 지점 데이터(이름 · 주소 · 위도 · 경도 · 영업시간 · 이용 가능 업무)는 **우리 DB와 REST API**가 주고, 카카오는 **지도를 그리는 일(Kakao Maps JavaScript SDK)** 만 맡습니다.
@@ -224,6 +239,9 @@ stateDiagram-v2
 - 목록 · 정보창의 글자는 `innerHTML`이 아니라 `textContent`로 넣어 XSS를 막았습니다.
 - 서버는 지점과 이용 가능 업무를 **fetch join 한 번**으로 읽고, 사용 중인 지점만 보여 줍니다.
 - 주소 → 좌표 변환 API는 쓰지 않고 좌표를 DB에 저장해, 외부 호출을 지도 그리기 하나로 줄였습니다.
+
+![지점·ATM 찾기 - "강남" 검색 결과와 정보창](docs/team1_시연영상/images/07-branch-map.jpg)
+<sub>"강남" 검색 결과 — 왼쪽 목록과 지도 핀이 연결되고, 선택한 지점의 정보창(주소 · 영업시간 · 이용 가능 업무)이 뜹니다.</sub>
 
 ### 6-6. Docker 자동 배포
 
@@ -245,6 +263,10 @@ flowchart LR
 | 태그 | `latest` + **커밋 해시 7자리** → 이전 커밋 이미지로 되돌릴 수 있음 |
 | 실행 | `--restart unless-stopped` (재부팅 · 종료 시 자동 재시작), 포트 8000 |
 | 비밀 설정 | DB 비밀번호 · OTP 키 등은 **이미지에 넣지 않음**. GitHub Secrets → 서버 파일 → 컨테이너에 **읽기 전용** 마운트 |
+
+<img src="docs/team1_시연영상/images/08-deploy-slack.jpg" alt="Slack 배포 알림 채널" width="640">
+
+<sub>Slack `#server-deploy` 채널 — 배포마다 결과(성공 · 실패), 실행 로그 링크, 이번에 들어간 커밋과 작성자가 자동으로 올라옵니다.</sub>
 
 워크플로: [.github/workflows/docker-deploy.yml](.github/workflows/docker-deploy.yml) · Dockerfile: [project/onbank/Dockerfile](project/onbank/Dockerfile)
 
